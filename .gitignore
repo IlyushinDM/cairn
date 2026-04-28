@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.mypy_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# PyTorch checkpoints & model weights
+*.pt
+*.pth
+*.ckpt
+checkpoints/
+runs/
+lightning_logs/
+
+# Data — benchmarks heavy (gitignored)
+data/benchmarks/
+data/sample/*.csv
+data/sample/*.json
+data/sample/*.txt
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Configs with secrets
+configs/local.yaml
+configs/*.secret.yaml
+
+# Logs
+*.log
+logs/
