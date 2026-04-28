@@ -96,12 +96,18 @@ connectors:
     type: csv               # csv | prometheus
     path: data/sample/metrics.csv
     interval_sec: 1
+    filter_instances: []    # [] = все доступные экземпляры
+    filter_metrics: []      # [] = все доступные метрики
   logs:
     type: file              # file | elasticsearch
     path: data/sample/logs.txt
+    min_level: INFO
   traces:
     type: file              # file | jaeger
     path: data/sample/traces.json
+  topology:
+    type: yaml
+    path: data/sample/topology.yaml
 
 gui:
   theme: light
