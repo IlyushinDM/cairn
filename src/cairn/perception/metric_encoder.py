@@ -70,7 +70,7 @@ class StablePatternBranch(nn.Module):
         inv_diag = 1.0 / (1.0 - e_jw + 1e-8)  # (freq, D)
 
         # Φ(ω) ≈ C * inv_diag * B: (freq, out_dim, F) через einsum
-        phi = torch.einsum("od,fd,df->fof", self.C, inv_diag.real, self.B)  # упрощение
+        phi = torch.einsum("od,fd,de->foe", self.C, inv_diag.real, self.B)  # упрощение
 
         # Свёртка в частотной области (формула 2.4): Φ(ω) * X_f
         # X_f: (batch, freq, F), используем среднее по частотам как агрегацию

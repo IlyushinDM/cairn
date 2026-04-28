@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -94,7 +95,7 @@ class ConditionalGMM(nn.Module):
         log_gauss = -0.5 * (
             ((h_exp - mu) ** 2 / var).sum(dim=-1)
             + torch.log(var).sum(dim=-1)
-            + self.state_dim * torch.log(torch.tensor(2 * 3.141592653589793))
+            + self.state_dim * math.log(2 * math.pi)
         )  # (batch, D)
 
         log_weights = torch.log(weights + 1e-8)      # (batch, D)

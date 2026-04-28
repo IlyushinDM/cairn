@@ -10,8 +10,6 @@ import argparse
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
-
 from cairn.config import load_config
 from cairn.utils.logging import setup_logging
 

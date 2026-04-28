@@ -7,19 +7,13 @@
 from __future__ import annotations
 
 import argparse
-import random
-import sys
-from pathlib import Path
-
-# Добавляем src в PYTHONPATH
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 import torch
 import numpy as np
 
+# Теперь импорты из вашего пакета работают, потому что пакет установлен
 from cairn.config import load_config
 from cairn.utils.logging import setup_logging
-from cairn.perception.metric_encoder import MetricEncoder
 from cairn.perception.hypergraph_builder import HypergraphBuilder
 from cairn.reasoning.conditional_gmm import ConditionalGMM
 from cairn.reasoning.counterfactual import CounterfactualInterventionModule
@@ -67,10 +61,7 @@ def main():
         n_components=cfg.model.gmm_components,
     )
     nll = gmm.nll(states, contexts)                       # (N,)
-    prototypes = torch.stack([
-        gmm.conditional_prototype(contexts[i:i+1]).squeeze(0)
-        for i in range(N)
-    ])                                                    # (N, d)
+    prototypes = gmm.conditional_prototype(contexts) # (N, d)                                              # (N, d)
 
     # Гиперграф (простая топология для демо)
     builder = HypergraphBuilder(N)
@@ -93,8 +84,10 @@ def main():
     adjacency = (incidence @ incidence.T).clamp(0, 1).fill_diagonal_(0)
     adj_norm = adjacency / adjacency.sum(dim=1, keepdim=True).clamp(min=1)
 
-    def nll_fn(s):
-        return gmm.nll(s, contexts)
+
+    def nll_fn(s, c=None):
+        curr_context = c if c is not None else contexts[:s.size(0)]
+        return gmm.nll(s, curr_context)
 
     ranked = funnel.run(
         nll, states, adj_norm, cf_module, nll_fn, prototypes, incidence, edge_weights
