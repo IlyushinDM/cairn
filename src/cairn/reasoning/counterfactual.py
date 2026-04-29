@@ -1,153 +1,196 @@
-"""Контрфактический интервенционный модуль — ядро архитектуры CAIRN (раздел 3.3).
+"""Контрфактический интервенционный модуль — ядро CAIRN (раздел 3.3).
 
 Реализует:
-  - Виртуальное вмешательство do(i) через дифференцируемую замену (формула 3.29)
-  - Гиперграфовую свёртку для распространения эффекта (формулы 3.23–3.24)
-  - Вычисление причинного эффекта ПЭ(i) (формулы 3.25–3.28)
+  - HypergraphConv             — нормализованная гиперграфовая свёртка (формула 3.24)
+  - CounterfactualModule       — do(i) вмешательство, ПЭ(i), ранжирование
+  - CounterfactualInterventionModule  — alias для обратной совместимости
+
+Вмешательство дифференцируемо: градиенты проходят через prototype(c_i).
 """
 
 from __future__ import annotations
+
+from typing import Callable, List, Optional, Tuple
 
 import torch
 import torch.nn as nn
 
 
+# ---------------------------------------------------------------------------
+# Гиперграфовая свёртка
+# ---------------------------------------------------------------------------
+
 class HypergraphConv(nn.Module):
     """Нормализованная гиперграфовая свёртка (формула 3.24).
 
-    Xl+1 = D_v^{-1/2} H W_H D_e^{-1} H^T D_v^{-1/2} X^(l) Θ
+    X^{l+1} = D_v^{-½} H W_H D_e^{-1} H^T D_v^{-½} X^{l} Θ
+
+    Параметры
+    ----------
+    in_dim : int
+    out_dim : int
+    use_pyg : bool
+        Если True и torch_geometric установлен — используется PyG-реализация.
     """
 
-    def __init__(self, in_dim: int, out_dim: int) -> None:
+    def __init__(self, in_dim: int, out_dim: int, use_pyg: bool = False) -> None:
         super().__init__()
-        self.theta = nn.Linear(in_dim, out_dim, bias=False)
+        self._pyg_conv = None
+        if use_pyg:
+            try:
+                from torch_geometric.nn import HypergraphConv as PyGHypergraphConv
+                self._pyg_conv = PyGHypergraphConv(in_dim, out_dim)
+            except ImportError:
+                pass
+
+        if self._pyg_conv is None:
+            self.theta = nn.Linear(in_dim, out_dim, bias=False)
 
     def forward(
         self,
-        X: torch.Tensor,        # (N, in_dim)
-        H: torch.Tensor,        # (N, M) — матрица инцидентности
-        W_H: torch.Tensor,      # (M,)   — веса гиперрёбер
+        X: torch.Tensor,          # (N, in_dim)
+        H: torch.Tensor,          # (N, M)
+        W_H: torch.Tensor,        # (M,)
     ) -> torch.Tensor:
-        """Возвращает X_new : (N, out_dim)."""
-        N = X.shape[0]
-        # Степени вершин и рёбер
-        D_v = H.sum(dim=1).clamp(min=1e-8)         # (N,)
-        D_e = H.sum(dim=0).clamp(min=1e-8)         # (M,)
+        if self._pyg_conv is not None:
+            # Преобразуем матрицу инцидентности в sparse формат PyG
+            nz = H.nonzero(as_tuple=True)
+            hyperedge_index = torch.stack([nz[0], nz[1]])  # (2, nnz)
+            return self._pyg_conv(X, hyperedge_index, hyperedge_weight=W_H)
 
-        Dv_inv_sqrt = (D_v ** -0.5).unsqueeze(1)   # (N,1)
-        De_inv = (D_e ** -1).unsqueeze(0)           # (1,M)
-        WH = W_H.unsqueeze(0)                        # (1,M)
-
-        # Нормализованная матрица смежности: (N, N)
-        theta_H = H * WH * De_inv                   # (N, M)
-        A_norm = (Dv_inv_sqrt * H) @ theta_H.T * Dv_inv_sqrt.T  # (N, N)
-
+        # Встроенная реализация
+        D_v = H.sum(dim=1).clamp(min=1e-8)             # (N,)
+        D_e = H.sum(dim=0).clamp(min=1e-8)             # (M,)
+        Dv_inv_sqrt = (D_v ** -0.5).unsqueeze(1)       # (N, 1)
+        # Θ_H = H · diag(W_H) · diag(D_e^{-1}): (N, M)
+        Theta_H = H * W_H.unsqueeze(0) / D_e.unsqueeze(0)
+        # A_norm = D_v^{-½} H Θ_H^T D_v^{-½}: (N, N)
+        A_norm = (Dv_inv_sqrt * H) @ Theta_H.T * Dv_inv_sqrt.T
         return self.theta(A_norm @ X)
 
 
-class CounterfactualInterventionModule(nn.Module):
-    """Контрфактический интервенционный модуль (раздел 3.3).
+# ---------------------------------------------------------------------------
+# CounterfactualModule
+# ---------------------------------------------------------------------------
+
+class CounterfactualModule(nn.Module):
+    """Дифференцируемый контрфактический интервенционный модуль (раздел 3.3).
 
     Параметры
     ----------
     state_dim : int
         d = 128.
-    n_layers : int
+    n_conv_layers : int
         Число слоёв гиперграфовой свёртки (обычно 1).
+    use_pyg : bool
+        Использовать PyG HypergraphConv если доступен.
     """
 
-    def __init__(self, state_dim: int = 128, n_layers: int = 1) -> None:
+    def __init__(
+        self,
+        state_dim: int = 128,
+        n_conv_layers: int = 1,
+        use_pyg: bool = False,
+    ) -> None:
         super().__init__()
         self.state_dim = state_dim
-        self.convs = nn.ModuleList([
-            HypergraphConv(state_dim, state_dim) for _ in range(n_layers)
-        ])
+        self.convs = nn.ModuleList(
+            [HypergraphConv(state_dim, state_dim, use_pyg=use_pyg)
+             for _ in range(n_conv_layers)]
+        )
         self.norm = nn.LayerNorm(state_dim)
 
-    def _hypergraph_forward(
+    # ------------------------------------------------------------------
+    # Гиперграфовый forward
+    # ------------------------------------------------------------------
+
+    def _hg_forward(
         self,
-        H_states: torch.Tensor,    # (N, d) — матрица состояний всех узлов
-        incidence: torch.Tensor,   # (N, M) — матрица инцидентности гиперграфа
+        states: torch.Tensor,      # (N, d)
+        incidence: torch.Tensor,   # (N, M)
         edge_weights: torch.Tensor,  # (M,)
     ) -> torch.Tensor:
-        """Прогоняет состояния через все слои свёртки."""
-        X = H_states
+        X = states
         for conv in self.convs:
             X = torch.relu(conv(X, incidence, edge_weights))
         return self.norm(X)
 
+    # ------------------------------------------------------------------
+    # Вмешательство (дифференцируемое, формула 3.29)
+    # ------------------------------------------------------------------
+
     def intervene(
         self,
-        states: torch.Tensor,         # (N, d)
-        candidate_idx: int,
-        prototype: torch.Tensor,      # (d,) — μ*(cᵢ) условный прототип
-        incidence: torch.Tensor,      # (N, M)
-        edge_weights: torch.Tensor,   # (M,)
+        H: torch.Tensor,              # (N, d)
+        i: int,
+        prototype: torch.Tensor,      # (d,) — μ*(c_i)
+        hypergraph,                   # объект с .incidence_matrix() и .edge_weights()
     ) -> torch.Tensor:
-        """Выполняет виртуальное вмешательство do(i) и возвращает HКФ(i).
+        """do(i): заменяем h_i на prototype, распространяем через гиперграф.
 
-        Операция дифференцируема через prototype (формула 3.29).
+        Операция дифференцируема — градиент проходит через ``prototype``.
+
+        Возвращает
+        ----------
+        H_cf : (N, d)
         """
-        N = states.shape[0]
-        # Маска: единица в позиции candidate_idx, нули везде
-        mask = torch.zeros(N, 1, device=states.device)
-        mask[candidate_idx] = 1.0
+        N = H.shape[0]
+        mask = torch.zeros(N, 1, device=H.device, dtype=H.dtype)
+        mask[i] = 1.0
+        H_cf = (1 - mask) * H + mask * prototype.unsqueeze(0)
 
-        # Формула 3.29: h_i^КФ = (1-mask)*h + mask*μ*
-        states_cf = (1 - mask) * states + mask * prototype.unsqueeze(0)
+        incidence    = hypergraph.incidence_matrix().to(H.device)
+        edge_weights = hypergraph.edge_weights().to(H.device)
+        return self._hg_forward(H_cf, incidence, edge_weights)
 
-        # Распространяем эффект через гиперграф (формула 3.23)
-        return self._hypergraph_forward(states_cf, incidence, edge_weights)
+    # ------------------------------------------------------------------
+    # Причинный эффект ПЭ(i) = A(G) - A_cf(G)
+    # ------------------------------------------------------------------
 
     def causal_effect(
         self,
-        states: torch.Tensor,          # (N, d)
-        nll_fn,                        # callable(states) -> (N,) anomaly scores
-        candidate_idx: int,
-        prototype: torch.Tensor,       # (d,)
-        incidence: torch.Tensor,
-        edge_weights: torch.Tensor,
-    ) -> torch.Tensor:
-        """Вычисляет ПЭ(i) = A(G) - A^КФ_i(G) (формулы 3.25–3.27).
+        H: torch.Tensor,
+        H_cf: torch.Tensor,
+        gmm,                      # ConditionalGMM с методом nll(h, ctx)
+        contexts: torch.Tensor,   # (N, context_dim)
+    ) -> float:
+        """CE(i) = mean(NLL(H)) - mean(NLL(H_cf)), формулы 3.25–3.27."""
+        with torch.no_grad():
+            a_before = gmm.nll(H,    contexts).mean()
+            a_after  = gmm.nll(H_cf, contexts).mean()
+        return (a_before - a_after).item()
 
-        Возвращает
-        ----------
-        pe : Tensor, shape () — скаляр причинного эффекта.
-        """
-        # Аномальность до вмешательства (формула 3.25)
-        nll_before = nll_fn(states)                     # (N,)
-        ag_before = nll_before.mean()
-
-        # Состояние после вмешательства
-        states_cf = self.intervene(
-            states, candidate_idx, prototype, incidence, edge_weights
-        )
-        nll_after = nll_fn(states_cf)                   # (N,)
-        ag_after = nll_after.mean()
-
-        return ag_before - ag_after                      # ПЭ(i) ≥ 0 → снизили аномальность
+    # ------------------------------------------------------------------
+    # Ранжирование кандидатов
+    # ------------------------------------------------------------------
 
     def rank_candidates(
         self,
-        states: torch.Tensor,
-        nll_fn,
-        prototypes: torch.Tensor,      # (N, d) — условные прототипы для каждого узла
-        candidate_indices: list[int],
-        incidence: torch.Tensor,
-        edge_weights: torch.Tensor,
-    ) -> list[tuple[int, float]]:
-        """Ранжирует кандидатов по причинному эффекту (формула 3.28).
+        H: torch.Tensor,
+        candidates: List[int],
+        gmm,
+        contexts: torch.Tensor,   # (N, context_dim)
+        hypergraph,
+    ) -> List[Tuple[int, float]]:
+        """Ранжирует кандидатов по убыванию CE (формула 3.28).
 
         Возвращает
         ----------
-        list of (node_idx, pe_value) sorted descending.
+        list of (node_idx, ce_value) — отсортированный по убыванию CE.
         """
-        scores = []
-        for idx in candidate_indices:
-            with torch.no_grad():
-                pe = self.causal_effect(
-                    states, nll_fn, idx, prototypes[idx], incidence, edge_weights
-                )
-            scores.append((idx, pe.item()))
+        prototypes = torch.stack([
+            gmm.prototype(contexts[i:i+1]).squeeze(0) for i in range(H.shape[0])
+        ])   # (N, d)
+
+        scores: List[Tuple[int, float]] = []
+        for idx in candidates:
+            H_cf = self.intervene(H, idx, prototypes[idx], hypergraph)
+            ce   = self.causal_effect(H, H_cf, gmm, contexts)
+            scores.append((idx, ce))
+
         scores.sort(key=lambda x: -x[1])
         return scores
+
+
+# Alias для обратной совместимости со старым кодом
+CounterfactualInterventionModule = CounterfactualModule
