@@ -1,105 +1,115 @@
-"""Двухветвевой кодировщик метрик CAIRN.
+"""Двухветвевой кодировщик метрик CAIRN (раздел 2.2).
 
-Раздел 2.2 описания архитектуры.
+Ветвь A (SSMBranch): модель пространства состояний в частотной области.
+    s_k = A·s_{k-1} + B·x_k
+    y_k = C·s_k
+    Φ(ω) = C·(e^{jω}I - A)^{-1}·B  — передаточная функция
+    Свёртка: Y = IRFFT(Φ(ω) · X_f(ω))
 
-Ветвь 1 (StablePatternBranch): модель пространства состояний, переведённая в
-  частотную область через Z-преобразование (формулы 2.1–2.4).
-Ветвь 2 (BreakpointBranch): нормированный вектор разрыва + Conv1D (формулы 2.5–2.9).
-Объединение (MetricEncoder): конкатенация + линейная проекция (формула 2.10).
+Ветвь B (BreakpointBranch): нормированный вектор разрыва.
+    μ_ref = mean(x[t-2W:t-W]),  σ_ref = std(x[t-2W:t-W])
+    Δ = (μ_cur - μ_ref) / (σ_ref + ε)
+    h_brk = ReLU(Conv1D(Δ, kernel_size=7))
+
+Объединение: h_met = W_proj · [h_ssm ∥ h_brk] + b_proj
 """
 
 from __future__ import annotations
+
+import math
 
 import torch
 import torch.nn as nn
 import torch.fft
 
 
-class StablePatternBranch(nn.Module):
-    """Ветвь устойчивых закономерностей (SSM в частотной области).
+class SSMBranch(nn.Module):
+    """Ветвь A — SSM в частотной области (формулы 2.1–2.4).
 
     Параметры
     ----------
-    input_features : int
-        Число метрик F (каналов входного ряда).
-    hidden_dim : int
-        Размерность скрытого состояния D.
-    out_dim : int
-        Размерность выхода d₁.
+    n_metrics : int
+        F — число входных каналов.
+    ssm_state_dim : int
+        D — размерность скрытого состояния SSM.
+    d_out : int
+        d_ssm — размерность выхода ветви.
     """
 
-    def __init__(self, input_features: int, hidden_dim: int = 64, out_dim: int = 32) -> None:
+    def __init__(self, n_metrics: int, ssm_state_dim: int = 64, d_out: int = 32) -> None:
         super().__init__()
-        self.input_features = input_features
-        self.hidden_dim = hidden_dim
-        self.out_dim = out_dim
+        self.ssm_state_dim = ssm_state_dim
+        self.d_out = d_out
 
-        # Матрицы SSM: A, B, C — обучаемые параметры (формулы 2.1–2.3)
-        self.A = nn.Parameter(torch.randn(hidden_dim, hidden_dim) * 0.01)
-        self.B = nn.Parameter(torch.randn(hidden_dim, input_features) * 0.01)
-        self.C = nn.Parameter(torch.randn(out_dim, hidden_dim) * 0.01)
+        # Обучаемые матрицы SSM
+        self.A = nn.Parameter(torch.randn(ssm_state_dim) * 0.01)       # (D,) — диагональ
+        self.B = nn.Parameter(torch.randn(ssm_state_dim, n_metrics) * 0.01)  # (D, F)
+        self.C = nn.Parameter(torch.randn(d_out, ssm_state_dim) * 0.01)      # (d_out, D)
 
-        self.proj = nn.Linear(out_dim, out_dim)
+        self.proj = nn.Linear(d_out, d_out)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         Параметры
         ----------
         x : Tensor, shape (batch, T, F)
-            Временной ряд метрик.
 
         Возвращает
         ----------
-        Tensor, shape (batch, out_dim)
+        h_ssm : Tensor, shape (batch, d_out)
         """
-        # Вычисляем передаточную функцию Φ(ω) через FFT (формула 2.3)
-        T = x.shape[1]
-        freqs = torch.fft.rfftfreq(T, device=x.device)  # (T//2+1,)
-        omega = 2 * torch.pi * freqs  # (num_freqs,)
+        batch, T, F = x.shape
+        device = x.device
 
-        # Спектр входного сигнала: (batch, num_freqs, F)
-        X_f = torch.fft.rfft(x, dim=1)
+        # Спектр входного сигнала X(ω): (batch, n_freqs, F)
+        X_f = torch.fft.rfft(x, dim=1)                        # complex
+        n_freqs = X_f.shape[1]
 
-        # Аппроксимация Φ(ω)B для каждой частоты:
-        # Φ(ω) = C (I - A e^{-jω})^{-1} B
-        # Для эффективности: усредняем по частотам, используем диагональное приближение
-        # (полный инверс A слишком дорог; вместо него — диагональное представление)
-        diag_A = torch.diagonal(self.A)  # (D,)
-        # (num_freqs, D): I - A*e^{-jω} — диагональная часть
-        e_jw = torch.exp(-1j * omega.unsqueeze(1) * diag_A.unsqueeze(0))  # (freq, D)
-        inv_diag = 1.0 / (1.0 - e_jw + 1e-8)  # (freq, D)
+        # Частоты ω = 2π·k/T
+        freqs = torch.fft.rfftfreq(T, device=device)          # (n_freqs,)
+        omega = 2 * math.pi * freqs                            # (n_freqs,)
 
-        # Φ(ω) ≈ C * inv_diag * B: (freq, out_dim, F) через einsum
-        phi = torch.einsum("od,fd,de->foe", self.C, inv_diag.real, self.B)  # упрощение
+        # Передаточная функция Φ(ω) = C · diag(1/(e^{jω} - a_d)) · B
+        # диагональное приближение для скорости (A → diag(A))
+        e_jw = torch.exp(1j * omega.unsqueeze(1).to(torch.cfloat))   # (n_freqs, 1)
+        a_d = self.A.to(torch.cfloat).unsqueeze(0)                   # (1, D)
+        inv_denom = 1.0 / (e_jw - a_d + 1e-8)                       # (n_freqs, D)
 
-        # Свёртка в частотной области (формула 2.4): Φ(ω) * X_f
-        # X_f: (batch, freq, F), используем среднее по частотам как агрегацию
-        out_f = (X_f.unsqueeze(-2) * phi.unsqueeze(0)).mean(dim=(1, 3))  # (batch, out_dim)
+        # Φ(ω)[f, o, e] = Σ_d C[o,d] * inv_denom[f,d] * B[d,e]
+        # → shape (n_freqs, d_out, F)
+        C_c = self.C.to(torch.cfloat)   # (d_out, D)
+        B_c = self.B.to(torch.cfloat)   # (D, F)
+        phi = torch.einsum("od,fd,de->foe", C_c, inv_denom, B_c)
 
-        return self.proj(out_f.real)  # (batch, out_dim)
+        # Свёртка в частотной области: Y_f[b,f,o] = Σ_e Φ[f,o,e] * X_f[b,f,e]
+        Y_f = torch.einsum("foe,bfe->bfo", phi, X_f)          # (batch, n_freqs, d_out)
+
+        # Перевод в временно́е пространство и пулинг по времени
+        y = torch.fft.irfft(Y_f.permute(0, 2, 1), n=T, dim=2)  # (batch, d_out, T)
+        h_ssm = y.mean(dim=2)                                    # (batch, d_out)
+
+        return self.proj(h_ssm)
 
 
 class BreakpointBranch(nn.Module):
-    """Ветвь обнаружения разрывов.
-
-    Вычисляет нормированный вектор разрыва Δᵢ (формулы 2.5–2.8),
-    затем обрабатывает его Conv1D (формула 2.9).
+    """Ветвь B — обнаружение разрывов (формулы 2.5–2.9).
 
     Параметры
     ----------
-    input_features : int
-        Число метрик F.
+    n_metrics : int
+        F — число каналов.
     window : int
-        Размер окна W (шаги).
-    out_dim : int
-        Размерность выхода d₂.
+        W — размер окна.
+    d_out : int
+        d_brk — размерность выхода.
     """
 
-    def __init__(self, input_features: int, window: int = 60, out_dim: int = 32) -> None:
+    def __init__(self, n_metrics: int, window: int = 60, d_out: int = 32) -> None:
         super().__init__()
         self.window = window
+        # kernel_size=7 захватывает форму переходного процесса разрыва
         self.conv = nn.Sequential(
-            nn.Conv1d(input_features, out_dim, kernel_size=3, padding=1),
+            nn.Conv1d(n_metrics, d_out, kernel_size=7, padding=3),
             nn.ReLU(),
         )
         self.pool = nn.AdaptiveAvgPool1d(1)
@@ -112,61 +122,61 @@ class BreakpointBranch(nn.Module):
 
         Возвращает
         ----------
-        Tensor, shape (batch, out_dim)
+        h_brk : Tensor, shape (batch, d_out)
         """
-        W = self.window
         T = x.shape[1]
-        W = min(W, T // 3)  # защита от коротких рядов
+        W = min(self.window, max(T // 3, 1))
 
-        # Референсное окно: t-2W .. t-W
-        x_ref = x[:, :W, :]                   # (batch, W, F)
-        # Текущее окно: t-W .. t
-        x_cur = x[:, W: 2 * W, :] if T >= 2 * W else x[:, -W:, :]
+        # Референсное окно [0, W) и текущее окно [W, 2W)
+        x_ref = x[:, :W, :]
+        x_cur = x[:, -W:, :]
 
         mu_ref = x_ref.mean(dim=1)             # (batch, F)
         sigma_ref = x_ref.std(dim=1) + 1e-6   # (batch, F)
         mu_cur = x_cur.mean(dim=1)             # (batch, F)
 
-        delta = (mu_cur - mu_ref) / sigma_ref  # (batch, F) — формула 2.7
-        # delta расширяем обратно в «временной» форме для Conv1D
-        delta_seq = delta.unsqueeze(2)         # (batch, F, 1)
-        delta_seq = delta_seq.expand(-1, -1, W)  # (batch, F, W)
+        delta = (mu_cur - mu_ref) / sigma_ref  # (batch, F) — нормированный разрыв
 
-        h = self.conv(delta_seq)               # (batch, out_dim, W)
-        h = self.pool(h).squeeze(-1)           # (batch, out_dim)
-        return h
+        # Разворачиваем в «временну́ю» последовательность для Conv1d
+        delta_seq = delta.unsqueeze(2).expand(-1, -1, W)  # (batch, F, W)
+
+        h = self.conv(delta_seq)    # (batch, d_out, W)
+        return self.pool(h).squeeze(-1)  # (batch, d_out)
 
 
-class MetricEncoder(nn.Module):
-    """Двухветвевой кодировщик метрик (раздел 2.2).
+class DualBranchMetricEncoder(nn.Module):
+    """Двухветвевой кодировщик метрик (основной класс, раздел 2.2).
 
     Параметры
     ----------
-    input_features : int
-        F — число метрик.
+    n_metrics : int
+        F — число входных метрик.
+    d_ssm : int
+        Размерность выхода SSM-ветви.
+    d_brk : int
+        Размерность выхода ветви разрыва.
+    d_out : int
+        d_met — итоговая размерность после проекции.
+    ssm_state_dim : int
+        D — размерность скрытого состояния SSM.
     window : int
-        W — размер окна разрыва.
-    d1 : int
-        Размерность выхода ветви устойчивых закономерностей.
-    d2 : int
-        Размерность выхода ветви разрывов.
-    out_dim : int
-        d_met — итоговая размерность (формула 2.10).
+        W — размер окна для ветви разрыва.
     """
 
     def __init__(
         self,
-        input_features: int,
+        n_metrics: int,
+        d_ssm: int = 32,
+        d_brk: int = 32,
+        d_out: int = 64,
+        ssm_state_dim: int = 64,
         window: int = 60,
-        d1: int = 32,
-        d2: int = 32,
-        out_dim: int = 64,
     ) -> None:
         super().__init__()
-        self.stable = StablePatternBranch(input_features, out_dim=d1)
-        self.breakpoint = BreakpointBranch(input_features, window=window, out_dim=d2)
-        # Проекция конкатенации (формула 2.10)
-        self.proj = nn.Linear(d1 + d2, out_dim)
+        self.ssm_branch = SSMBranch(n_metrics, ssm_state_dim=ssm_state_dim, d_out=d_ssm)
+        self.brk_branch = BreakpointBranch(n_metrics, window=window, d_out=d_brk)
+        self.proj = nn.Linear(d_ssm + d_brk, d_out)
+        self.norm = nn.LayerNorm(d_out)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -176,9 +186,15 @@ class MetricEncoder(nn.Module):
 
         Возвращает
         ----------
-        h_met : Tensor, shape (batch, out_dim)
+        h_met : Tensor, shape (batch, d_out)
         """
-        h_stable = self.stable(x)        # (batch, d1)
-        h_break = self.breakpoint(x)     # (batch, d2)
-        h_cat = torch.cat([h_stable, h_break], dim=-1)  # (batch, d1+d2)
-        return self.proj(h_cat)          # (batch, out_dim) — h_met
+        h_ssm = self.ssm_branch(x)               # (batch, d_ssm)
+        h_brk = self.brk_branch(x)               # (batch, d_brk)
+        h_cat = torch.cat([h_ssm, h_brk], dim=-1)
+        return self.norm(self.proj(h_cat))        # (batch, d_out)
+
+
+# Обратная совместимость с тестами предыдущих сессий
+MetricEncoder = DualBranchMetricEncoder
+# Для прямого импорта по старым именам
+StablePatternBranch = SSMBranch
