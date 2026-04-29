@@ -319,14 +319,14 @@ class TestStateBuilder:
 
     def test_nonzero_context_with_raw(self, builder, inputs):
         metrics, log_ids, depth = inputs
-        raw = torch.randn(BATCH, 8)
+        raw = torch.randn(BATCH, 16)
         _, c = builder(metrics, log_ids, depth, context_raw=raw)
         assert not torch.all(c == 0)
 
     def test_gradient_flows(self, builder, inputs):
         metrics, log_ids, depth = inputs
         metrics = metrics.requires_grad_(True)
-        h, c = builder(metrics, log_ids, depth, context_raw=torch.randn(BATCH, 8))
+        h, c = builder(metrics, log_ids, depth, context_raw=torch.randn(BATCH, 16))
         (h.sum() + c.sum()).backward()
         assert metrics.grad is not None
 
