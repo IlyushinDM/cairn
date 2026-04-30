@@ -1,4 +1,10 @@
-"""Запуск графического интерфейса CAIRN."""
+"""Запуск графического интерфейса CAIRN.
+
+Использование:
+    python scripts/run_gui.py
+    python scripts/run_gui.py --config configs/demo.yaml
+    python scripts/run_gui.py --theme light
+"""
 
 from __future__ import annotations
 
@@ -26,18 +32,12 @@ def main() -> None:
     app.setApplicationName("CAIRN")
     app.setOrganizationName("СПбГУТ")
 
-    try:
-        from cairn.config import load_config
-        cfg = load_config(args.config)
-    except Exception:
-        cfg = None
-
     from cairn.gui.main_window import CAIRNMainWindow
     from cairn.gui.styles import load_theme
 
     app.setStyleSheet(load_theme(args.theme))
 
-    window = CAIRNMainWindow(config=cfg)
+    window = CAIRNMainWindow(config_path=args.config)
     window.show()
     sys.exit(app.exec())
 

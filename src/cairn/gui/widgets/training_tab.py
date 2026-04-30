@@ -91,7 +91,7 @@ class LossChart(QWidget):
 
     def _build_canvas(self):
         try:
-            from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
+            from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
             from matplotlib.figure import Figure
 
             fig = Figure(figsize=(8, 3), facecolor="#161922")
@@ -111,7 +111,7 @@ class LossChart(QWidget):
             self._fig = None
             self._ax = None
             lbl = QLabel("График потерь\n(требуется matplotlib)")
-            lbl.setAlignment(Qt.AlignCenter)
+            lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
             lbl.setStyleSheet("color: #6c7a9c; border: 1px dashed #2d3348; border-radius:6px;")
             lbl.setMinimumHeight(200)
             return lbl
@@ -134,9 +134,10 @@ class LossChart(QWidget):
         self._ax.spines[:].set_color("#2d3348")
         self._ax.set_xlabel("Эпоха", color="#6c7a9c", fontsize=9)
         self._ax.set_ylabel("Потеря", color="#6c7a9c", fontsize=9)
-        self._fig.tight_layout()
+        if self._fig is not None:
+            self._fig.tight_layout()
         if hasattr(self._canvas, 'draw'):
-            self._canvas.draw()
+            self._canvas.draw()  # type: ignore[union-attr]
 
     def reset(self):
         self._history = {"pretrain": [], "main": [], "finetune": []}
@@ -220,7 +221,7 @@ class TrainingTab(QWidget):
         for row, (name, val, desc) in enumerate(components):
             self.loss_table.setItem(row, 0, QTableWidgetItem(name))
             item = QTableWidgetItem(val)
-            item.setTextAlignment(Qt.AlignCenter)
+            item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.loss_table.setItem(row, 1, item)
             self.loss_table.setItem(row, 2, QTableWidgetItem(desc))
             self.loss_table.setRowHeight(row, 26)

@@ -54,14 +54,15 @@ def hypergraph():
 
 @pytest.fixture
 def simple_chain():
+    """Простая цепочка с 3 узлами для unit-тестов."""
     nodes = [
-        NodeAnnotation(1, "order-service-1",   nll=8.0, causal_effect=4.2, failure_type="cpu_exhaustion"),
-        NodeAnnotation(0, "frontend-1",        nll=2.5, causal_effect=0.3, failure_type="latency_spike"),
+        NodeAnnotation(1, "order-service-1", nll=8.0, causal_effect=4.2, failure_type="cpu_exhaustion"),
+        NodeAnnotation(0, "frontend-1",      nll=2.5, causal_effect=0.3, failure_type="latency_spike"),
         NodeAnnotation(2, "payment-service-1", nll=3.1, causal_effect=0.8),
     ]
     edges = [
-        EdgeAnnotation(src=1, dst=0, edge_type="call", strength=0.85),
-        EdgeAnnotation(src=1, dst=2, edge_type="call", strength=0.72),
+        EdgeAnnotation(src=1, dst=0, edge_type="call",      strength=0.85),
+        EdgeAnnotation(src=1, dst=2, edge_type="call",      strength=0.72),
     ]
     return EvidenceChain(
         root_cause_idx=1,

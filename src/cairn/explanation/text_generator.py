@@ -132,6 +132,8 @@ class TextExplanationGenerator:
         return self._template.generate(chain)
 
     def _local_llm_generate(self, chain: EvidenceChain) -> str:
+        if self._local_llm is None:
+            return self._template.generate(chain)
         context = chain.summary()
         prompt = (
             f"На основе следующих данных о сбое:\n{context}\n\n"

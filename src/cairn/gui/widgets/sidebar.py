@@ -80,7 +80,7 @@ class Sidebar(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("sidebar")
-        self.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
+        self.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Expanding)
 
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
@@ -93,8 +93,8 @@ class Sidebar(QWidget):
 
         src_scroll = QScrollArea()
         src_scroll.setWidgetResizable(True)
-        src_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        src_scroll.setFrameShape(QFrame.NoFrame)
+        src_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        src_scroll.setFrameShape(QFrame.Shape.NoFrame)
         src_scroll.setMaximumHeight(240)
 
         src_container = QWidget()
@@ -121,7 +121,7 @@ class Sidebar(QWidget):
         root.addWidget(src_scroll)
 
         sep = QFrame()
-        sep.setFrameShape(QFrame.HLine)
+        sep.setFrameShape(QFrame.Shape.HLine)
         sep.setStyleSheet("background-color: #2d3348;")
         sep.setFixedHeight(1)
         root.addWidget(sep)
@@ -133,8 +133,8 @@ class Sidebar(QWidget):
 
         mod_scroll = QScrollArea()
         mod_scroll.setWidgetResizable(True)
-        mod_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        mod_scroll.setFrameShape(QFrame.NoFrame)
+        mod_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        mod_scroll.setFrameShape(QFrame.Shape.NoFrame)
 
         mod_container = QWidget()
         mod_layout = QVBoxLayout(mod_container)

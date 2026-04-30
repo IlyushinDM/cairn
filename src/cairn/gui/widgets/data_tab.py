@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
-    QCheckBox, QHBoxLayout, QHeaderView, QLabel,
+    QAbstractItemView, QCheckBox, QHBoxLayout, QHeaderView, QLabel,
     QSplitter, QTableWidget, QTableWidgetItem,
     QVBoxLayout, QWidget,
 )
@@ -19,7 +19,7 @@ class DataTab(QWidget):
         layout.setContentsMargins(12, 12, 12, 12)
         layout.setSpacing(10)
 
-        splitter = QSplitter(Qt.Vertical)
+        splitter = QSplitter(Qt.Orientation.Vertical)
 
         # ── Верхняя часть: таблицы ──────────────────────
         tables_widget = QWidget()
@@ -38,15 +38,15 @@ class DataTab(QWidget):
         self.metrics_table.setHorizontalHeaderLabels(
             ["", "Экземпляр", "Метрика", "Мин", "Макс", "Среднее", "σ"]
         )
-        self.metrics_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Fixed)
+        self.metrics_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
         self.metrics_table.setColumnWidth(0, 32)
-        self.metrics_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
-        self.metrics_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
+        self.metrics_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        self.metrics_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
         for c in range(3, 7):
-            self.metrics_table.horizontalHeader().setSectionResizeMode(c, QHeaderView.ResizeToContents)
+            self.metrics_table.horizontalHeader().setSectionResizeMode(c, QHeaderView.ResizeMode.ResizeToContents)
         self.metrics_table.setAlternatingRowColors(True)
         self.metrics_table.verticalHeader().setVisible(False)
-        self.metrics_table.setSelectionBehavior(QTableWidget.SelectRows)
+        self.metrics_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         mf_layout.addWidget(self.metrics_table)
         tables_layout.addWidget(metrics_frame)
 
@@ -61,15 +61,15 @@ class DataTab(QWidget):
         self.instances_table.setHorizontalHeaderLabels(
             ["", "Имя", "Сервис", "Хост", "CPU", "Версия"]
         )
-        self.instances_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Fixed)
+        self.instances_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
         self.instances_table.setColumnWidth(0, 32)
-        self.instances_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
-        self.instances_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
+        self.instances_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        self.instances_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
         for c in range(3, 6):
-            self.instances_table.horizontalHeader().setSectionResizeMode(c, QHeaderView.ResizeToContents)
+            self.instances_table.horizontalHeader().setSectionResizeMode(c, QHeaderView.ResizeMode.ResizeToContents)
         self.instances_table.setAlternatingRowColors(True)
         self.instances_table.verticalHeader().setVisible(False)
-        self.instances_table.setSelectionBehavior(QTableWidget.SelectRows)
+        self.instances_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         if_layout.addWidget(self.instances_table)
         tables_layout.addWidget(instances_frame, stretch=1)
 
@@ -97,7 +97,7 @@ class DataTab(QWidget):
     def _build_chart_area(self) -> QWidget:
         """Строит canvas для matplotlib или заглушку."""
         try:
-            from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
+            from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
             from matplotlib.figure import Figure
             import matplotlib.pyplot as plt
 
@@ -118,7 +118,7 @@ class DataTab(QWidget):
             return canvas
         except ImportError:
             placeholder = QLabel("График временных рядов\n(требуется matplotlib)")
-            placeholder.setAlignment(Qt.AlignCenter)
+            placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
             placeholder.setStyleSheet("color: #6c7a9c; font-size: 13px; border: 1px dashed #2d3348; border-radius: 6px;")
             placeholder.setMinimumHeight(180)
             self._fig = None
@@ -136,8 +136,8 @@ class DataTab(QWidget):
                 row = self.metrics_table.rowCount()
                 self.metrics_table.insertRow(row)
                 cb_item = QTableWidgetItem()
-                cb_item.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled)
-                cb_item.setCheckState(Qt.Checked)
+                cb_item.setFlags(Qt.ItemFlag.ItemIsUserCheckable | Qt.ItemFlag.ItemIsEnabled)
+                cb_item.setCheckState(Qt.CheckState.Checked)
                 self.metrics_table.setItem(row, 0, cb_item)
                 self.metrics_table.setItem(row, 1, QTableWidgetItem(inst))
                 self.metrics_table.setItem(row, 2, QTableWidgetItem(metric))
@@ -153,8 +153,8 @@ class DataTab(QWidget):
             row = self.instances_table.rowCount()
             self.instances_table.insertRow(row)
             cb_item = QTableWidgetItem()
-            cb_item.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled)
-            cb_item.setCheckState(Qt.Checked)
+            cb_item.setFlags(Qt.ItemFlag.ItemIsUserCheckable | Qt.ItemFlag.ItemIsEnabled)
+            cb_item.setCheckState(Qt.CheckState.Checked)
             self.instances_table.setItem(row, 0, cb_item)
             self.instances_table.setItem(row, 1, QTableWidgetItem(inst.name))
             self.instances_table.setItem(row, 2, QTableWidgetItem(inst.service))
@@ -177,5 +177,7 @@ class DataTab(QWidget):
         self._ax.tick_params(colors="#6c7a9c")
         self._ax.spines[:].set_color("#2d3348")
         self._ax.set_xlabel("Время (с)", color="#6c7a9c", fontsize=9)
-        self._fig.tight_layout()
-        self._chart_area.draw()
+        if self._fig is not None:
+            self._fig.tight_layout()
+        if hasattr(self._chart_area, 'draw'):
+            self._chart_area.draw()  # type: ignore[union-attr]

@@ -19,11 +19,14 @@ def _spin(value: float, lo: float, hi: float, decimals: int = 0,
         w = QDoubleSpinBox()
         w.setDecimals(decimals)
         w.setSingleStep(step)
+        w.setRange(lo, hi)
+        w.setValue(value)
     else:
-        w = QSpinBox()
-        w.setSingleStep(int(step))
-    w.setRange(lo, hi)
-    w.setValue(value)
+        ws = QSpinBox()
+        ws.setSingleStep(int(step))
+        ws.setRange(int(lo), int(hi))
+        ws.setValue(int(value))
+        return ws
     return w
 
 
@@ -69,7 +72,7 @@ class SettingsDialog(QDialog):
     def _scroll_wrap(self, inner: QWidget) -> QScrollArea:
         sa = QScrollArea()
         sa.setWidgetResizable(True)
-        sa.setFrameShape(QScrollArea.NoFrame)
+        sa.setFrameStyle(0)  # QFrame.Shape.NoFrame
         sa.setWidget(inner)
         return sa
 

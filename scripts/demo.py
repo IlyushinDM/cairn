@@ -70,9 +70,6 @@ def main():
         colocated_groups=[[0, 1, 3], [2, 4]],
         lb_groups=[[2, 8, 9]],
     )
-    incidence = hg.incidence_matrix()
-    edge_weights = hg.edge_weights()
-
     # Контрфактический анализ
     cf_module = CounterfactualInterventionModule(state_dim=d)
     funnel = CascadeFunnel(
@@ -81,8 +78,8 @@ def main():
         l2_top_k=cfg.funnel.l2_top_k,
     )
 
-    adjacency = (incidence @ incidence.T).clamp(0, 1).fill_diagonal_(0)
-    adj_norm = adjacency / adjacency.sum(dim=1, keepdim=True).clamp(min=1)
+    adj = hg.adjacency_matrix()
+    adj_norm = adj / adj.sum(dim=1, keepdim=True).clamp(min=1)
 
 
     def nll_fn(s, c=None):
@@ -90,7 +87,7 @@ def main():
         return gmm.nll(s, curr_context)
 
     ranked = funnel.run(
-        nll, states, adj_norm, cf_module, nll_fn, prototypes, incidence, edge_weights
+        nll, states, adj_norm, cf_module, gmm, contexts, hg
     )
     root_idx, root_pe = ranked[0]
     logger.info(f"Первопричина: сервис #{root_idx}, ПЭ = {root_pe:.3f}")
@@ -114,8 +111,10 @@ def main():
     chain = EvidenceChain(
         root_cause_idx=root_idx,
         path_nodes=[
-            NodeAnnotation(root_idx, f"service-{root_idx}", nll[root_idx].item(), "cpu_usage"),
-            NodeAnnotation(7, "service-7", nll[7].item(), "latency"),
+            NodeAnnotation(node_idx=root_idx, node_name=f"service-{root_idx}",
+                           nll=nll[root_idx].item(), dominant_metric="cpu_usage"),
+            NodeAnnotation(node_idx=7, node_name="service-7",
+                           nll=nll[7].item(), dominant_metric="latency"),
         ],
         path_edges=[
             EdgeAnnotation(root_idx, 7, "call", strength=root_pe),

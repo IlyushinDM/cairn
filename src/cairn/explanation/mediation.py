@@ -140,11 +140,14 @@ class MediationDiagnostic:
         «Bypass» слоя l: после вмешательства пропускаем l-й слой (используем
         вход слоя как его выход — это эквивалентно удалению слоя).
         """
-        if proto is None:
-            proto = self.gmm.prototype(contexts[root_cause_idx:root_cause_idx+1]).squeeze(0)
+        _proto: torch.Tensor = (
+            proto if proto is not None
+            else self.gmm.prototype(contexts[root_cause_idx:root_cause_idx+1]).squeeze(0)
+        )
         if ce_full is None:
-            H_cf = self.cf_module.intervene(H, root_cause_idx, proto, hypergraph)
+            H_cf = self.cf_module.intervene(H, root_cause_idx, _proto, hypergraph)
             ce_full = self.cf_module.causal_effect(H, H_cf, self.gmm, contexts)
+        _ce_full: float = ce_full if ce_full is not None else 0.0
 
         incidence    = hypergraph.incidence_matrix().to(H.device)
         edge_weights = hypergraph.edge_weights().to(H.device)
@@ -155,10 +158,10 @@ class MediationDiagnostic:
         for l in range(n_layers):
             # Bypass слоя l: запускаем все слои кроме l
             ce_bypass = self._ce_bypass_layer(
-                H, root_cause_idx, proto, incidence, edge_weights, contexts, skip_layer=l
+                H, root_cause_idx, _proto, incidence, edge_weights, contexts, skip_layer=l
             )
-            contrib = ce_full - ce_bypass
-            rel     = contrib / (abs(ce_full) + 1e-8)
+            contrib = _ce_full - ce_bypass
+            rel     = contrib / (abs(_ce_full) + 1e-8)
             contributions.append(LayerContribution(l, round(contrib, 4), round(rel, 4)))
 
         return contributions
@@ -177,11 +180,14 @@ class MediationDiagnostic:
         «Mask» ребра e: нулевой вес для ребра e в матрице весов W_H.
         Это удаляет информационный поток через ребро e.
         """
-        if proto is None:
-            proto = self.gmm.prototype(contexts[root_cause_idx:root_cause_idx+1]).squeeze(0)
+        _proto: torch.Tensor = (
+            proto if proto is not None
+            else self.gmm.prototype(contexts[root_cause_idx:root_cause_idx+1]).squeeze(0)
+        )
         if ce_full is None:
-            H_cf = self.cf_module.intervene(H, root_cause_idx, proto, hypergraph)
+            H_cf = self.cf_module.intervene(H, root_cause_idx, _proto, hypergraph)
             ce_full = self.cf_module.causal_effect(H, H_cf, self.gmm, contexts)
+        _ce_full: float = ce_full if ce_full is not None else 0.0
 
         incidence    = hypergraph.incidence_matrix().to(H.device)
         edge_weights = hypergraph.edge_weights().to(H.device)
@@ -194,10 +200,10 @@ class MediationDiagnostic:
             masked_weights[e_idx] = 0.0
 
             ce_masked = self._ce_with_weights(
-                H, root_cause_idx, proto, incidence, masked_weights, contexts
+                H, root_cause_idx, _proto, incidence, masked_weights, contexts
             )
-            contrib = ce_full - ce_masked
-            rel     = contrib / (abs(ce_full) + 1e-8)
+            contrib = _ce_full - ce_masked
+            rel     = contrib / (abs(_ce_full) + 1e-8)
             contributions.append(EdgeContribution(
                 edge_idx=e_idx,
                 edge_type=str(edge.edge_type),

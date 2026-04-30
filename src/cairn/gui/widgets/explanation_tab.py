@@ -24,7 +24,7 @@ class AxiomRow(QWidget):
 
         icon_lbl = QLabel(icon)
         icon_lbl.setFixedWidth(20)
-        icon_lbl.setAlignment(Qt.AlignCenter)
+        icon_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         icon_lbl.setStyleSheet(f"color: {color}; font-size: 14px; font-weight: bold;")
 
         name_lbl = QLabel(name)
@@ -44,7 +44,7 @@ class ExplanationTab(QWidget):
         layout.setContentsMargins(12, 12, 12, 12)
         layout.setSpacing(10)
 
-        splitter = QSplitter(Qt.Horizontal)
+        splitter = QSplitter(Qt.Orientation.Horizontal)
 
         # ── Левая: граф цепочки + верификация ───────────
         left = QWidget()
@@ -58,7 +58,7 @@ class ExplanationTab(QWidget):
         ll.addWidget(self._chain_area)
 
         # Верификация (разделена на два блока)
-        verif_splitter = QSplitter(Qt.Horizontal)
+        verif_splitter = QSplitter(Qt.Orientation.Horizontal)
 
         # Аксиомы графа
         axiom_group = QGroupBox("Верификатор графа")
@@ -139,7 +139,7 @@ class ExplanationTab(QWidget):
 
     def _build_chain_area(self) -> QWidget:
         try:
-            from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
+            from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
             from matplotlib.figure import Figure
             fig = Figure(figsize=(6, 3.5), facecolor="#161922")
             ax = fig.add_subplot(111)
@@ -157,7 +157,7 @@ class ExplanationTab(QWidget):
             self._chain_fig = None
             self._chain_ax = None
             lbl = QLabel("Граф цепочки доказательств\n(требуется matplotlib + networkx)")
-            lbl.setAlignment(Qt.AlignCenter)
+            lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
             lbl.setStyleSheet("color: #6c7a9c; border: 1px dashed #2d3348; border-radius:6px;")
             lbl.setMinimumHeight(220)
             return lbl
@@ -196,11 +196,18 @@ class ExplanationTab(QWidget):
         )
         for i, (row_widget, status) in enumerate(zip(self.axiom_rows, statuses)):
             # Пересоздаём виджет строки с нужным статусом
-            parent_layout = row_widget.parent().layout()
+            parent_widget = row_widget.parent()
+            from PySide6.QtWidgets import QBoxLayout, QWidget as _QW
+            if not isinstance(parent_widget, _QW):
+                continue
+            raw_layout = parent_widget.layout()
+            if not isinstance(raw_layout, QBoxLayout):
+                continue
+            parent_layout = raw_layout
             idx = parent_layout.indexOf(row_widget)
             axiom_name = ["Ацикличность", "Темпоральная согласованность",
-                          "Транзитивность", "Согласованность с топологией",
-                          "Монотонность вмешательства"][i]
+                        "Транзитивность", "Согласованность с топологией",
+                        "Монотонность вмешательства"][i]
             new_row = AxiomRow(axiom_name, status)
             parent_layout.removeWidget(row_widget)
             row_widget.deleteLater()
@@ -246,8 +253,9 @@ class ExplanationTab(QWidget):
             nx.draw_networkx_edge_labels(G, pos, edge_labels, ax=ax,
                                           font_size=7, font_color="#a0a8bc")
             ax.set_title("Красный = первопричина", color="#6c7a9c", fontsize=9)
-            self._chain_fig.tight_layout()
+            if self._chain_fig is not None:
+                self._chain_fig.tight_layout()
             if hasattr(self._chain_area, 'draw'):
-                self._chain_area.draw()
+                self._chain_area.draw()  # type: ignore[union-attr]
         except ImportError:
             pass

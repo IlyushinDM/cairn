@@ -25,6 +25,7 @@ class TraceEncoder(nn.Module):
     max_depth : int
         Максимальная глубина дерева вызовов.
     """
+    pe: torch.Tensor  # зарегистрированный буфер (не обучается)
 
     def __init__(self, d_out: int = 32, max_depth: int = 20) -> None:
         super().__init__()

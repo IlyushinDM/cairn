@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
-    QFrame, QHBoxLayout, QHeaderView, QLabel,
+    QAbstractItemView, QFrame, QHBoxLayout, QHeaderView, QLabel,
     QPushButton, QSplitter, QTableWidget, QTableWidgetItem,
     QVBoxLayout, QWidget,
 )
@@ -21,7 +21,7 @@ class ResultsTab(QWidget):
         layout.setContentsMargins(12, 12, 12, 12)
         layout.setSpacing(10)
 
-        splitter = QSplitter(Qt.Horizontal)
+        splitter = QSplitter(Qt.Orientation.Horizontal)
 
         # ── Левая: таблица ──────────────────────────────
         left = QWidget()
@@ -38,11 +38,11 @@ class ResultsTab(QWidget):
             "Ранг", "Компонент", "ПЭ", "Тип сбоя",
             "Достоверность", "Действие",
         ])
-        self.results_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
-        self.results_table.horizontalHeader().setSectionResizeMode(3, QHeaderView.Stretch)
+        self.results_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        self.results_table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
         self.results_table.setAlternatingRowColors(True)
         self.results_table.verticalHeader().setVisible(False)
-        self.results_table.setSelectionBehavior(QTableWidget.SelectRows)
+        self.results_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         ll.addWidget(self.results_table)
 
         # Итоговая строка
@@ -89,7 +89,7 @@ class ResultsTab(QWidget):
 
     def _build_graph_area(self) -> QWidget:
         try:
-            from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
+            from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
             from matplotlib.figure import Figure
             fig = Figure(figsize=(6, 5), facecolor="#161922")
             ax = fig.add_subplot(111)
@@ -106,7 +106,7 @@ class ResultsTab(QWidget):
             self._graph_fig = None
             self._graph_ax = None
             lbl = QLabel("Граф гиперграфа\n(требуется matplotlib + networkx)")
-            lbl.setAlignment(Qt.AlignCenter)
+            lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
             lbl.setStyleSheet("color: #6c7a9c; border: 1px dashed #2d3348; border-radius:6px;")
             return lbl
 
@@ -190,13 +190,14 @@ class ResultsTab(QWidget):
                                     font_color="#d1d5e0")
             ax.set_title("Красный = высокий ПЭ (вероятная первопричина)",
                         color="#6c7a9c", fontsize=9)
-            self._graph_fig.tight_layout()
+            if self._graph_fig is not None:
+                self._graph_fig.tight_layout()
             if hasattr(self._graph_area, 'draw'):
-                self._graph_area.draw()
+                self._graph_area.draw()  # type: ignore[union-attr]
         except ImportError:
             pass
 
     def _centered(self, text: str) -> QTableWidgetItem:
         item = QTableWidgetItem(text)
-        item.setTextAlignment(Qt.AlignCenter)
+        item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
         return item
