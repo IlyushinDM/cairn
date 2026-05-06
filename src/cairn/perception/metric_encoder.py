@@ -127,7 +127,8 @@ class BreakpointBranch(nn.Module):
         T = x.shape[1]
         W = min(self.window, max(T // 3, 1))
 
-        # Референсное окно [0, W) и текущее окно [W, 2W)
+        # Референсное окно: первые W точек (стабильный период)
+        # Текущее окно:    последние W точек (формула 2.6: μ_cur = mean(x[t-W:t]))
         x_ref = x[:, :W, :]
         x_cur = x[:, -W:, :]
 

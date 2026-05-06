@@ -175,6 +175,13 @@ class CAIRNMainWindow(QMainWindow):
         self._act_export.setEnabled(False)
         tb.addAction(self._act_export)
 
+        tb.addSeparator()
+
+        self._act_demo = QAction("🎓  Демо", self)
+        self._act_demo.setToolTip("Запустить демонстрационный сценарий (для защиты диплома)")
+        self._act_demo.triggered.connect(self._on_demo)
+        tb.addAction(self._act_demo)
+
     def _build_central(self) -> None:
         splitter = QSplitter(Qt.Orientation.Horizontal)
         splitter.setHandleWidth(1)
@@ -468,6 +475,117 @@ class CAIRNMainWindow(QMainWindow):
 
     # ── Закрытие ──────────────────────────────────────────────────────
 
+    @Slot()
+    def _on_demo(self) -> None:
+        """Демонстрационный сценарий: выбор → загрузка → анализ."""
+        from cairn.gui.widgets.demo_dialog import ScenarioDialog
+        from cairn.training import CAIRNModel, CAIRNLoss, CAIRNTrainer, TrainerConfig
+        from cairn.perception import StateBuilder, HypergraphBuilder
+        from cairn.reasoning import ConditionalGMM, ConfoundedVGAE, CounterfactualModule
+        import torch
+
+        data_dir = Path("data/sample")
+        dlg = ScenarioDialog(data_dir, parent=self)
+        if dlg.exec() != dlg.DialogCode.Accepted or dlg.selected_scenario is None:
+            return
+
+        sc_dir  = dlg.scenario_dir
+        sc_info = dlg.scenario_info
+        if sc_dir is None or sc_info is None:
+            return
+
+        self._update_status(f"Демо: загрузка сценария '{sc_info['name']}'…")
+
+        try:
+            # Загружаем или строим модель
+            model_path = data_dir / "demo_model.pt"
+            D, CTX, F = 32, 8, 4
+
+            from cairn.connectors.csv_file import YAMLTopologyConnector
+            topo = YAMLTopologyConnector(sc_dir / "topology.yaml").fetch()
+            hg   = HypergraphBuilder.from_topology_data(topo)
+
+            # Читаем arch_config из чекпоинта — не хардкодим параметры
+            n_components   = 3
+            n_confounders  = 2
+            confounder_dim = 8
+            context_raw_dim = CTX
+
+            ckpt = None
+            if model_path.exists():
+                ckpt = torch.load(str(model_path), map_location="cpu", weights_only=True)
+                if "arch_config" in ckpt:
+                    A = ckpt["arch_config"]
+                    D              = A.get("state_dim",      D)
+                    CTX            = A.get("context_dim",    CTX)
+                    F              = A.get("n_metrics",      F)
+                    n_components   = A.get("n_components",   n_components)
+                    n_confounders  = A.get("n_confounders",  n_confounders)
+                    confounder_dim = A.get("confounder_dim", confounder_dim)
+                # context_raw_dim всегда из весов
+                _key = "model_state" if "model_state" in ckpt else "model_state_dict"
+                _st  = ckpt.get(_key, {})
+                _w   = _st.get("state_builder.context_builder.proj.0.weight")
+                if _w is not None:
+                    context_raw_dim = _w.shape[1]
+
+            model = CAIRNModel(
+                state_builder=StateBuilder(
+                    n_metrics=F, log_vocab_size=300,
+                    state_dim=D, context_dim=CTX,
+                    d_met=16, d_log=8, d_tr=8,
+                    d_ssm=8, d_brk=8, ssm_state_dim=16, window=15,
+                    context_raw_dim=context_raw_dim,
+                ),
+                gmm=ConditionalGMM(state_dim=D, context_dim=CTX, n_components=n_components),
+                vgae=ConfoundedVGAE(state_dim=D, n_confounders=n_confounders, confounder_dim=confounder_dim),
+                cf_module=CounterfactualModule(state_dim=D, n_conv_layers=1),
+            )
+
+            if ckpt is not None:
+                _key = "model_state" if "model_state" in ckpt else "model_state_dict"
+                if _key in ckpt:
+                    model.load_state_dict(ckpt[_key], strict=False)
+                self._update_status("Демо: модель загружена из чекпоинта")
+            else:
+                self._update_status("Демо: чекпоинт не найден — быстрое обучение 1 эп.")
+                from cairn.training import create_demo_dataset, TrainerConfig
+                ds  = create_demo_dataset(sc_dir, window_size=30, stride=15)
+                cfg = TrainerConfig(
+                    pretrain_epochs=1, main_epochs=1, finetune_epochs=1,
+                    freeze_epochs=0, patience=999, log_every=999,
+                    device="cpu", checkpoint_dir="/tmp/cairn_demo", save_every=999,
+                )
+                CAIRNTrainer(model, CAIRNLoss(), hg, cfg).train(ds)
+
+            # Передаём модель в контроллер
+            self._ctrl._model      = model
+            self._ctrl._hypergraph = hg
+
+            # Загружаем данные сценария в GUI
+            self._ctrl.load_demo_data(sc_dir)
+
+            # Добавляем метаданные первопричины в контроллер
+            self._ctrl._demo_root_hint = sc_info["root"]
+            self._ctrl._demo_fault_hint = sc_info["fault"]
+            self._ctrl._demo_sc_dir    = sc_dir   # путь к выбранному сценарию
+
+            self._model_label.setText("Модель: демо ✓")
+            self._model_label.setObjectName("statusGood")
+            self._refresh_label(self._model_label)
+            self._act_analyze.setEnabled(True)
+            self._act_export.setEnabled(False)
+
+            # Автоматически запускаем анализ
+            # Сохраняем ссылку на воркер чтобы GC не удалил C++ объект раньше времени
+            self._demo_worker_ref = None
+            self._update_status(f"Демо '{sc_info['name']}': анализ…")
+            self._ctrl.start_analysis()
+
+        except Exception as e:
+            QMessageBox.critical(self, "Ошибка демо", str(e))
+            self._update_status("Ошибка демо")
+
     def closeEvent(self, event) -> None:
         self._ctrl.stop_training()
         event.accept()
@@ -485,7 +603,7 @@ def main(config_path: Optional[str] = None) -> None:
     app.setOrganizationName("SPbGUT")
     app.setFont(
         QFont("Segoe UI", 10) if sys.platform == "win32"
-        else QFont("SF Pro Text", 10)
+        else QFont("Arial", 10)
     )
     window = CAIRNMainWindow(config_path=config_path)
     window.show()

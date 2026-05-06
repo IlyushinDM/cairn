@@ -98,11 +98,11 @@ class TestCSVMetricConnector:
     def test_cpu_anomaly_visible(self, metric_conn):
         """CPU order-service-1 должен быть значимо выше в аномальном периоде."""
         normal = metric_conn.fetch(
-            BASE_TS, BASE_TS + 199,
+            BASE_TS, BASE_TS + 299,
             instances=["order-service-1"], metrics=["cpu"]
         )
         anom = metric_conn.fetch(
-            BASE_TS + 200, BASE_TS + 299,
+            BASE_TS + 300, BASE_TS + 399,
             instances=["order-service-1"], metrics=["cpu"]
         )
         cpu_normal = np.nanmean(normal.values[:, 0, 0])
@@ -147,7 +147,7 @@ class TestFileLogConnector:
             assert BASE_TS <= entry.timestamp <= end
 
     def test_error_logs_in_anomaly_period(self, log_conn):
-        data = log_conn.fetch(BASE_TS + 200, BASE_TS + 299)
+        data = log_conn.fetch(BASE_TS + 300, BASE_TS + 399)
         levels = data.levels
         assert "ERROR" in levels or "WARN" in levels, "В аномальном периоде нет ERROR/WARN"
 

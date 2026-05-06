@@ -144,7 +144,7 @@ class TestEvidenceChain:
 
     def test_root_name_in_to_dict(self, simple_chain):
         d = simple_chain.to_dict()
-        assert d["root_name"] == "order-service-1"   # path_nodes[0] = root cause
+        assert d["root_name"] == "order-service-1"   # path_nodes[0]
 
 
 # ===========================================================================

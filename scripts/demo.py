@@ -78,8 +78,8 @@ def main():
         l2_top_k=cfg.funnel.l2_top_k,
     )
 
-    adj = hg.adjacency_matrix()
-    adj_norm = adj / adj.sum(dim=1, keepdim=True).clamp(min=1)
+    adjacency = (incidence @ incidence.T).clamp(0, 1).fill_diagonal_(0)
+    adj_norm = adjacency / adjacency.sum(dim=1, keepdim=True).clamp(min=1)
 
 
     def nll_fn(s, c=None):

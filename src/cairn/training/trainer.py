@@ -111,7 +111,7 @@ class CAIRNModel(nn.Module):
         if root_idx >= 0 and root_idx < H.shape[0]:
             H_cf   = self.cf_module.intervene(H, root_idx, prototypes[root_idx], hypergraph)
             nll_cf = self.gmm.nll(H_cf, C)
-            pe_scores = (nll_normal - nll_cf).detach()   # (N,) — упрощённо
+            pe_scores = (nll_normal - nll_cf)            # (N,) — градиент сохранён
 
             # Для L_КР: первопричина vs остальные
             others = [i for i in range(H.shape[0]) if i != root_idx]
@@ -276,11 +276,10 @@ class CAIRNTrainer:
             return {"AC@1": 0.0, "AC@3": 0.0, "AC@5": 0.0, "Avg@5": 0.0, "F1": 0.0}
 
         funnel = CascadeFunnel(
-            l0_top_k=min(10, self.model.gmm.n_components * 2),
-            l1_top_k=3,
-            l2_top_k=1,
+            l0_top_k=30, 
+            l1_top_k=5, 
+            l2_top_k=5
         )
-
         all_metrics: List[Dict[str, float]] = []
 
         with torch.no_grad():
@@ -399,7 +398,7 @@ class CAIRNTrainer:
         for epoch in range(self.cfg.finetune_epochs):
             self.model.train()
             epoch_loss = self._run_epoch_finetune(dataset, opt)
-            if epoch > 0:      # первый шаг планировщика — только после первой эпохи
+            if epoch > 0:
                 sched.step()
             self.history["finetune_loss"].append(epoch_loss)
 

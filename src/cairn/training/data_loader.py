@@ -112,6 +112,11 @@ class CAIRNDataset(Dataset):
             f"({self.n_normal} нормальных, {self.n_anomaly} аномальных)"
         )
 
+    @property
+    def incidents(self) -> List["Incident"]:
+        """Публичный доступ к списку инцидентов."""
+        return list(self._data)
+
 
 def collate_incidents(batch: List[Incident]):
     """Collate-функция для DataLoader.
@@ -220,8 +225,20 @@ class IncidentBuilder:
                     depths[idx] = max(depths[idx], 1 if span.parent_span_id else 0)
         depths_t = torch.tensor(depths, dtype=torch.long)   # (N,)
 
-        # Контекст: нулевой тензор (заполняется StateBuilder при необходимости)
-        ctx_t = torch.zeros(N, self.context_dim, dtype=torch.float32)
+        # Контекст: агрегированные метрики окна (N, context_dim)
+        # Среднее по времени нормализованное → даёт GMM дифференцирующий сигнал
+        ctx_raw = np.nanmean(win, axis=0)                           # (N, F)
+        ctx_raw = np.nan_to_num(ctx_raw, nan=0.0)
+        # Нормируем каждый узел относительно максимума по метрикам
+        row_max = np.abs(ctx_raw).max(axis=1, keepdims=True) + 1e-8
+        ctx_norm = ctx_raw / row_max                               # (N, F) в [-1, 1]
+        # Вписываем в context_dim (F ≤ context_dim обычно)
+        if ctx_norm.shape[1] >= self.context_dim:
+            ctx_np = ctx_norm[:, :self.context_dim]
+        else:
+            pad    = np.zeros((N, self.context_dim - ctx_norm.shape[1]))
+            ctx_np = np.concatenate([ctx_norm, pad], axis=1)
+        ctx_t = torch.tensor(ctx_np, dtype=torch.float32)          # (N, context_dim)
 
         # Индекс первопричины
         root_idx = -1

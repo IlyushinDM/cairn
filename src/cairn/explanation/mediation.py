@@ -147,7 +147,7 @@ class MediationDiagnostic:
         if ce_full is None:
             H_cf = self.cf_module.intervene(H, root_cause_idx, _proto, hypergraph)
             ce_full = self.cf_module.causal_effect(H, H_cf, self.gmm, contexts)
-        _ce_full: float = ce_full if ce_full is not None else 0.0
+        _ce_full: float = ce_full
 
         incidence    = hypergraph.incidence_matrix().to(H.device)
         edge_weights = hypergraph.edge_weights().to(H.device)
@@ -187,7 +187,7 @@ class MediationDiagnostic:
         if ce_full is None:
             H_cf = self.cf_module.intervene(H, root_cause_idx, _proto, hypergraph)
             ce_full = self.cf_module.causal_effect(H, H_cf, self.gmm, contexts)
-        _ce_full: float = ce_full if ce_full is not None else 0.0
+        _ce_full: float = ce_full
 
         incidence    = hypergraph.incidence_matrix().to(H.device)
         edge_weights = hypergraph.edge_weights().to(H.device)

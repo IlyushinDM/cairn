@@ -17,7 +17,6 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, cast, Any
 from typing import Optional
 
 import numpy as np
@@ -30,9 +29,9 @@ from cairn.connectors.base import (
 
 # Попытка импорта опциональной зависимости
 _PROM_AVAILABLE = False
-_PrometheusConnect: Any = None
+PrometheusConnect = None  # type: ignore[assignment]
 try:
-    from prometheus_api_client import PrometheusConnect as _PrometheusConnect  # type: ignore
+    from prometheus_api_client import PrometheusConnect, MetricRangeDataFrame  # type: ignore
     _PROM_AVAILABLE = True
 except ImportError:
     pass
@@ -78,7 +77,7 @@ class PrometheusMetricConnector(BaseMetricConnector):
 
         # Проверяем доступность Prometheus
         try:
-            self._client = _PrometheusConnect(url=url, disable_ssl=True)
+            self._client = PrometheusConnect(url=url, disable_ssl=True)
             if not self._client.check_prometheus_connection():
                 raise ConnectorUnavailableError(
                     f"Prometheus недоступен по адресу {url}. "

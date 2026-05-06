@@ -95,7 +95,6 @@ class TestCAIRNController:
         ctrl.start_analysis()
         qapp.processEvents()
         assert len(errors) == 1
-        assert errors  # просто проверяем что сигнал был эмитирован
 
     def test_module_config_to_dict(self, ctrl):
         d = ctrl._modules.to_dict()

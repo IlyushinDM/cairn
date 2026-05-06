@@ -123,10 +123,14 @@ class CounterfactualModule(nn.Module):
         self,
         H: torch.Tensor,              # (N, d)
         i: int,
-        prototype: torch.Tensor,      # (d,) — μ*(c_i)
+        prototype: torch.Tensor,      # (d,) — нормальное состояние узла i
         hypergraph,                   # объект с .incidence_matrix() и .edge_weights()
+        apply_conv: bool = False,     # свёртка только для propagation, не для scoring
     ) -> torch.Tensor:
-        """do(i): заменяем h_i на prototype, распространяем через гиперграф.
+        """do(i): заменяем h_i на prototype.
+
+        apply_conv=False (дефолт): возвращает H_cf без свёртки — для вычисления CE.
+        apply_conv=True: прогоняет через гиперграфовую свёртку — для propagation.
 
         Операция дифференцируема — градиент проходит через ``prototype``.
 
@@ -139,9 +143,11 @@ class CounterfactualModule(nn.Module):
         mask[i] = 1.0
         H_cf = (1 - mask) * H + mask * prototype.unsqueeze(0)
 
-        incidence    = hypergraph.incidence_matrix().to(H.device)
-        edge_weights = hypergraph.edge_weights().to(H.device)
-        return self._hg_forward(H_cf, incidence, edge_weights)
+        if apply_conv:
+            incidence    = hypergraph.incidence_matrix().to(H.device)
+            edge_weights = hypergraph.edge_weights().to(H.device)
+            return self._hg_forward(H_cf, incidence, edge_weights)
+        return H_cf
 
     # ------------------------------------------------------------------
     # Причинный эффект ПЭ(i) = A(G) - A_cf(G)
@@ -153,12 +159,33 @@ class CounterfactualModule(nn.Module):
         H_cf: torch.Tensor,
         gmm,                      # ConditionalGMM с методом nll(h, ctx)
         contexts: torch.Tensor,   # (N, context_dim)
+        H_normal: Optional[torch.Tensor] = None,   # (N, d) — нормальные состояния
+        hypergraph=None,          # для propagation-based CE
     ) -> float:
-        """CE(i) = mean(NLL(H)) - mean(NLL(H_cf)), формулы 3.25–3.27."""
+        """CE(i) = снижение аномальности системы после вмешательства.
+
+        Если H_normal доступен и гиперграф передан — использует distance-CE
+        в post-conv пространстве: CE = Σ||h_anom_conv - h_norm_conv||² - Σ||h_cf_conv - h_norm_conv||²
+        Иначе — fallback на NLL-CE без свёртки.
+        """
         with torch.no_grad():
-            a_before = gmm.nll(H,    contexts).mean()
-            a_after  = gmm.nll(H_cf, contexts).mean()
-        return (a_before - a_after).item()
+            if H_normal is not None and hypergraph is not None:
+                # Distance-based CE в post-conv пространстве
+                # GMM обучена до свёртки, но CE должен учитывать propagation
+                inc = hypergraph.incidence_matrix().to(H.device)
+                ew  = hypergraph.edge_weights().to(H.device)
+                H_anom_conv  = self._hg_forward(H,        inc, ew)  # аномальный конв
+                H_cf_conv    = self._hg_forward(H_cf,     inc, ew)  # после вмешательства
+                H_norm_conv  = self._hg_forward(H_normal, inc, ew)  # нормальный конв
+                # CE = насколько вмешательство приближает систему к нормальному состоянию
+                dist_before = ((H_anom_conv - H_norm_conv) ** 2).sum()
+                dist_after  = ((H_cf_conv   - H_norm_conv) ** 2).sum()
+                return (dist_before - dist_after).item()
+            else:
+                # Fallback: NLL-разница без свёртки
+                nll_before = gmm.nll(H,    contexts)
+                nll_after  = gmm.nll(H_cf, contexts)
+                return (nll_before.sum() - nll_after.sum()).item()
 
     # ------------------------------------------------------------------
     # Ранжирование кандидатов
@@ -171,6 +198,7 @@ class CounterfactualModule(nn.Module):
         gmm,
         contexts: torch.Tensor,   # (N, context_dim)
         hypergraph,
+        H_normal: Optional[torch.Tensor] = None,  # (N, d) — нормальные состояния
     ) -> List[Tuple[int, float]]:
         """Ранжирует кандидатов по убыванию CE (формула 3.28).
 
@@ -178,14 +206,22 @@ class CounterfactualModule(nn.Module):
         ----------
         list of (node_idx, ce_value) — отсортированный по убыванию CE.
         """
-        prototypes = torch.stack([
-            gmm.prototype(contexts[i:i+1]).squeeze(0) for i in range(H.shape[0])
-        ])   # (N, d)
+        # Прототип = реальное нормальное состояние узла (если доступно)
+        # иначе — среднее нормальное состояние по всем узлам
+        if H_normal is not None:
+            prototypes = H_normal                          # (N, d)
+        else:
+            # Fallback: GMM прототип с нулевым контекстом
+            C_ref = torch.zeros_like(contexts)
+            prototypes = torch.stack([
+                gmm.prototype(C_ref[i:i+1]).squeeze(0) for i in range(H.shape[0])
+            ])
 
         scores: List[Tuple[int, float]] = []
         for idx in candidates:
             H_cf = self.intervene(H, idx, prototypes[idx], hypergraph)
-            ce   = self.causal_effect(H, H_cf, gmm, contexts)
+            ce   = self.causal_effect(H, H_cf, gmm, contexts,
+                                      H_normal=H_normal, hypergraph=hypergraph)
             scores.append((idx, ce))
 
         scores.sort(key=lambda x: -x[1])

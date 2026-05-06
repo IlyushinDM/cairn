@@ -173,10 +173,39 @@ class ExplanationTab(QWidget):
 
     def show_alp_result(self, result) -> None:
         """Обновляет строки ALP-верификатора."""
-        ok = len(result.violated_rules)
-        total = len(self.alp_rows)
-        passed = total - ok
-        color = "#3ecf8e" if ok == 0 else "#f6a623" if ok <= 1 else "#ff5f5f"
+        violated = set()
+        for r in result.violated_rules:
+            # violated_rules может быть строками или объектами с .name
+            violated.add(str(r) if not hasattr(r, "name") else r.name)
+
+        # Имена правил как в разметке строк
+        rule_keys = ["IC1", "IC2", "IC3", "IC4", "IC5"]
+        rule_names = ["IC1: первопричина аномальна", "IC2: CE значим",
+                      "IC3: путь существует", "IC4: текст содержит имя",
+                      "IC5: числа согласованы"]
+
+        total  = len(self.alp_rows)
+        passed = 0
+        for i, (row_widget, key, name) in enumerate(zip(self.alp_rows, rule_keys, rule_names)):
+            # Правило нарушено если его ключ встречается в violated
+            is_violated = any(key in v for v in violated)
+            status = "fail" if is_violated else "ok"
+            if not is_violated:
+                passed += 1
+
+            parent_widget = row_widget.parent()
+            from PySide6.QtWidgets import QWidget as _QW
+            parent_layout = parent_widget.layout() if isinstance(parent_widget, _QW) else None
+            if parent_layout is None:
+                continue
+            idx = parent_layout.indexOf(row_widget)
+            new_row = AxiomRow(name, status)
+            parent_layout.removeWidget(row_widget)
+            row_widget.deleteLater()
+            parent_layout.insertWidget(idx, new_row)
+            self.alp_rows[i] = new_row
+
+        color = "#3ecf8e" if passed == total else "#f6a623" if passed >= total - 1 else "#ff5f5f"
         self.alp_summary.setText(f"{passed} / {total} правил ✓")
         self.alp_summary.setStyleSheet(f"font-size:13px;font-weight:600;color:{color};margin-bottom:6px;")
         if result.counter_hypothesis:
@@ -197,17 +226,14 @@ class ExplanationTab(QWidget):
         for i, (row_widget, status) in enumerate(zip(self.axiom_rows, statuses)):
             # Пересоздаём виджет строки с нужным статусом
             parent_widget = row_widget.parent()
-            from PySide6.QtWidgets import QBoxLayout, QWidget as _QW
-            if not isinstance(parent_widget, _QW):
+            from PySide6.QtWidgets import QWidget as _QW
+            parent_layout = parent_widget.layout() if isinstance(parent_widget, _QW) else None
+            if parent_layout is None:
                 continue
-            raw_layout = parent_widget.layout()
-            if not isinstance(raw_layout, QBoxLayout):
-                continue
-            parent_layout = raw_layout
             idx = parent_layout.indexOf(row_widget)
             axiom_name = ["Ацикличность", "Темпоральная согласованность",
-                        "Транзитивность", "Согласованность с топологией",
-                        "Монотонность вмешательства"][i]
+                          "Транзитивность", "Согласованность с топологией",
+                          "Монотонность вмешательства"][i]
             new_row = AxiomRow(axiom_name, status)
             parent_layout.removeWidget(row_widget)
             row_widget.deleteLater()
@@ -225,37 +251,57 @@ class ExplanationTab(QWidget):
             ax.set_xticks([]); ax.set_yticks([])
 
             G = nx.DiGraph()
+            root_name = None
+
+            # Добавляем узлы из chain (все, не только root)
+            node_map: dict[int, str] = {}
             for node in chain.path_nodes:
-                G.add_node(node.node_name, nll=node.nll, ce=node.causal_effect)
+                G.add_node(node.node_name)
+                node_map[node.node_idx] = node.node_name
+                if root_name is None:
+                    root_name = node.node_name  # первый = root
+
+            # Если chain содержит только 1 узел — пытаемся добавить соседей из ce_scores
+            if hasattr(chain, "ce_scores") and len(G.nodes) <= 1:
+                for idx, name in getattr(chain, "all_nodes", {}).items():
+                    G.add_node(name)
+                    node_map[idx] = name
+
+            # Рёбра из chain
             for edge in chain.path_edges:
-                src_name = chain.path_nodes[0].node_name  # упрощение
-                for n in chain.path_nodes:
-                    if n.node_idx == edge.src:
-                        src_name = n.node_name
-                for n in chain.path_nodes:
-                    if n.node_idx == edge.dst:
-                        G.add_edge(src_name, n.node_name,
-                                   weight=edge.strength, etype=edge.edge_type)
+                src = node_map.get(edge.src)
+                dst = node_map.get(edge.dst)
+                if src and dst and src != dst:
+                    G.add_edge(src, dst, etype=getattr(edge, "edge_type", "call"))
 
             if len(G.nodes) == 0:
+                ax.set_title("Нет данных для отображения", color="#6c7a9c", fontsize=10)
+                if hasattr(self._chain_area, "draw"):
+                    self._chain_area.draw()
                 return
 
-            pos = nx.spring_layout(G, seed=42)
-            colors = ["#ff5f5f" if i == 0 else "#4a9eff"
-                      for i in range(len(G.nodes))]
-            nx.draw_networkx_nodes(G, pos, ax=ax, node_color=colors,
-                                   node_size=700, alpha=0.9)
-            nx.draw_networkx_edges(G, pos, ax=ax, edge_color="#3ecf8e",
-                                   arrows=True, arrowsize=20, width=2.0)
+            pos = nx.spring_layout(G, seed=42, k=2.0)
+            node_list = list(G.nodes)
+            colors = ["#ff5f5f" if n == root_name else "#4a9eff"
+                      for n in node_list]
+            sizes  = [800 if n == root_name else 500 for n in node_list]
+
+            nx.draw_networkx_nodes(G, pos, ax=ax, nodelist=node_list,
+                                   node_color=colors, node_size=sizes, alpha=0.9)
+            if G.number_of_edges() > 0:
+                nx.draw_networkx_edges(G, pos, ax=ax, edge_color="#3ecf8e",
+                                       arrows=True, arrowsize=20, width=2.0)
+                edge_labels = {(u, v): d.get("etype", "")[:4]
+                               for u, v, d in G.edges(data=True)}
+                nx.draw_networkx_edge_labels(G, pos, edge_labels, ax=ax,
+                                             font_size=7, font_color="#a0a8bc")
             nx.draw_networkx_labels(G, pos, ax=ax, font_size=8,
                                     font_color="#ffffff", font_weight="bold")
-            edge_labels = {(u, v): f"{d.get('etype','')[:4]}" for u, v, d in G.edges(data=True)}
-            nx.draw_networkx_edge_labels(G, pos, edge_labels, ax=ax,
-                                          font_size=7, font_color="#a0a8bc")
-            ax.set_title("Красный = первопричина", color="#6c7a9c", fontsize=9)
+            title = f"Красный = первопричина ({root_name})" if root_name else "Цепочка доказательств"
+            ax.set_title(title, color="#6c7a9c", fontsize=9)
             if self._chain_fig is not None:
                 self._chain_fig.tight_layout()
-            if hasattr(self._chain_area, 'draw'):
+            if hasattr(self._chain_area, "draw"):
                 self._chain_area.draw()  # type: ignore[union-attr]
         except ImportError:
             pass

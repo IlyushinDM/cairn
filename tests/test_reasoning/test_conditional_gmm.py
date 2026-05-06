@@ -15,12 +15,13 @@ def make_gmm():
 
 
 def test_forward_shapes():
+    """forward() возвращает (weights, means, log_vars) — обновлённый порядок."""
     gmm = make_gmm()
     ctx = torch.randn(5, 8)
-    w, mu, lv = gmm(ctx)       
-    assert w.shape  == (5, 3)
-    assert mu.shape == (5, 3, 32)
-    assert lv.shape == (5, 3, 32)
+    w, mu, lv = gmm(ctx)           # новый порядок: weights, means, log_vars
+    assert w.shape  == (5, 3)      # веса компонент
+    assert mu.shape == (5, 3, 32)  # центры компонент
+    assert lv.shape == (5, 3, 32)  # log-дисперсии
     assert torch.allclose(w.sum(dim=-1), torch.ones(5), atol=1e-5)
 
 

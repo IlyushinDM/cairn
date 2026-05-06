@@ -145,7 +145,7 @@ class StateBuilder(nn.Module):
         d_brk: int = 32,
         ssm_state_dim: int = 64,
         window: int = 60,
-        context_raw_dim: int = 16,
+        context_raw_dim: int = 16,  # совпадает с context_dim (выход ContextBuilder)
     ) -> None:
         super().__init__()
         self.d_met = d_met

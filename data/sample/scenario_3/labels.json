@@ -1,0 +1,15 @@
+{
+  "scenario": "Network Delay",
+  "root_cause": {
+    "instance": "frontend-1",
+    "type": "latency_spike"
+  },
+  "normal_period": {
+    "start": 1700000000.0,
+    "end": 1700000199.0
+  },
+  "anomaly_period": {
+    "start": 1700000200.0,
+    "end": 1700000299.0
+  }
+}

@@ -167,20 +167,35 @@ class ResultsTab(QWidget):
 
             pos = nx.spring_layout(G, seed=42, k=2.5)
 
-            max_ce = max(ce_scores.values(), default=1.0) + 1e-8
-            node_colors = []
-            for i, name in enumerate(names):
-                ce = ce_scores.get(i, 0.0)
-                intensity = ce / max_ce
-                # Градиент: голубой (низкий) → красный (высокий ПЭ)
-                r = intensity
-                b = 1 - intensity
-                node_colors.append((r * 0.9, 0.2, b * 0.9))
+            import matplotlib.cm as _cm
+            import matplotlib.colors as _mcolors
 
-            node_sizes = [
-                600 + 400 * (ce_scores.get(i, 0.0) / max_ce)
-                for i in range(len(names))
-            ]
+            ce_vals = [ce_scores.get(i, None) for i in range(len(names))]
+            n_known = sum(1 for v in ce_vals if v is not None)
+
+            if n_known <= 1:
+                # Если CE есть только для root — красить root красным, остальных серым
+                root_idx_g = next((i for i, v in enumerate(ce_vals) if v is not None), None)
+                node_colors = []
+                for i in range(len(names)):
+                    if i == root_idx_g:
+                        node_colors.append((0.85, 0.15, 0.15, 0.9))   # красный
+                    else:
+                        node_colors.append((0.25, 0.35, 0.55, 0.9))   # тёмно-синий
+                node_sizes = [600 if i == root_idx_g else 350 for i in range(len(names))]
+            else:
+                # Все узлы имеют CE — нормализованный coolwarm
+                filled = [v if v is not None else 0.0 for v in ce_vals]
+                ce_min  = min(filled)
+                ce_max  = max(filled)
+                ce_span = max(ce_max - ce_min, 1e-8)
+                cmap = _cm.get_cmap("coolwarm")
+                norm = _mcolors.Normalize(vmin=ce_min, vmax=ce_max)
+                node_colors = [cmap(norm(v)) for v in filled]
+                node_sizes = [
+                    350 + 250 * max(0.0, (filled[i] - ce_min) / ce_span)
+                    for i in range(len(names))
+                ]
 
             nx.draw_networkx_nodes(G, pos, ax=ax, node_color=node_colors,
                                    node_size=node_sizes, alpha=0.9)
