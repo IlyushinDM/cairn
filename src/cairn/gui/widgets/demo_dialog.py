@@ -37,6 +37,22 @@ SCENARIO_INFO = {
                        "Эффект: рост P99-латентности по всей цепочке.",
         "dir":         "scenario_3",
     },
+    "4": {
+        "name":        "Payment Service Overload",
+        "root":        "payment-service-1",
+        "fault":       "overload",
+        "description": "Перегрузка payment-service-1.\n"
+                       "Эффект: деградация по всей цепочке оплаты.",
+        "dir":         "scenario_4",
+    },
+    "5": {
+        "name":        "Database Bottleneck",
+        "root":        "database-1",
+        "fault":       "cpu_exhaustion",
+        "description": "Bottleneck в центральном database-1.\n"
+                       "Эффект: деградация всех зависимых сервисов.",
+        "dir":         "scenario_5",
+    },
 }
 
 

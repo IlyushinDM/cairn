@@ -1,0 +1,45 @@
+# Топология микросервисной системы CAIRN Demo
+# Генерируется автоматически generate_demo_data.py
+
+instances:
+  - name: cache-service-1
+    service: cache
+    host: node-1
+    cpu_limit: 2.0
+    memory_limit: 512
+    version: "1.0"
+  - name: database-1
+    service: database
+    host: node-2
+    cpu_limit: 4.0
+    memory_limit: 2048
+    version: "1.0"
+  - name: frontend-1
+    service: frontend
+    host: node-1
+    cpu_limit: 2.0
+    memory_limit: 512
+    version: "1.0"
+  - name: order-service-1
+    service: order
+    host: node-3
+    cpu_limit: 2.0
+    memory_limit: 512
+    version: "1.0"
+  - name: payment-service-1
+    service: payment
+    host: node-3
+    cpu_limit: 2.0
+    memory_limit: 512
+    version: "1.0"
+
+call_edges:
+  - [cache-service-1, database-1]
+  - [frontend-1, database-1]
+  - [order-service-1, database-1]
+  - [payment-service-1, database-1]
+
+colocation_groups:
+  - [order-service-1, cache-service-1]
+
+load_balancer_groups: []

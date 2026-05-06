@@ -52,9 +52,20 @@ class TemplateTextGenerator:
             return f"Первопричина (индекс {chain.root_cause_idx}): нет данных для объяснения."
 
         root = chain.path_nodes[0]
-        root_name = root.node_name
+        root_name  = root.node_name
         fault_type = root.failure_type or "unknown"
         recommendation = _RECOMMENDATIONS.get(fault_type, _RECOMMENDATIONS["unknown"])
+
+        # 1.2: Добавляем доминантную метрику если известна
+        dominant = getattr(root, "dominant_metric", None)
+        if dominant:
+            _METRIC_LABELS = {
+                "cpu":        "CPU",
+                "memory":     "Memory",
+                "latency_ms": "Latency",
+                "rps":        "RPS",
+            }
+            fault_type = f"{fault_type}, доминирует {_METRIC_LABELS.get(dominant, dominant)}"
 
         # Путь распространения с типами рёбер
         path = self._format_path(chain)
@@ -118,9 +129,9 @@ class TextExplanationGenerator:
 
         if level == "local_llm" and local_llm_model:
             try:
-                from transformers import pipeline
+                from transformers import pipeline  # type: ignore[import-untyped]
                 self._local_llm = pipeline("text-generation", model=local_llm_model)
-            except ImportError:
+            except (ImportError, ModuleNotFoundError):
                 pass  # Fallback на шаблонный генератор
 
     def generate(self, chain: EvidenceChain) -> str:
@@ -132,8 +143,6 @@ class TextExplanationGenerator:
         return self._template.generate(chain)
 
     def _local_llm_generate(self, chain: EvidenceChain) -> str:
-        if self._local_llm is None:
-            return self._template.generate(chain)
         context = chain.summary()
         prompt = (
             f"На основе следующих данных о сбое:\n{context}\n\n"

@@ -1,0 +1,15 @@
+{
+  "scenario": "Database Bottleneck",
+  "root_cause": {
+    "instance": "database-1",
+    "type": "cpu_exhaustion"
+  },
+  "normal_period": {
+    "start": 1700000000.0,
+    "end": 1700000199.0
+  },
+  "anomaly_period": {
+    "start": 1700000200.0,
+    "end": 1700000299.0
+  }
+}

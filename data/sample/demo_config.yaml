@@ -7,7 +7,7 @@ model:
   d_ssm: 8
   d_tr: 8
   log_vocab_size: 300
-  n_components: 5
+  n_components: 7
   n_confounders: 2
   n_conv_layers: 1
   n_metrics: 4
@@ -27,11 +27,21 @@ scenarios:
     name: Network Delay
     root: frontend-1
     type: latency_spike
+  '4':
+    name: Payment Overload
+    root: payment-service-1
+    type: overload
+  '5':
+    name: Database Bottleneck
+    root: database-1
+    type: cpu_exhaustion
 split:
-  test: scenario_3
+  test: scenario_5
   train:
   - scenario_1
   - scenario_2
+  - scenario_3
+  - scenario_4
 test_metrics:
   AC@1: 1.0
   AC@3: 1.0
@@ -39,13 +49,13 @@ test_metrics:
   Avg@5: 1.0
   F1: 0.9999999949999999
 train_metrics:
-  AC@1: 0.9
+  AC@1: 1.0
   AC@3: 1.0
   AC@5: 1.0
-  Avg@5: 0.95
-  F1: 0.8999999954999998
+  Avg@5: 1.0
+  F1: 0.9999999949999998
 training:
-  elapsed_sec: 6.0
-  epochs_per_stage: 10
+  elapsed_sec: 52.8
+  epochs_per_stage: 40
   n_test: 17
-  n_train: 34
+  n_train: 68

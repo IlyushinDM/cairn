@@ -359,6 +359,9 @@ class CAIRNController(QObject):
         ce_scores  = dict(ranked)
         root_idx   = ranked[0][0] if ranked else 0
 
+        # 1.2: Вычисляем доминантную метрику для каждого узла
+        dominant_metrics = self._compute_dominant_metrics(incident, names)
+
         # Передаём все оценки — builder строит путь через граф по убыванию NLL
         chain = EvidenceChainBuilder().build(
             root_cause=root_idx,
@@ -367,7 +370,9 @@ class CAIRNController(QObject):
             nll_scores=nll_scores,
             anomaly_threshold=float(sorted(nll_scores.values())[len(nll_scores) // 3]),
         )
-        # Устанавливаем тип сбоя из демо-подсказки на корневой узел
+        # Устанавливаем тип сбоя и доминантную метрику на узлы пути
+        for node in chain.path_nodes:
+            node.dominant_metric = dominant_metrics.get(node.node_idx)
         if chain.path_nodes:
             chain.path_nodes[0].failure_type = getattr(self, "_demo_fault_hint", None)
 
@@ -399,6 +404,40 @@ class CAIRNController(QObject):
             }
             for i, (idx, ce) in enumerate(ranked)
         ]
+
+    def _compute_dominant_metrics(self, incident, instance_names: list[str]) -> dict[int, str]:
+        """1.2: Вычисляет наиболее отклонившуюся метрику для каждого узла.
+
+        Сравнивает первую и последнюю треть временного окна инцидента.
+        Возвращает {node_idx: metric_name} для узлов с явным доминирующим сигналом.
+        """
+        import torch
+        METRIC_NAMES = ["cpu", "memory", "latency_ms", "rps"]
+        result: dict[int, str] = {}
+
+        try:
+            m = incident.metric_data  # (N, T, F)
+            N, T, F = m.shape
+            third = max(1, T // 3)
+
+            # Базовый период — первая треть окна
+            base = m[:, :third, :].mean(dim=1)          # (N, F)
+            # Аномальный период — последняя треть
+            anom = m[:, -third:, :].mean(dim=1)         # (N, F)
+
+            # Относительное отклонение |Δ| / (|base| + ε)
+            delta = (anom - base).abs() / (base.abs() + 1e-6)  # (N, F)
+
+            for i in range(min(N, len(instance_names))):
+                best_f = int(delta[i].argmax().item())
+                best_delta = float(delta[i, best_f])
+                # Считаем метрику доминантной если отклонение > 20%
+                if best_delta > 0.20 and best_f < len(METRIC_NAMES):
+                    result[i] = METRIC_NAMES[best_f]
+        except Exception:
+            pass  # не критично — dominant_metric остаётся null
+
+        return result
 
     @Slot(list)
     def _on_analysis_finished(self, results: list[dict]) -> None:

@@ -73,67 +73,112 @@ SCENARIOS = {
     "scenario_1": {
         "name":       "CPU Exhaustion",
         "root_cause": {"instance": "order-service-1", "type": "cpu_exhaustion"},
-        # Первопричина: сильный рост CPU, небольшой рост latency и падение rps
+        # 1.1: Усиленные множители — root выделяется по ВСЕМ метрикам
+        # Цель: ratio root/neighbor > 5x, чтобы GMM дал положительный CE
         "anomaly": {
             "order-service-1": {
-                "cpu":        {"mult": 4.0},   # +300%
-                "memory":     {"mult": 1.4},   # +40%
-                "latency_ms": {"mult": 3.0},   # +200%
-                "rps":        {"mult": 0.6},   # -40%
+                "cpu":        {"mult": 8.0},   # +700% (было +300%)
+                "memory":     {"mult": 2.5},   # +150% (было +40%)
+                "latency_ms": {"mult": 10.0},  # +900% (было +200%)
+                "rps":        {"mult": 0.35},  # -65%  (было -40%)
             },
-            # Каскад: database тоже нагружается, но заметно меньше
+            # Каскад: сильно ослаблен чтобы root доминировал
             "database-1": {
-                "cpu":        {"mult": 1.3},   # +30%
-                "latency_ms": {"mult": 1.5},   # +50%
+                "cpu":        {"mult": 1.15},  # +15%  (было +30%)
+                "latency_ms": {"mult": 1.3},   # +30%  (было +50%)
             },
-            # Остальные — слабый шум
             "payment-service-1": {
-                "latency_ms": {"mult": 1.2},   # +20%
+                "latency_ms": {"mult": 1.1},   # +10%  (было +20%)
             },
         },
     },
     "scenario_2": {
         "name":       "Memory Leak",
         "root_cause": {"instance": "cache-service-1", "type": "memory_pressure"},
-        # Первопричина: утечка памяти, растёт постепенно
+        # 1.1: Усиленные множители для memory_pressure
         "anomaly": {
             "cache-service-1": {
-                "cpu":        {"mult": 1.8},   # +80%
-                "memory":     {"mult": 3.5},   # +250%
-                "latency_ms": {"mult": 2.5},   # +150%
-                "rps":        {"mult": 0.7},   # -30%
+                "cpu":        {"mult": 3.5},   # +250% (было +80%)
+                "memory":     {"mult": 8.0},   # +700% (было +250%)
+                "latency_ms": {"mult": 12.0},  # +1100% (было +150%)
+                "rps":        {"mult": 0.30},  # -70%   (было -30%)
             },
-            # Каскад: database немного страдает
+            # Каскад: минимальный эффект
             "database-1": {
-                "memory":     {"mult": 1.2},   # +20%
-                "latency_ms": {"mult": 1.3},   # +30%
+                "memory":     {"mult": 1.1},   # +10%  (было +20%)
+                "latency_ms": {"mult": 1.2},   # +20%  (было +30%)
             },
         },
     },
     "scenario_3": {
         "name":       "Network Delay",
         "root_cause": {"instance": "frontend-1", "type": "latency_spike"},
-        # Первопричина: сетевая задержка на frontend-1
-        # КЛЮЧЕВОЕ: сильный сигнал по ВСЕМ метрикам у root, слабый у соседей
         "anomaly": {
             "frontend-1": {
-                "cpu":        {"mult": 3.5},   # +250% — видно!
-                "memory":     {"mult": 2.0},   # +100% — видно!
-                "latency_ms": {"mult": 20.0},  # +1900% — очень сильно
-                "rps":        {"mult": 0.40},  # -60%  — заметно
+                "cpu":        {"mult": 3.5},
+                "memory":     {"mult": 2.0},
+                "latency_ms": {"mult": 20.0},
+                "rps":        {"mult": 0.40},
             },
-            # Каскад: database получает эффект, но ЗНАЧИТЕЛЬНО слабее
             "database-1": {
-                "latency_ms": {"mult": 1.8},   # +80%  (было +330% — исправлено)
-                "cpu":        {"mult": 1.1},   # +10%
+                "latency_ms": {"mult": 1.8},
+                "cpu":        {"mult": 1.1},
             },
             "order-service-1": {
-                "latency_ms": {"mult": 1.6},   # +60%  (было +430% — исправлено)
+                "latency_ms": {"mult": 1.6},
             },
             "payment-service-1": {
-                "latency_ms": {"mult": 1.4},   # +40%  (было +389% — исправлено)
+                "latency_ms": {"mult": 1.4},
             },
-            # cache-service-1 не связан с frontend напрямую — остаётся чистым
+        },
+    },
+
+    # ── 1.3: Новые тестовые сценарии ─────────────────────────────────────────
+
+    "scenario_4": {
+        "name":       "Payment Service Overload",
+        "root_cause": {"instance": "payment-service-1", "type": "overload"},
+        # Перегрузка payment-service-1 — новый корень, новый тип сбоя
+        "anomaly": {
+            "payment-service-1": {
+                "cpu":        {"mult": 7.0},   # +600%
+                "memory":     {"mult": 2.8},   # +180%
+                "latency_ms": {"mult": 15.0},  # +1400%
+                "rps":        {"mult": 0.25},  # -75%
+            },
+            # Минимальный каскад
+            "database-1": {
+                "latency_ms": {"mult": 1.3},   # +30%
+                "cpu":        {"mult": 1.1},   # +10%
+            },
+        },
+    },
+
+    "scenario_5": {
+        "name":       "Database Bottleneck",
+        "root_cause": {"instance": "database-1", "type": "cpu_exhaustion"},
+        # database-1 — центральный хаб, его деградация затрагивает всех
+        # Важно: database доминирует СИЛЬНО чтобы выделиться на фоне каскада
+        "anomaly": {
+            "database-1": {
+                "cpu":        {"mult": 9.0},   # +800%
+                "memory":     {"mult": 3.0},   # +200%
+                "latency_ms": {"mult": 18.0},  # +1700%
+                "rps":        {"mult": 0.20},  # -80%
+            },
+            # Все соседи получают умеренный каскадный эффект
+            "cache-service-1": {
+                "latency_ms": {"mult": 1.5},   # +50%
+            },
+            "frontend-1": {
+                "latency_ms": {"mult": 1.4},   # +40%
+            },
+            "order-service-1": {
+                "latency_ms": {"mult": 1.6},   # +60%
+            },
+            "payment-service-1": {
+                "latency_ms": {"mult": 1.5},   # +50%
+            },
         },
     },
 }
@@ -276,6 +321,13 @@ LOG_TEMPLATES_ANOMALY = {
         "{inst} connection timeout to downstream",
         "{inst} retry attempt {r} for request",
         "{inst} circuit breaker OPEN",
+    ],
+    "overload": [
+        "{inst} request rate exceeded capacity: {q} queued",
+        "{inst} rate limiter activated",
+        "{inst} service degraded under high load",
+        "{inst} response time {lat:.0f}ms exceeds SLA",
+        "{inst} shed load: {r} requests dropped",
     ],
 }
 

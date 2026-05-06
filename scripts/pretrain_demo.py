@@ -1,13 +1,14 @@
-"""Предобучение модели CAIRN — версия Приоритета 2.
+"""Предобучение модели CAIRN — Группа 1 улучшений.
 
-Изменения по сравнению с предыдущей версией:
-  - Увеличено число эпох по умолчанию (10 вместо 3)
-  - n_components GMM увеличен до 5 (лучше покрывает распределение нормы)
-  - Разделение TRAIN/TEST сохранено: scenario_1+2 → train, scenario_3 → test
+Изменения:
+  - TRAIN: scenario_1 + scenario_2 + scenario_3 + scenario_4
+  - TEST:  scenario_5 (unseen)
+  - n_components GMM: 7 (для покрытия 5 сценариев)
+  - Эпох по умолчанию: 20
 
 Использование:
     python scripts/pretrain_demo.py
-    python scripts/pretrain_demo.py --epochs 15 --out data/sample
+    python scripts/pretrain_demo.py --epochs 30 --out data/sample
 """
 
 from __future__ import annotations
@@ -23,7 +24,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 def main() -> None:
     parser = argparse.ArgumentParser(description="Предобучение демо-модели CAIRN")
     parser.add_argument("--out",    default="data/sample", help="Директория вывода")
-    parser.add_argument("--epochs", type=int, default=10,  help="Эпох на этап")
+    parser.add_argument("--epochs", type=int, default=20,  help="Эпох на этап")
     parser.add_argument("--seed",   type=int, default=42)
     args = parser.parse_args()
 
@@ -31,7 +32,7 @@ def main() -> None:
     data_dir = out_dir
 
     # ── Генерируем данные если нужно ─────────────────────────────────────
-    for sc in ["scenario_1", "scenario_2", "scenario_3"]:
+    for sc in ["scenario_1", "scenario_2", "scenario_3", "scenario_4", "scenario_5"]:
         if not (data_dir / sc / "metrics.csv").exists():
             print(f"Данные {sc} не найдены — генерируем...")
             import subprocess
@@ -55,14 +56,11 @@ def main() -> None:
     torch.manual_seed(args.seed)
 
     # ── Параметры архитектуры ─────────────────────────────────────────────
-    # ИЗМЕНЕНИЕ П2: n_components 3 → 5
-    # GMM с 5 компонентами лучше моделирует норму и острее реагирует
-    # на отклонения — ключевое улучшение для AC@1.
     ARCH = {
         "state_dim":      32,
         "context_dim":    8,
         "n_metrics":      4,
-        "n_components":   5,    # ← было 3, стало 5
+        "n_components":   7,    # увеличено для 5 сценариев
         "n_confounders":  2,
         "confounder_dim": 8,
         "d_met":          16,
@@ -84,9 +82,9 @@ def main() -> None:
     hg   = HypergraphBuilder.from_topology_data(topo)
     print(f"  Узлов: {hg.n_nodes}, рёбер: {len(hg.edges)}")
 
-    # ── Загружаем данные с честным разделением ────────────────────────────
-    TRAIN_SCENARIOS = ["scenario_1", "scenario_2"]
-    TEST_SCENARIO   = "scenario_3"
+    # ── Честное разделение: train=1-4, test=5 ─────────────────────────────
+    TRAIN_SCENARIOS = ["scenario_1", "scenario_2", "scenario_3", "scenario_4"]
+    TEST_SCENARIO   = "scenario_5"
 
     print("\nЗагружаем TRAIN-сценарии...")
     train_incidents = []
@@ -96,6 +94,8 @@ def main() -> None:
             ds = create_demo_dataset(sc_dir, window_size=30, stride=15)
             train_incidents.extend([ds[i] for i in range(len(ds))])
             print(f"  [TRAIN] {sc}: {len(ds)} окон ({ds.n_normal} норм., {ds.n_anomaly} аном.)")
+        else:
+            print(f"  [TRAIN] {sc}: ПРОПУЩЕН (нет данных)")
 
     print("\nЗагружаем TEST-сценарий (модель его НЕ увидит)...")
     test_sc_dir = data_dir / TEST_SCENARIO
@@ -104,6 +104,8 @@ def main() -> None:
         test_ds = create_demo_dataset(test_sc_dir, window_size=30, stride=15)
         print(f"  [TEST]  {TEST_SCENARIO}: {len(test_ds)} окон "
               f"({test_ds.n_normal} норм., {test_ds.n_anomaly} аном.)")
+    else:
+        print(f"  [TEST]  {TEST_SCENARIO}: ПРОПУЩЕН (нет данных)")
 
     if not train_incidents:
         print("Ошибка: нет обучающих данных.")
@@ -132,7 +134,7 @@ def main() -> None:
         gmm=ConditionalGMM(
             state_dim=D,
             context_dim=CTX,
-            n_components=ARCH["n_components"],  # 5 компонент
+            n_components=ARCH["n_components"],
         ),
         vgae=ConfoundedVGAE(
             state_dim=D,
@@ -146,7 +148,7 @@ def main() -> None:
     )
     n_params = sum(p.numel() for p in model.parameters())
     print(f"  Параметров: {n_params:,}")
-    print(f"  GMM компонент: {ARCH['n_components']} (увеличено для лучшего покрытия нормы)")
+    print(f"  GMM компонент: {ARCH['n_components']}")
 
     # ── Обучение ──────────────────────────────────────────────────────────
     cfg = TrainerConfig(
@@ -155,7 +157,7 @@ def main() -> None:
         finetune_epochs=args.epochs,
         freeze_epochs=0,
         patience=999,
-        log_every=max(1, args.epochs // 5),  # логировать 5 раз за этап
+        log_every=max(1, args.epochs // 5),
         device="cpu",
         checkpoint_dir=str(out_dir / "checkpoints"),
         save_every=999,
@@ -174,7 +176,7 @@ def main() -> None:
         if vals:
             print(f"  {stage}: {vals[0]:.4f} → {vals[-1]:.4f}")
 
-    # ── Оценка TRAIN / TEST ───────────────────────────────────────────────
+    # ── Оценка ────────────────────────────────────────────────────────────
     print("\nОценка на TRAIN:")
     train_metrics = trainer.evaluate(train_dataset)
     for k, v in train_metrics.items():
@@ -182,7 +184,7 @@ def main() -> None:
 
     test_metrics = {}
     if test_ds is not None:
-        print("\nОценка на TEST (честные метрики):")
+        print("\nОценка на TEST (честные метрики — unseen data):")
         test_metrics = trainer.evaluate(test_ds)
         for k, v in test_metrics.items():
             print(f"  {k}: {v:.3f}")
@@ -212,9 +214,11 @@ def main() -> None:
             "test":  TEST_SCENARIO,
         },
         "scenarios": {
-            "1": {"name": "CPU Exhaustion",  "root": "order-service-1", "type": "cpu_exhaustion"},
-            "2": {"name": "Memory Leak",     "root": "cache-service-1", "type": "memory_pressure"},
-            "3": {"name": "Network Delay",   "root": "frontend-1",      "type": "latency_spike"},
+            "1": {"name": "CPU Exhaustion",          "root": "order-service-1",   "type": "cpu_exhaustion"},
+            "2": {"name": "Memory Leak",             "root": "cache-service-1",   "type": "memory_pressure"},
+            "3": {"name": "Network Delay",           "root": "frontend-1",        "type": "latency_spike"},
+            "4": {"name": "Payment Overload",        "root": "payment-service-1", "type": "overload"},
+            "5": {"name": "Database Bottleneck",     "root": "database-1",        "type": "cpu_exhaustion"},
         },
         "training": {
             "epochs_per_stage": args.epochs,
@@ -230,11 +234,10 @@ def main() -> None:
         yaml.dump(demo_cfg, f, allow_unicode=True, default_flow_style=False)
     print(f"Конфигурация: {cfg_path}")
 
-    print("\n✅ Готово. Следующие шаги:")
-    print(f"  1. Диагностика: python scripts/diagnose.py --scenario 3 "
-          f"--model {model_path}")
-    print(f"  2. Оценка:      python scripts/evaluate.py "
+    print(f"\n✅ Готово. Следующие шаги:")
+    print(f"  Оценка: python scripts/evaluate.py "
           f"--checkpoint {model_path} --data-dir {data_dir / TEST_SCENARIO}")
+    print(f"  GUI:    python scripts/run_gui.py")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,614 @@
+1700000000.000 | payment-service-1 | INFO | payment-service-1 health check OK
+1700000000.000 | order-service-1 | INFO | order-service-1 processed request in 24.5ms
+1700000000.000 | frontend-1 | INFO | frontend-1 processed request in 11.7ms
+1700000001.000 | payment-service-1 | INFO | payment-service-1 health check OK
+1700000001.000 | frontend-1 | INFO | frontend-1 health check OK
+1700000001.000 | frontend-1 | INFO | frontend-1 processed request in 13.0ms
+1700000002.000 | cache-service-1 | INFO | cache-service-1 connection pool size 5
+1700000002.000 | database-1 | INFO | database-1 connection pool size 9
+1700000003.000 | cache-service-1 | INFO | cache-service-1 connection pool size 14
+1700000003.000 | order-service-1 | INFO | order-service-1 connection pool size 8
+1700000004.000 | database-1 | INFO | database-1 health check OK
+1700000005.000 | order-service-1 | INFO | order-service-1 connection pool size 5
+1700000006.000 | frontend-1 | INFO | frontend-1 completed batch job
+1700000006.000 | order-service-1 | INFO | order-service-1 connection pool size 13
+1700000007.000 | payment-service-1 | INFO | payment-service-1 processed request in 16.9ms
+1700000007.000 | database-1 | INFO | database-1 cache hit ratio 0.87
+1700000007.000 | frontend-1 | INFO | frontend-1 cache hit ratio 0.75
+1700000008.000 | payment-service-1 | INFO | payment-service-1 completed batch job
+1700000008.000 | payment-service-1 | INFO | payment-service-1 health check OK
+1700000009.000 | order-service-1 | INFO | order-service-1 health check OK
+1700000009.000 | frontend-1 | INFO | frontend-1 cache hit ratio 0.83
+1700000010.000 | payment-service-1 | INFO | payment-service-1 completed batch job
+1700000010.000 | payment-service-1 | INFO | payment-service-1 completed batch job
+1700000010.000 | frontend-1 | INFO | frontend-1 completed batch job
+1700000011.000 | order-service-1 | INFO | order-service-1 health check OK
+1700000011.000 | payment-service-1 | INFO | payment-service-1 health check OK
+1700000012.000 | payment-service-1 | INFO | payment-service-1 health check OK
+1700000012.000 | order-service-1 | INFO | order-service-1 completed batch job
+1700000013.000 | order-service-1 | INFO | order-service-1 completed batch job
+1700000013.000 | payment-service-1 | INFO | payment-service-1 connection pool size 15
+1700000014.000 | frontend-1 | INFO | frontend-1 connection pool size 18
+1700000014.000 | database-1 | INFO | database-1 connection pool size 17
+1700000015.000 | order-service-1 | INFO | order-service-1 processed request in 26.7ms
+1700000016.000 | frontend-1 | INFO | frontend-1 cache hit ratio 0.85
+1700000017.000 | order-service-1 | INFO | order-service-1 connection pool size 12
+1700000018.000 | order-service-1 | INFO | order-service-1 cache hit ratio 0.78
+1700000018.000 | frontend-1 | INFO | frontend-1 completed batch job
+1700000018.000 | database-1 | INFO | database-1 processed request in 8.2ms
+1700000019.000 | payment-service-1 | INFO | payment-service-1 health check OK
+1700000020.000 | cache-service-1 | INFO | cache-service-1 connection pool size 16
+1700000020.000 | cache-service-1 | INFO | cache-service-1 health check OK
+1700000021.000 | frontend-1 | INFO | frontend-1 processed request in 13.4ms
+1700000021.000 | frontend-1 | INFO | frontend-1 connection pool size 17
+1700000021.000 | payment-service-1 | INFO | payment-service-1 cache hit ratio 0.94
+1700000022.000 | frontend-1 | INFO | frontend-1 cache hit ratio 0.89
+1700000022.000 | frontend-1 | INFO | frontend-1 processed request in 10.2ms
+1700000023.000 | cache-service-1 | INFO | cache-service-1 cache hit ratio 0.88
+1700000023.000 | frontend-1 | INFO | frontend-1 connection pool size 18
+1700000024.000 | order-service-1 | INFO | order-service-1 health check OK
+1700000024.000 | cache-service-1 | INFO | cache-service-1 cache hit ratio 0.90
+1700000024.000 | cache-service-1 | INFO | cache-service-1 health check OK
+1700000025.000 | database-1 | INFO | database-1 health check OK
+1700000026.000 | cache-service-1 | INFO | cache-service-1 health check OK
+1700000027.000 | cache-service-1 | INFO | cache-service-1 cache hit ratio 0.84
+1700000027.000 | payment-service-1 | INFO | payment-service-1 health check OK
+1700000028.000 | database-1 | INFO | database-1 health check OK
+1700000028.000 | frontend-1 | INFO | frontend-1 health check OK
+1700000029.000 | payment-service-1 | INFO | payment-service-1 health check OK
+1700000029.000 | database-1 | INFO | database-1 completed batch job
+1700000030.000 | payment-service-1 | INFO | payment-service-1 connection pool size 17
+1700000030.000 | database-1 | INFO | database-1 completed batch job
+1700000031.000 | frontend-1 | INFO | frontend-1 cache hit ratio 0.88
+1700000032.000 | payment-service-1 | INFO | payment-service-1 connection pool size 13
+1700000033.000 | order-service-1 | INFO | order-service-1 completed batch job
+1700000033.000 | frontend-1 | INFO | frontend-1 connection pool size 10
+1700000034.000 | database-1 | INFO | database-1 health check OK
+1700000035.000 | database-1 | INFO | database-1 cache hit ratio 0.98
+1700000035.000 | database-1 | INFO | database-1 processed request in 8.8ms
+1700000036.000 | database-1 | INFO | database-1 processed request in 9.2ms
+1700000036.000 | payment-service-1 | INFO | payment-service-1 processed request in 19.2ms
+1700000037.000 | order-service-1 | INFO | order-service-1 health check OK
+1700000037.000 | database-1 | INFO | database-1 cache hit ratio 0.87
+1700000038.000 | payment-service-1 | INFO | payment-service-1 connection pool size 17
+1700000038.000 | payment-service-1 | INFO | payment-service-1 completed batch job
+1700000039.000 | cache-service-1 | INFO | cache-service-1 processed request in 1.8ms
+1700000039.000 | payment-service-1 | INFO | payment-service-1 cache hit ratio 0.93
+1700000039.000 | frontend-1 | INFO | frontend-1 connection pool size 12
+1700000040.000 | frontend-1 | INFO | frontend-1 processed request in 13.2ms
+1700000040.000 | payment-service-1 | INFO | payment-service-1 health check OK
+1700000041.000 | payment-service-1 | INFO | payment-service-1 processed request in 19.1ms
+1700000042.000 | frontend-1 | INFO | frontend-1 connection pool size 17
+1700000043.000 | database-1 | INFO | database-1 connection pool size 10
+1700000043.000 | order-service-1 | INFO | order-service-1 health check OK
+1700000043.000 | order-service-1 | INFO | order-service-1 health check OK
+1700000044.000 | database-1 | INFO | database-1 processed request in 8.4ms
+1700000044.000 | payment-service-1 | INFO | payment-service-1 health check OK
+1700000044.000 | frontend-1 | INFO | frontend-1 health check OK
+1700000045.000 | frontend-1 | INFO | frontend-1 health check OK
+1700000045.000 | frontend-1 | INFO | frontend-1 connection pool size 5
+1700000046.000 | database-1 | INFO | database-1 completed batch job
+1700000047.000 | order-service-1 | INFO | order-service-1 cache hit ratio 0.81
+1700000047.000 | database-1 | INFO | database-1 cache hit ratio 0.82
+1700000047.000 | database-1 | INFO | database-1 connection pool size 13
+1700000048.000 | database-1 | INFO | database-1 completed batch job
+1700000049.000 | cache-service-1 | INFO | cache-service-1 processed request in 2.1ms
+1700000049.000 | payment-service-1 | INFO | payment-service-1 cache hit ratio 0.88
+1700000049.000 | database-1 | INFO | database-1 processed request in 8.5ms
+1700000050.000 | frontend-1 | INFO | frontend-1 completed batch job
+1700000051.000 | payment-service-1 | INFO | payment-service-1 cache hit ratio 0.98
+1700000051.000 | payment-service-1 | INFO | payment-service-1 cache hit ratio 0.87
+1700000052.000 | cache-service-1 | INFO | cache-service-1 completed batch job
+1700000052.000 | payment-service-1 | INFO | payment-service-1 processed request in 18.8ms
+1700000053.000 | order-service-1 | INFO | order-service-1 cache hit ratio 0.92
+1700000053.000 | database-1 | INFO | database-1 completed batch job
+1700000054.000 | cache-service-1 | INFO | cache-service-1 processed request in 2.0ms
+1700000054.000 | frontend-1 | INFO | frontend-1 connection pool size 15
+1700000055.000 | database-1 | INFO | database-1 health check OK
+1700000055.000 | cache-service-1 | INFO | cache-service-1 completed batch job
+1700000056.000 | order-service-1 | INFO | order-service-1 cache hit ratio 0.98
+1700000056.000 | cache-service-1 | INFO | cache-service-1 health check OK
+1700000056.000 | database-1 | INFO | database-1 health check OK
+1700000057.000 | payment-service-1 | INFO | payment-service-1 processed request in 19.4ms
+1700000058.000 | payment-service-1 | INFO | payment-service-1 processed request in 20.3ms
+1700000059.000 | frontend-1 | INFO | frontend-1 connection pool size 8
+1700000060.000 | payment-service-1 | INFO | payment-service-1 processed request in 20.9ms
+1700000060.000 | cache-service-1 | INFO | cache-service-1 processed request in 1.7ms
+1700000061.000 | cache-service-1 | INFO | cache-service-1 processed request in 2.0ms
+1700000061.000 | database-1 | INFO | database-1 completed batch job
+1700000062.000 | payment-service-1 | INFO | payment-service-1 completed batch job
+1700000062.000 | order-service-1 | INFO | order-service-1 processed request in 28.8ms
+1700000062.000 | order-service-1 | INFO | order-service-1 health check OK
+1700000063.000 | frontend-1 | INFO | frontend-1 connection pool size 11
+1700000063.000 | database-1 | INFO | database-1 completed batch job
+1700000063.000 | order-service-1 | INFO | order-service-1 processed request in 23.4ms
+1700000064.000 | frontend-1 | INFO | frontend-1 cache hit ratio 0.74
+1700000065.000 | order-service-1 | INFO | order-service-1 cache hit ratio 0.78
+1700000065.000 | payment-service-1 | INFO | payment-service-1 connection pool size 16
+1700000066.000 | frontend-1 | INFO | frontend-1 completed batch job
+1700000066.000 | frontend-1 | INFO | frontend-1 cache hit ratio 0.97
+1700000066.000 | cache-service-1 | INFO | cache-service-1 processed request in 1.9ms
+1700000067.000 | cache-service-1 | INFO | cache-service-1 health check OK
+1700000067.000 | cache-service-1 | INFO | cache-service-1 cache hit ratio 0.82
+1700000067.000 | order-service-1 | INFO | order-service-1 connection pool size 11
+1700000068.000 | frontend-1 | INFO | frontend-1 connection pool size 13
+1700000068.000 | cache-service-1 | INFO | cache-service-1 processed request in 1.9ms
+1700000068.000 | order-service-1 | INFO | order-service-1 processed request in 22.9ms
+1700000069.000 | order-service-1 | INFO | order-service-1 completed batch job
+1700000070.000 | database-1 | INFO | database-1 processed request in 7.9ms
+1700000071.000 | frontend-1 | INFO | frontend-1 processed request in 13.4ms
+1700000071.000 | database-1 | INFO | database-1 health check OK
+1700000071.000 | payment-service-1 | INFO | payment-service-1 completed batch job
+1700000072.000 | payment-service-1 | INFO | payment-service-1 health check OK
+1700000072.000 | database-1 | INFO | database-1 connection pool size 14
+1700000073.000 | cache-service-1 | INFO | cache-service-1 completed batch job
+1700000073.000 | cache-service-1 | INFO | cache-service-1 health check OK
+1700000073.000 | cache-service-1 | INFO | cache-service-1 processed request in 1.8ms
+1700000074.000 | order-service-1 | INFO | order-service-1 health check OK
+1700000075.000 | cache-service-1 | INFO | cache-service-1 completed batch job
+1700000076.000 | frontend-1 | INFO | frontend-1 health check OK
+1700000077.000 | frontend-1 | INFO | frontend-1 processed request in 13.6ms
+1700000077.000 | order-service-1 | INFO | order-service-1 completed batch job
+1700000077.000 | frontend-1 | INFO | frontend-1 cache hit ratio 0.75
+1700000078.000 | database-1 | INFO | database-1 completed batch job
+1700000079.000 | payment-service-1 | INFO | payment-service-1 completed batch job
+1700000079.000 | frontend-1 | INFO | frontend-1 cache hit ratio 0.95
+1700000080.000 | order-service-1 | INFO | order-service-1 connection pool size 12
+1700000080.000 | payment-service-1 | INFO | payment-service-1 health check OK
+1700000080.000 | cache-service-1 | INFO | cache-service-1 health check OK
+1700000081.000 | frontend-1 | INFO | frontend-1 completed batch job
+1700000081.000 | order-service-1 | INFO | order-service-1 completed batch job
+1700000081.000 | frontend-1 | INFO | frontend-1 completed batch job
+1700000082.000 | order-service-1 | INFO | order-service-1 connection pool size 11
+1700000083.000 | payment-service-1 | INFO | payment-service-1 completed batch job
+1700000083.000 | order-service-1 | INFO | order-service-1 processed request in 23.8ms
+1700000084.000 | order-service-1 | INFO | order-service-1 connection pool size 5
+1700000085.000 | frontend-1 | INFO | frontend-1 health check OK
+1700000086.000 | payment-service-1 | INFO | payment-service-1 cache hit ratio 0.98
+1700000087.000 | payment-service-1 | INFO | payment-service-1 connection pool size 17
+1700000087.000 | cache-service-1 | INFO | cache-service-1 connection pool size 9
+1700000087.000 | payment-service-1 | INFO | payment-service-1 completed batch job
+1700000088.000 | database-1 | INFO | database-1 connection pool size 16
+1700000088.000 | payment-service-1 | INFO | payment-service-1 processed request in 19.4ms
+1700000089.000 | cache-service-1 | INFO | cache-service-1 processed request in 2.1ms
+1700000090.000 | cache-service-1 | INFO | cache-service-1 processed request in 1.6ms
+1700000090.000 | payment-service-1 | INFO | payment-service-1 completed batch job
+1700000090.000 | database-1 | INFO | database-1 health check OK
+1700000091.000 | order-service-1 | INFO | order-service-1 cache hit ratio 0.72
+1700000092.000 | order-service-1 | INFO | order-service-1 health check OK
+1700000092.000 | cache-service-1 | INFO | cache-service-1 completed batch job
+1700000092.000 | order-service-1 | INFO | order-service-1 processed request in 29.5ms
+1700000093.000 | frontend-1 | INFO | frontend-1 connection pool size 11
+1700000094.000 | frontend-1 | INFO | frontend-1 connection pool size 8
+1700000094.000 | frontend-1 | INFO | frontend-1 cache hit ratio 0.76
+1700000094.000 | cache-service-1 | INFO | cache-service-1 processed request in 2.3ms
+1700000095.000 | frontend-1 | INFO | frontend-1 cache hit ratio 0.71
+1700000095.000 | frontend-1 | INFO | frontend-1 health check OK
+1700000096.000 | database-1 | INFO | database-1 health check OK
+1700000097.000 | frontend-1 | INFO | frontend-1 connection pool size 11
+1700000098.000 | payment-service-1 | INFO | payment-service-1 processed request in 18.9ms
+1700000098.000 | database-1 | INFO | database-1 cache hit ratio 0.91
+1700000098.000 | payment-service-1 | INFO | payment-service-1 completed batch job
+1700000099.000 | database-1 | INFO | database-1 connection pool size 11
+1700000099.000 | order-service-1 | INFO | order-service-1 connection pool size 11
+1700000099.000 | database-1 | INFO | database-1 health check OK
+1700000100.000 | cache-service-1 | INFO | cache-service-1 health check OK
+1700000101.000 | payment-service-1 | INFO | payment-service-1 health check OK
+1700000102.000 | frontend-1 | INFO | frontend-1 processed request in 13.7ms
+1700000102.000 | frontend-1 | INFO | frontend-1 health check OK
+1700000102.000 | cache-service-1 | INFO | cache-service-1 completed batch job
+1700000103.000 | cache-service-1 | INFO | cache-service-1 processed request in 2.0ms
+1700000103.000 | payment-service-1 | INFO | payment-service-1 health check OK
+1700000104.000 | order-service-1 | INFO | order-service-1 health check OK
+1700000104.000 | cache-service-1 | INFO | cache-service-1 cache hit ratio 0.71
+1700000104.000 | order-service-1 | INFO | order-service-1 processed request in 23.1ms
+1700000105.000 | payment-service-1 | INFO | payment-service-1 cache hit ratio 0.88
+1700000106.000 | payment-service-1 | INFO | payment-service-1 cache hit ratio 0.78
+1700000106.000 | order-service-1 | INFO | order-service-1 completed batch job
+1700000106.000 | frontend-1 | INFO | frontend-1 completed batch job
+1700000107.000 | payment-service-1 | INFO | payment-service-1 cache hit ratio 0.86
+1700000107.000 | payment-service-1 | INFO | payment-service-1 completed batch job
+1700000108.000 | frontend-1 | INFO | frontend-1 processed request in 11.4ms
+1700000108.000 | payment-service-1 | INFO | payment-service-1 cache hit ratio 0.81
+1700000108.000 | order-service-1 | INFO | order-service-1 completed batch job
+1700000109.000 | order-service-1 | INFO | order-service-1 cache hit ratio 0.82
+1700000109.000 | frontend-1 | INFO | frontend-1 health check OK
+1700000110.000 | payment-service-1 | INFO | payment-service-1 cache hit ratio 0.98
+1700000110.000 | payment-service-1 | INFO | payment-service-1 connection pool size 7
+1700000110.000 | cache-service-1 | INFO | cache-service-1 connection pool size 11
+1700000111.000 | payment-service-1 | INFO | payment-service-1 connection pool size 5
+1700000111.000 | order-service-1 | INFO | order-service-1 cache hit ratio 0.81
+1700000111.000 | cache-service-1 | INFO | cache-service-1 processed request in 1.7ms
+1700000112.000 | cache-service-1 | INFO | cache-service-1 health check OK
+1700000112.000 | database-1 | INFO | database-1 processed request in 8.1ms
+1700000113.000 | frontend-1 | INFO | frontend-1 processed request in 12.0ms
+1700000113.000 | order-service-1 | INFO | order-service-1 health check OK
+1700000114.000 | database-1 | INFO | database-1 connection pool size 18
+1700000114.000 | cache-service-1 | INFO | cache-service-1 health check OK
+1700000114.000 | cache-service-1 | INFO | cache-service-1 health check OK
+1700000115.000 | order-service-1 | INFO | order-service-1 connection pool size 5
+1700000115.000 | frontend-1 | INFO | frontend-1 processed request in 11.3ms
+1700000115.000 | database-1 | INFO | database-1 health check OK
+1700000116.000 | cache-service-1 | INFO | cache-service-1 cache hit ratio 0.70
+1700000116.000 | cache-service-1 | INFO | cache-service-1 completed batch job
+1700000116.000 | cache-service-1 | INFO | cache-service-1 health check OK
+1700000117.000 | cache-service-1 | INFO | cache-service-1 processed request in 1.8ms
+1700000118.000 | frontend-1 | INFO | frontend-1 processed request in 11.3ms
+1700000118.000 | order-service-1 | INFO | order-service-1 processed request in 24.5ms
+1700000118.000 | order-service-1 | INFO | order-service-1 connection pool size 9
+1700000119.000 | frontend-1 | INFO | frontend-1 connection pool size 16
+1700000120.000 | cache-service-1 | INFO | cache-service-1 cache hit ratio 0.88
+1700000120.000 | frontend-1 | INFO | frontend-1 connection pool size 18
+1700000120.000 | payment-service-1 | INFO | payment-service-1 health check OK
+1700000121.000 | cache-service-1 | INFO | cache-service-1 processed request in 1.9ms
+1700000121.000 | database-1 | INFO | database-1 cache hit ratio 0.87
+1700000122.000 | cache-service-1 | INFO | cache-service-1 processed request in 1.9ms
+1700000122.000 | payment-service-1 | INFO | payment-service-1 connection pool size 6
+1700000122.000 | database-1 | INFO | database-1 cache hit ratio 0.97
+1700000123.000 | cache-service-1 | INFO | cache-service-1 processed request in 2.1ms
+1700000123.000 | cache-service-1 | INFO | cache-service-1 cache hit ratio 0.75
+1700000124.000 | cache-service-1 | INFO | cache-service-1 processed request in 1.6ms
+1700000124.000 | database-1 | INFO | database-1 cache hit ratio 0.91
+1700000124.000 | order-service-1 | INFO | order-service-1 processed request in 25.6ms
+1700000125.000 | order-service-1 | INFO | order-service-1 completed batch job
+1700000125.000 | order-service-1 | INFO | order-service-1 connection pool size 13
+1700000125.000 | cache-service-1 | INFO | cache-service-1 cache hit ratio 0.86
+1700000126.000 | cache-service-1 | INFO | cache-service-1 connection pool size 17
+1700000127.000 | payment-service-1 | INFO | payment-service-1 processed request in 21.1ms
+1700000127.000 | database-1 | INFO | database-1 connection pool size 10
+1700000128.000 | payment-service-1 | INFO | payment-service-1 cache hit ratio 0.90
+1700000129.000 | database-1 | INFO | database-1 processed request in 7.8ms
+1700000129.000 | order-service-1 | INFO | order-service-1 processed request in 22.2ms
+1700000129.000 | database-1 | INFO | database-1 completed batch job
+1700000130.000 | frontend-1 | INFO | frontend-1 cache hit ratio 0.75
+1700000130.000 | order-service-1 | INFO | order-service-1 connection pool size 8
+1700000131.000 | payment-service-1 | INFO | payment-service-1 processed request in 21.0ms
+1700000131.000 | cache-service-1 | INFO | cache-service-1 health check OK
+1700000131.000 | frontend-1 | INFO | frontend-1 processed request in 12.0ms
+1700000132.000 | order-service-1 | INFO | order-service-1 health check OK
+1700000132.000 | database-1 | INFO | database-1 completed batch job
+1700000133.000 | frontend-1 | INFO | frontend-1 health check OK
+1700000133.000 | database-1 | INFO | database-1 health check OK
+1700000134.000 | database-1 | INFO | database-1 cache hit ratio 0.88
+1700000134.000 | database-1 | INFO | database-1 connection pool size 5
+1700000134.000 | database-1 | INFO | database-1 completed batch job
+1700000135.000 | order-service-1 | INFO | order-service-1 connection pool size 11
+1700000135.000 | cache-service-1 | INFO | cache-service-1 processed request in 1.9ms
+1700000135.000 | payment-service-1 | INFO | payment-service-1 cache hit ratio 0.90
+1700000136.000 | order-service-1 | INFO | order-service-1 health check OK
+1700000137.000 | database-1 | INFO | database-1 health check OK
+1700000137.000 | order-service-1 | INFO | order-service-1 cache hit ratio 0.77
+1700000138.000 | cache-service-1 | INFO | cache-service-1 completed batch job
+1700000138.000 | database-1 | INFO | database-1 connection pool size 7
+1700000139.000 | database-1 | INFO | database-1 processed request in 7.8ms
+1700000139.000 | payment-service-1 | INFO | payment-service-1 health check OK
+1700000139.000 | payment-service-1 | INFO | payment-service-1 health check OK
+1700000140.000 | cache-service-1 | INFO | cache-service-1 completed batch job
+1700000141.000 | database-1 | INFO | database-1 health check OK
+1700000141.000 | payment-service-1 | INFO | payment-service-1 cache hit ratio 0.87
+1700000142.000 | payment-service-1 | INFO | payment-service-1 processed request in 17.9ms
+1700000143.000 | order-service-1 | INFO | order-service-1 connection pool size 8
+1700000144.000 | order-service-1 | INFO | order-service-1 cache hit ratio 0.73
+1700000144.000 | cache-service-1 | INFO | cache-service-1 completed batch job
+1700000145.000 | cache-service-1 | INFO | cache-service-1 processed request in 2.2ms
+1700000146.000 | cache-service-1 | INFO | cache-service-1 completed batch job
+1700000146.000 | frontend-1 | INFO | frontend-1 health check OK
+1700000147.000 | database-1 | INFO | database-1 health check OK
+1700000147.000 | frontend-1 | INFO | frontend-1 cache hit ratio 0.75
+1700000147.000 | cache-service-1 | INFO | cache-service-1 cache hit ratio 0.95
+1700000148.000 | frontend-1 | INFO | frontend-1 completed batch job
+1700000149.000 | cache-service-1 | INFO | cache-service-1 cache hit ratio 0.84
+1700000149.000 | cache-service-1 | INFO | cache-service-1 cache hit ratio 0.84
+1700000150.000 | payment-service-1 | INFO | payment-service-1 health check OK
+1700000150.000 | database-1 | INFO | database-1 completed batch job
+1700000150.000 | frontend-1 | INFO | frontend-1 cache hit ratio 0.97
+1700000151.000 | payment-service-1 | INFO | payment-service-1 processed request in 19.4ms
+1700000151.000 | database-1 | INFO | database-1 health check OK
+1700000151.000 | frontend-1 | INFO | frontend-1 completed batch job
+1700000152.000 | cache-service-1 | INFO | cache-service-1 health check OK
+1700000152.000 | database-1 | INFO | database-1 connection pool size 12
+1700000152.000 | cache-service-1 | INFO | cache-service-1 processed request in 2.0ms
+1700000153.000 | order-service-1 | INFO | order-service-1 health check OK
+1700000154.000 | payment-service-1 | INFO | payment-service-1 completed batch job
+1700000154.000 | frontend-1 | INFO | frontend-1 processed request in 13.4ms
+1700000154.000 | database-1 | INFO | database-1 processed request in 7.8ms
+1700000155.000 | database-1 | INFO | database-1 cache hit ratio 0.95
+1700000156.000 | frontend-1 | INFO | frontend-1 connection pool size 5
+1700000156.000 | frontend-1 | INFO | frontend-1 processed request in 11.1ms
+1700000157.000 | order-service-1 | INFO | order-service-1 completed batch job
+1700000157.000 | cache-service-1 | INFO | cache-service-1 completed batch job
+1700000157.000 | database-1 | INFO | database-1 cache hit ratio 0.82
+1700000158.000 | cache-service-1 | INFO | cache-service-1 processed request in 2.0ms
+1700000158.000 | database-1 | INFO | database-1 health check OK
+1700000159.000 | database-1 | INFO | database-1 health check OK
+1700000160.000 | payment-service-1 | INFO | payment-service-1 processed request in 19.4ms
+1700000160.000 | cache-service-1 | INFO | cache-service-1 health check OK
+1700000161.000 | order-service-1 | INFO | order-service-1 health check OK
+1700000161.000 | cache-service-1 | INFO | cache-service-1 health check OK
+1700000162.000 | order-service-1 | INFO | order-service-1 connection pool size 19
+1700000162.000 | database-1 | INFO | database-1 health check OK
+1700000162.000 | order-service-1 | INFO | order-service-1 connection pool size 17
+1700000163.000 | database-1 | INFO | database-1 completed batch job
+1700000164.000 | cache-service-1 | INFO | cache-service-1 health check OK
+1700000164.000 | cache-service-1 | INFO | cache-service-1 completed batch job
+1700000165.000 | cache-service-1 | INFO | cache-service-1 cache hit ratio 0.94
+1700000165.000 | cache-service-1 | INFO | cache-service-1 connection pool size 17
+1700000166.000 | database-1 | INFO | database-1 health check OK
+1700000166.000 | order-service-1 | INFO | order-service-1 completed batch job
+1700000167.000 | database-1 | INFO | database-1 connection pool size 7
+1700000167.000 | cache-service-1 | INFO | cache-service-1 connection pool size 14
+1700000167.000 | frontend-1 | INFO | frontend-1 health check OK
+1700000168.000 | order-service-1 | INFO | order-service-1 processed request in 22.7ms
+1700000169.000 | order-service-1 | INFO | order-service-1 completed batch job
+1700000169.000 | database-1 | INFO | database-1 cache hit ratio 0.87
+1700000169.000 | frontend-1 | INFO | frontend-1 completed batch job
+1700000170.000 | cache-service-1 | INFO | cache-service-1 connection pool size 14
+1700000170.000 | payment-service-1 | INFO | payment-service-1 health check OK
+1700000170.000 | cache-service-1 | INFO | cache-service-1 completed batch job
+1700000171.000 | payment-service-1 | INFO | payment-service-1 cache hit ratio 0.72
+1700000172.000 | order-service-1 | INFO | order-service-1 completed batch job
+1700000172.000 | frontend-1 | INFO | frontend-1 completed batch job
+1700000173.000 | cache-service-1 | INFO | cache-service-1 processed request in 1.9ms
+1700000173.000 | cache-service-1 | INFO | cache-service-1 health check OK
+1700000173.000 | database-1 | INFO | database-1 health check OK
+1700000174.000 | database-1 | INFO | database-1 health check OK
+1700000174.000 | database-1 | INFO | database-1 cache hit ratio 0.97
+1700000174.000 | cache-service-1 | INFO | cache-service-1 processed request in 1.7ms
+1700000175.000 | payment-service-1 | INFO | payment-service-1 connection pool size 16
+1700000176.000 | payment-service-1 | INFO | payment-service-1 cache hit ratio 0.84
+1700000177.000 | order-service-1 | INFO | order-service-1 connection pool size 9
+1700000177.000 | database-1 | INFO | database-1 processed request in 6.8ms
+1700000177.000 | frontend-1 | INFO | frontend-1 health check OK
+1700000178.000 | database-1 | INFO | database-1 health check OK
+1700000179.000 | cache-service-1 | INFO | cache-service-1 health check OK
+1700000180.000 | order-service-1 | INFO | order-service-1 cache hit ratio 0.83
+1700000180.000 | frontend-1 | INFO | frontend-1 processed request in 12.9ms
+1700000181.000 | database-1 | INFO | database-1 health check OK
+1700000181.000 | payment-service-1 | INFO | payment-service-1 cache hit ratio 0.71
+1700000182.000 | order-service-1 | INFO | order-service-1 completed batch job
+1700000182.000 | order-service-1 | INFO | order-service-1 processed request in 27.4ms
+1700000182.000 | frontend-1 | INFO | frontend-1 connection pool size 6
+1700000183.000 | order-service-1 | INFO | order-service-1 health check OK
+1700000184.000 | order-service-1 | INFO | order-service-1 connection pool size 13
+1700000184.000 | frontend-1 | INFO | frontend-1 health check OK
+1700000184.000 | database-1 | INFO | database-1 completed batch job
+1700000185.000 | cache-service-1 | INFO | cache-service-1 completed batch job
+1700000185.000 | cache-service-1 | INFO | cache-service-1 health check OK
+1700000185.000 | frontend-1 | INFO | frontend-1 health check OK
+1700000186.000 | frontend-1 | INFO | frontend-1 connection pool size 18
+1700000186.000 | cache-service-1 | INFO | cache-service-1 health check OK
+1700000187.000 | cache-service-1 | INFO | cache-service-1 processed request in 2.0ms
+1700000188.000 | payment-service-1 | INFO | payment-service-1 connection pool size 12
+1700000188.000 | database-1 | INFO | database-1 completed batch job
+1700000189.000 | order-service-1 | INFO | order-service-1 health check OK
+1700000189.000 | cache-service-1 | INFO | cache-service-1 cache hit ratio 0.86
+1700000190.000 | frontend-1 | INFO | frontend-1 processed request in 11.7ms
+1700000191.000 | frontend-1 | INFO | frontend-1 completed batch job
+1700000192.000 | frontend-1 | INFO | frontend-1 completed batch job
+1700000192.000 | frontend-1 | INFO | frontend-1 processed request in 11.2ms
+1700000192.000 | frontend-1 | INFO | frontend-1 health check OK
+1700000193.000 | database-1 | INFO | database-1 completed batch job
+1700000193.000 | order-service-1 | INFO | order-service-1 connection pool size 5
+1700000193.000 | database-1 | INFO | database-1 cache hit ratio 0.84
+1700000194.000 | database-1 | INFO | database-1 completed batch job
+1700000194.000 | payment-service-1 | INFO | payment-service-1 cache hit ratio 0.87
+1700000194.000 | order-service-1 | INFO | order-service-1 health check OK
+1700000195.000 | database-1 | INFO | database-1 completed batch job
+1700000195.000 | frontend-1 | INFO | frontend-1 health check OK
+1700000196.000 | order-service-1 | INFO | order-service-1 processed request in 25.7ms
+1700000196.000 | database-1 | INFO | database-1 completed batch job
+1700000197.000 | cache-service-1 | INFO | cache-service-1 health check OK
+1700000197.000 | database-1 | INFO | database-1 cache hit ratio 0.80
+1700000197.000 | cache-service-1 | INFO | cache-service-1 completed batch job
+1700000198.000 | frontend-1 | INFO | frontend-1 cache hit ratio 0.71
+1700000199.000 | database-1 | INFO | database-1 health check OK
+1700000199.000 | order-service-1 | INFO | order-service-1 connection pool size 11
+1700000199.000 | frontend-1 | INFO | frontend-1 health check OK
+1700000200.000 | cache-service-1 | INFO | cache-service-1 connection pool size 16
+1700000201.000 | frontend-1 | INFO | frontend-1 processed request in 13.6ms
+1700000201.000 | frontend-1 | INFO | frontend-1 cache hit ratio 0.84
+1700000201.000 | database-1 | INFO | database-1 completed batch job
+1700000202.000 | database-1 | INFO | database-1 health check OK
+1700000202.000 | cache-service-1 | INFO | cache-service-1 connection pool size 9
+1700000203.000 | frontend-1 | INFO | frontend-1 health check OK
+1700000204.000 | database-1 | INFO | database-1 processed request in 8.0ms
+1700000204.000 | frontend-1 | INFO | frontend-1 connection pool size 6
+1700000205.000 | payment-service-1 | INFO | payment-service-1 rate limiter activated
+1700000205.000 | frontend-1 | INFO | frontend-1 connection pool size 10
+1700000205.000 | cache-service-1 | INFO | cache-service-1 cache hit ratio 0.74
+1700000206.000 | frontend-1 | INFO | frontend-1 processed request in 12.9ms
+1700000206.000 | cache-service-1 | INFO | cache-service-1 cache hit ratio 0.76
+1700000207.000 | cache-service-1 | INFO | cache-service-1 cache hit ratio 0.98
+1700000208.000 | order-service-1 | INFO | order-service-1 connection pool size 18
+1700000208.000 | order-service-1 | INFO | order-service-1 connection pool size 9
+1700000209.000 | cache-service-1 | INFO | cache-service-1 connection pool size 18
+1700000209.000 | database-1 | INFO | database-1 completed batch job
+1700000209.000 | payment-service-1 | INFO | payment-service-1 shed load: 3 requests dropped
+1700000210.000 | order-service-1 | INFO | order-service-1 connection pool size 10
+1700000210.000 | database-1 | INFO | database-1 cache hit ratio 0.96
+1700000210.000 | payment-service-1 | INFO | payment-service-1 shed load: 1 requests dropped
+1700000211.000 | order-service-1 | INFO | order-service-1 cache hit ratio 0.87
+1700000211.000 | cache-service-1 | INFO | cache-service-1 connection pool size 13
+1700000211.000 | database-1 | INFO | database-1 cache hit ratio 0.87
+1700000212.000 | frontend-1 | INFO | frontend-1 processed request in 13.2ms
+1700000213.000 | database-1 | INFO | database-1 health check OK
+1700000213.000 | cache-service-1 | INFO | cache-service-1 completed batch job
+1700000213.000 | cache-service-1 | INFO | cache-service-1 completed batch job
+1700000214.000 | order-service-1 | INFO | order-service-1 processed request in 18.7ms
+1700000215.000 | order-service-1 | INFO | order-service-1 cache hit ratio 0.86
+1700000215.000 | payment-service-1 | INFO | payment-service-1 rate limiter activated
+1700000215.000 | payment-service-1 | INFO | payment-service-1 service degraded under high load
+1700000216.000 | database-1 | INFO | database-1 health check OK
+1700000216.000 | payment-service-1 | INFO | payment-service-1 rate limiter activated
+1700000217.000 | payment-service-1 | INFO | payment-service-1 request rate exceeded capacity: 70 queued
+1700000217.000 | frontend-1 | INFO | frontend-1 completed batch job
+1700000217.000 | frontend-1 | INFO | frontend-1 health check OK
+1700000218.000 | frontend-1 | INFO | frontend-1 processed request in 11.5ms
+1700000218.000 | database-1 | INFO | database-1 cache hit ratio 0.90
+1700000218.000 | database-1 | INFO | database-1 completed batch job
+1700000219.000 | payment-service-1 | INFO | payment-service-1 rate limiter activated
+1700000220.000 | payment-service-1 | INFO | payment-service-1 request rate exceeded capacity: 67 queued
+1700000220.000 | cache-service-1 | INFO | cache-service-1 processed request in 2.1ms
+1700000221.000 | order-service-1 | INFO | order-service-1 cache hit ratio 0.78
+1700000221.000 | database-1 | INFO | database-1 completed batch job
+1700000221.000 | payment-service-1 | INFO | payment-service-1 service degraded under high load
+1700000222.000 | cache-service-1 | INFO | cache-service-1 health check OK
+1700000222.000 | order-service-1 | INFO | order-service-1 connection pool size 16
+1700000222.000 | frontend-1 | INFO | frontend-1 connection pool size 11
+1700000223.000 | cache-service-1 | INFO | cache-service-1 connection pool size 10
+1700000224.000 | cache-service-1 | INFO | cache-service-1 processed request in 1.6ms
+1700000224.000 | cache-service-1 | INFO | cache-service-1 cache hit ratio 0.81
+1700000225.000 | frontend-1 | INFO | frontend-1 connection pool size 19
+1700000226.000 | database-1 | INFO | database-1 cache hit ratio 0.93
+1700000226.000 | frontend-1 | INFO | frontend-1 processed request in 11.5ms
+1700000227.000 | frontend-1 | INFO | frontend-1 health check OK
+1700000227.000 | frontend-1 | INFO | frontend-1 cache hit ratio 0.76
+1700000228.000 | database-1 | INFO | database-1 connection pool size 18
+1700000228.000 | frontend-1 | INFO | frontend-1 connection pool size 13
+1700000229.000 | payment-service-1 | INFO | payment-service-1 rate limiter activated
+1700000229.000 | database-1 | INFO | database-1 health check OK
+1700000229.000 | frontend-1 | INFO | frontend-1 connection pool size 15
+1700000230.000 | cache-service-1 | INFO | cache-service-1 connection pool size 14
+1700000230.000 | cache-service-1 | INFO | cache-service-1 connection pool size 13
+1700000231.000 | payment-service-1 | INFO | payment-service-1 shed load: 3 requests dropped
+1700000232.000 | database-1 | INFO | database-1 health check OK
+1700000232.000 | cache-service-1 | INFO | cache-service-1 cache hit ratio 0.84
+1700000233.000 | order-service-1 | INFO | order-service-1 connection pool size 16
+1700000233.000 | order-service-1 | INFO | order-service-1 cache hit ratio 0.73
+1700000233.000 | cache-service-1 | INFO | cache-service-1 processed request in 2.0ms
+1700000234.000 | cache-service-1 | INFO | cache-service-1 cache hit ratio 0.84
+1700000234.000 | payment-service-1 | INFO | payment-service-1 request rate exceeded capacity: 108 queued
+1700000235.000 | order-service-1 | INFO | order-service-1 connection pool size 11
+1700000235.000 | payment-service-1 | INFO | payment-service-1 shed load: 2 requests dropped
+1700000236.000 | payment-service-1 | INFO | payment-service-1 shed load: 2 requests dropped
+1700000236.000 | cache-service-1 | INFO | cache-service-1 cache hit ratio 0.70
+1700000237.000 | order-service-1 | INFO | order-service-1 processed request in 23.1ms
+1700000237.000 | order-service-1 | INFO | order-service-1 connection pool size 17
+1700000237.000 | database-1 | INFO | database-1 health check OK
+1700000238.000 | order-service-1 | INFO | order-service-1 cache hit ratio 0.71
+1700000238.000 | payment-service-1 | INFO | payment-service-1 request rate exceeded capacity: 76 queued
+1700000239.000 | cache-service-1 | INFO | cache-service-1 health check OK
+1700000239.000 | order-service-1 | INFO | order-service-1 health check OK
+1700000239.000 | frontend-1 | INFO | frontend-1 health check OK
+1700000240.000 | frontend-1 | INFO | frontend-1 completed batch job
+1700000240.000 | order-service-1 | INFO | order-service-1 cache hit ratio 0.71
+1700000240.000 | order-service-1 | INFO | order-service-1 health check OK
+1700000241.000 | payment-service-1 | INFO | payment-service-1 request rate exceeded capacity: 190 queued
+1700000241.000 | order-service-1 | INFO | order-service-1 cache hit ratio 0.81
+1700000241.000 | order-service-1 | INFO | order-service-1 processed request in 27.7ms
+1700000242.000 | frontend-1 | INFO | frontend-1 health check OK
+1700000243.000 | payment-service-1 | INFO | payment-service-1 shed load: 4 requests dropped
+1700000244.000 | payment-service-1 | INFO | payment-service-1 shed load: 2 requests dropped
+1700000244.000 | cache-service-1 | INFO | cache-service-1 connection pool size 6
+1700000244.000 | cache-service-1 | INFO | cache-service-1 processed request in 2.0ms
+1700000245.000 | cache-service-1 | INFO | cache-service-1 cache hit ratio 0.90
+1700000245.000 | payment-service-1 | INFO | payment-service-1 response time 270ms exceeds SLA
+1700000245.000 | frontend-1 | INFO | frontend-1 cache hit ratio 0.80
+1700000246.000 | frontend-1 | INFO | frontend-1 health check OK
+1700000246.000 | order-service-1 | INFO | order-service-1 connection pool size 5
+1700000246.000 | payment-service-1 | INFO | payment-service-1 shed load: 4 requests dropped
+1700000247.000 | payment-service-1 | INFO | payment-service-1 request rate exceeded capacity: 59 queued
+1700000248.000 | database-1 | INFO | database-1 connection pool size 6
+1700000249.000 | order-service-1 | INFO | order-service-1 health check OK
+1700000250.000 | payment-service-1 | INFO | payment-service-1 rate limiter activated
+1700000251.000 | cache-service-1 | INFO | cache-service-1 connection pool size 19
+1700000252.000 | order-service-1 | INFO | order-service-1 cache hit ratio 0.98
+1700000252.000 | database-1 | INFO | database-1 processed request in 7.3ms
+1700000253.000 | cache-service-1 | INFO | cache-service-1 connection pool size 19
+1700000254.000 | order-service-1 | INFO | order-service-1 cache hit ratio 0.80
+1700000255.000 | order-service-1 | INFO | order-service-1 health check OK
+1700000255.000 | database-1 | INFO | database-1 health check OK
+1700000255.000 | cache-service-1 | INFO | cache-service-1 health check OK
+1700000256.000 | database-1 | INFO | database-1 health check OK
+1700000256.000 | order-service-1 | INFO | order-service-1 health check OK
+1700000257.000 | database-1 | INFO | database-1 processed request in 7.0ms
+1700000257.000 | order-service-1 | INFO | order-service-1 health check OK
+1700000258.000 | database-1 | INFO | database-1 connection pool size 17
+1700000258.000 | cache-service-1 | INFO | cache-service-1 completed batch job
+1700000259.000 | cache-service-1 | INFO | cache-service-1 connection pool size 16
+1700000259.000 | payment-service-1 | INFO | payment-service-1 shed load: 3 requests dropped
+1700000260.000 | order-service-1 | INFO | order-service-1 processed request in 18.5ms
+1700000260.000 | frontend-1 | INFO | frontend-1 connection pool size 12
+1700000260.000 | order-service-1 | INFO | order-service-1 completed batch job
+1700000261.000 | frontend-1 | INFO | frontend-1 health check OK
+1700000261.000 | payment-service-1 | INFO | payment-service-1 shed load: 4 requests dropped
+1700000262.000 | order-service-1 | INFO | order-service-1 connection pool size 10
+1700000262.000 | payment-service-1 | INFO | payment-service-1 service degraded under high load
+1700000262.000 | database-1 | INFO | database-1 health check OK
+1700000263.000 | frontend-1 | INFO | frontend-1 processed request in 12.4ms
+1700000264.000 | cache-service-1 | INFO | cache-service-1 health check OK
+1700000264.000 | database-1 | INFO | database-1 completed batch job
+1700000264.000 | cache-service-1 | INFO | cache-service-1 health check OK
+1700000265.000 | cache-service-1 | INFO | cache-service-1 cache hit ratio 0.85
+1700000265.000 | order-service-1 | INFO | order-service-1 health check OK
+1700000265.000 | order-service-1 | INFO | order-service-1 completed batch job
+1700000266.000 | frontend-1 | INFO | frontend-1 connection pool size 9
+1700000267.000 | database-1 | INFO | database-1 health check OK
+1700000267.000 | payment-service-1 | INFO | payment-service-1 rate limiter activated
+1700000267.000 | cache-service-1 | INFO | cache-service-1 health check OK
+1700000268.000 | database-1 | INFO | database-1 health check OK
+1700000269.000 | database-1 | INFO | database-1 health check OK
+1700000270.000 | cache-service-1 | INFO | cache-service-1 connection pool size 7
+1700000270.000 | database-1 | INFO | database-1 connection pool size 13
+1700000270.000 | payment-service-1 | INFO | payment-service-1 request rate exceeded capacity: 190 queued
+1700000271.000 | database-1 | INFO | database-1 connection pool size 10
+1700000271.000 | order-service-1 | INFO | order-service-1 completed batch job
+1700000271.000 | payment-service-1 | INFO | payment-service-1 rate limiter activated
+1700000272.000 | order-service-1 | INFO | order-service-1 connection pool size 17
+1700000273.000 | frontend-1 | INFO | frontend-1 completed batch job
+1700000273.000 | payment-service-1 | INFO | payment-service-1 service degraded under high load
+1700000273.000 | database-1 | INFO | database-1 completed batch job
+1700000274.000 | frontend-1 | INFO | frontend-1 connection pool size 8
+1700000274.000 | database-1 | INFO | database-1 connection pool size 16
+1700000274.000 | order-service-1 | INFO | order-service-1 connection pool size 19
+1700000275.000 | database-1 | INFO | database-1 cache hit ratio 0.76
+1700000275.000 | cache-service-1 | INFO | cache-service-1 cache hit ratio 0.92
+1700000276.000 | frontend-1 | INFO | frontend-1 connection pool size 12
+1700000276.000 | cache-service-1 | INFO | cache-service-1 connection pool size 19
+1700000276.000 | payment-service-1 | INFO | payment-service-1 rate limiter activated
+1700000277.000 | payment-service-1 | INFO | payment-service-1 service degraded under high load
+1700000277.000 | database-1 | INFO | database-1 connection pool size 18
+1700000277.000 | database-1 | INFO | database-1 connection pool size 18
+1700000278.000 | database-1 | INFO | database-1 connection pool size 7
+1700000278.000 | payment-service-1 | INFO | payment-service-1 request rate exceeded capacity: 195 queued
+1700000279.000 | order-service-1 | INFO | order-service-1 cache hit ratio 0.96
+1700000279.000 | cache-service-1 | INFO | cache-service-1 cache hit ratio 0.90
+1700000280.000 | order-service-1 | INFO | order-service-1 connection pool size 5
+1700000281.000 | cache-service-1 | INFO | cache-service-1 cache hit ratio 0.82
+1700000281.000 | database-1 | INFO | database-1 processed request in 8.7ms
+1700000282.000 | payment-service-1 | INFO | payment-service-1 response time 270ms exceeds SLA
+1700000283.000 | frontend-1 | INFO | frontend-1 completed batch job
+1700000283.000 | frontend-1 | INFO | frontend-1 cache hit ratio 0.87
+1700000283.000 | payment-service-1 | INFO | payment-service-1 response time 270ms exceeds SLA
+1700000284.000 | database-1 | INFO | database-1 completed batch job
+1700000284.000 | frontend-1 | INFO | frontend-1 health check OK
+1700000284.000 | order-service-1 | INFO | order-service-1 health check OK
+1700000285.000 | payment-service-1 | INFO | payment-service-1 rate limiter activated
+1700000285.000 | order-service-1 | INFO | order-service-1 processed request in 20.7ms
+1700000285.000 | order-service-1 | INFO | order-service-1 cache hit ratio 0.92
+1700000286.000 | cache-service-1 | INFO | cache-service-1 completed batch job
+1700000286.000 | order-service-1 | INFO | order-service-1 connection pool size 19
+1700000287.000 | order-service-1 | INFO | order-service-1 completed batch job
+1700000288.000 | cache-service-1 | INFO | cache-service-1 processed request in 1.9ms
+1700000288.000 | database-1 | INFO | database-1 processed request in 7.1ms
+1700000289.000 | cache-service-1 | INFO | cache-service-1 cache hit ratio 0.98
+1700000290.000 | frontend-1 | INFO | frontend-1 connection pool size 6
+1700000291.000 | database-1 | INFO | database-1 cache hit ratio 0.81
+1700000291.000 | frontend-1 | INFO | frontend-1 cache hit ratio 0.78
+1700000291.000 | cache-service-1 | INFO | cache-service-1 connection pool size 8
+1700000292.000 | payment-service-1 | INFO | payment-service-1 request rate exceeded capacity: 106 queued
+1700000293.000 | frontend-1 | INFO | frontend-1 health check OK
+1700000293.000 | payment-service-1 | INFO | payment-service-1 service degraded under high load
+1700000294.000 | order-service-1 | INFO | order-service-1 completed batch job
+1700000294.000 | cache-service-1 | INFO | cache-service-1 connection pool size 7
+1700000295.000 | payment-service-1 | INFO | payment-service-1 service degraded under high load
+1700000295.000 | frontend-1 | INFO | frontend-1 health check OK
+1700000295.000 | database-1 | INFO | database-1 processed request in 9.2ms
+1700000296.000 | frontend-1 | INFO | frontend-1 cache hit ratio 0.81
+1700000296.000 | order-service-1 | INFO | order-service-1 processed request in 25.7ms
+1700000296.000 | frontend-1 | INFO | frontend-1 cache hit ratio 0.88
+1700000297.000 | payment-service-1 | INFO | payment-service-1 response time 270ms exceeds SLA
+1700000297.000 | order-service-1 | INFO | order-service-1 completed batch job
+1700000298.000 | order-service-1 | INFO | order-service-1 connection pool size 14
+1700000299.000 | order-service-1 | INFO | order-service-1 connection pool size 6
+1700000299.000 | cache-service-1 | INFO | cache-service-1 completed batch job
