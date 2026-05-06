@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
-    QAbstractItemView, QCheckBox, QHBoxLayout, QHeaderView, QLabel,
+    QAbstractItemView, QComboBox, QHBoxLayout, QHeaderView, QLabel,
     QSplitter, QTableWidget, QTableWidgetItem,
     QVBoxLayout, QWidget,
 )
@@ -80,11 +80,27 @@ class DataTab(QWidget):
         chart_layout = QVBoxLayout(chart_widget)
         chart_layout.setContentsMargins(0, 0, 0, 0)
         chart_layout.setSpacing(6)
-        chart_layout.addWidget(self._section_label("ВРЕМЕННЫЕ РЯДЫ"))
+
+        # Заголовок + переключатель метрики
+        hdr = QHBoxLayout()
+        hdr.addWidget(self._section_label("ВРЕМЕННЫЕ РЯДЫ"))
+        hdr.addStretch()
+
+        from PySide6.QtWidgets import QComboBox
+        self._metric_combo = QComboBox()
+        self._metric_combo.addItems(["latency_ms", "cpu", "memory", "rps"])
+        self._metric_combo.setFixedWidth(130)
+        self._metric_combo.setToolTip("Выберите метрику для отображения")
+        self._metric_combo.currentTextChanged.connect(self._on_metric_changed)
+        hdr.addWidget(self._metric_combo)
+        chart_layout.addLayout(hdr)
 
         self._chart_area = self._build_chart_area()
         chart_layout.addWidget(self._chart_area)
         splitter.addWidget(chart_widget)
+
+        # Сохраняем последние данные для перерисовки при смене метрики
+        self._last_md = None
 
         splitter.setSizes([400, 300])
         layout.addWidget(splitter)
@@ -125,9 +141,40 @@ class DataTab(QWidget):
             self._ax = None
             return placeholder
 
+    def _on_metric_changed(self, metric: str) -> None:
+        """Перерисовывает график при смене метрики."""
+        if self._last_md is not None:
+            self._plot_from_md(self._last_md, metric)
+
+    def _plot_from_md(self, md, metric: str) -> None:
+        """Строит временной ряд из MetricData для заданной метрики."""
+        import numpy as np
+        try:
+            if metric in md.metric_names:
+                mi = md.metric_names.index(metric)
+            else:
+                mi = 0
+                metric = md.metric_names[0]
+            timestamps = md.timestamps
+            series, labels = [], []
+            for ni, inst in enumerate(md.instance_names):
+                vals = md.values[:, ni, mi]
+                nans = np.isnan(vals)
+                if nans.all():
+                    continue
+                idx = np.arange(len(vals))
+                vals = np.interp(idx, idx[~nans], vals[~nans])
+                series.append(vals)
+                labels.append(inst)
+            if series:
+                self.plot_series(timestamps, series, labels)
+        except Exception:
+            pass
+
     def load_metric_data(self, metric_data) -> None:
         """Заполняет таблицу метрик из MetricData."""
         import numpy as np
+        self._last_md = metric_data  # сохраняем для перерисовки при смене метрики
         self.metrics_table.setRowCount(0)
         for ni, inst in enumerate(metric_data.instance_names):
             for mi, metric in enumerate(metric_data.metric_names):

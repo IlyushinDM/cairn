@@ -297,6 +297,10 @@ class CAIRNMainWindow(QMainWindow):
             )
             self._data_label.setObjectName("statusGood")
             self._refresh_label(self._data_label)
+
+            # 2.1: Отображаем временные ряды на вкладке Данные
+            self._plot_metric_series(md)
+
         if topo:
             self.data_tab.load_topology(topo)
 
@@ -307,6 +311,13 @@ class CAIRNMainWindow(QMainWindow):
         self._act_train.setEnabled(True)
         self.tabs.setCurrentIndex(self.TAB_DATA)
         self._update_status("Данные загружены успешно")
+
+    def _plot_metric_series(self, md, metric: str = "latency_ms") -> None:
+        """2.1: Делегирует отрисовку в DataTab."""
+        try:
+            self.data_tab._plot_from_md(md, metric)
+        except Exception:
+            pass
 
     @Slot()
     def _on_train(self) -> None:
@@ -505,47 +516,23 @@ class CAIRNMainWindow(QMainWindow):
             topo = YAMLTopologyConnector(sc_dir / "topology.yaml").fetch()
             hg   = HypergraphBuilder.from_topology_data(topo)
 
-            # Читаем arch_config из чекпоинта — не хардкодим параметры
-            n_components   = 3
-            n_confounders  = 2
-            confounder_dim = 8
-            context_raw_dim = CTX
-
-            ckpt = None
-            if model_path.exists():
-                ckpt = torch.load(str(model_path), map_location="cpu", weights_only=True)
-                if "arch_config" in ckpt:
-                    A = ckpt["arch_config"]
-                    D              = A.get("state_dim",      D)
-                    CTX            = A.get("context_dim",    CTX)
-                    F              = A.get("n_metrics",      F)
-                    n_components   = A.get("n_components",   n_components)
-                    n_confounders  = A.get("n_confounders",  n_confounders)
-                    confounder_dim = A.get("confounder_dim", confounder_dim)
-                # context_raw_dim всегда из весов
-                _key = "model_state" if "model_state" in ckpt else "model_state_dict"
-                _st  = ckpt.get(_key, {})
-                _w   = _st.get("state_builder.context_builder.proj.0.weight")
-                if _w is not None:
-                    context_raw_dim = _w.shape[1]
-
             model = CAIRNModel(
                 state_builder=StateBuilder(
                     n_metrics=F, log_vocab_size=300,
                     state_dim=D, context_dim=CTX,
                     d_met=16, d_log=8, d_tr=8,
                     d_ssm=8, d_brk=8, ssm_state_dim=16, window=15,
-                    context_raw_dim=context_raw_dim,
+                    context_raw_dim=16,
                 ),
-                gmm=ConditionalGMM(state_dim=D, context_dim=CTX, n_components=n_components),
-                vgae=ConfoundedVGAE(state_dim=D, n_confounders=n_confounders, confounder_dim=confounder_dim),
+                gmm=ConditionalGMM(state_dim=D, context_dim=CTX, n_components=3),
+                vgae=ConfoundedVGAE(state_dim=D, n_confounders=2, confounder_dim=8),
                 cf_module=CounterfactualModule(state_dim=D, n_conv_layers=1),
             )
 
-            if ckpt is not None:
-                _key = "model_state" if "model_state" in ckpt else "model_state_dict"
-                if _key in ckpt:
-                    model.load_state_dict(ckpt[_key], strict=False)
+            if model_path.exists():
+                state = torch.load(str(model_path), map_location="cpu", weights_only=True)
+                if "model_state" in state:
+                    model.load_state_dict(state["model_state"], strict=False)
                 self._update_status("Демо: модель загружена из чекпоинта")
             else:
                 self._update_status("Демо: чекпоинт не найден — быстрое обучение 1 эп.")
@@ -568,7 +555,6 @@ class CAIRNMainWindow(QMainWindow):
             # Добавляем метаданные первопричины в контроллер
             self._ctrl._demo_root_hint = sc_info["root"]
             self._ctrl._demo_fault_hint = sc_info["fault"]
-            self._ctrl._demo_sc_dir    = sc_dir   # путь к выбранному сценарию
 
             self._model_label.setText("Модель: демо ✓")
             self._model_label.setObjectName("statusGood")
@@ -577,8 +563,6 @@ class CAIRNMainWindow(QMainWindow):
             self._act_export.setEnabled(False)
 
             # Автоматически запускаем анализ
-            # Сохраняем ссылку на воркер чтобы GC не удалил C++ объект раньше времени
-            self._demo_worker_ref = None
             self._update_status(f"Демо '{sc_info['name']}': анализ…")
             self._ctrl.start_analysis()
 
@@ -603,7 +587,7 @@ def main(config_path: Optional[str] = None) -> None:
     app.setOrganizationName("SPbGUT")
     app.setFont(
         QFont("Segoe UI", 10) if sys.platform == "win32"
-        else QFont("Arial", 10)
+        else QFont("SF Pro Text", 10)
     )
     window = CAIRNMainWindow(config_path=config_path)
     window.show()
