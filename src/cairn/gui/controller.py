@@ -370,6 +370,34 @@ class CAIRNController(QObject):
             nll_scores=nll_scores,
             anomaly_threshold=float(sorted(nll_scores.values())[len(nll_scores) // 3]),
         )
+        # 2.2: Обогащаем chain всеми узлами топологии для полного графа
+        from cairn.explanation.evidence_chain import NodeAnnotation, EdgeAnnotation
+        existing_idx = {n.node_idx for n in chain.path_nodes}
+
+        # Добавляем узлы которых нет в path (отсутствовали как "нормальные")
+        for i, name in enumerate(names):
+            if i not in existing_idx:
+                chain.path_nodes.append(NodeAnnotation(
+                    node_idx=i,
+                    node_name=name,
+                    nll=nll_scores.get(i, 0.0),
+                    causal_effect=ce_scores.get(i, 0.0),
+                    dominant_metric=dominant_metrics.get(i),
+                ))
+
+        # Добавляем рёбра из топологии которых ещё нет в chain
+        existing_edges = {(e.src, e.dst) for e in chain.path_edges}
+        for edge in self._hypergraph.edges:
+            if len(edge.members) >= 2:
+                src, dst = edge.members[0], edge.members[1]
+                if (src, dst) not in existing_edges:
+                    chain.path_edges.append(EdgeAnnotation(
+                        src=src, dst=dst,
+                        edge_type=edge.edge_type,
+                        strength=float(ce_scores.get(src, 0.0)),
+                    ))
+                    existing_edges.add((src, dst))
+
         # Устанавливаем тип сбоя и доминантную метрику на узлы пути
         for node in chain.path_nodes:
             node.dominant_metric = dominant_metrics.get(node.node_idx)

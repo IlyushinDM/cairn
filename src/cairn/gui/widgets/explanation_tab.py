@@ -141,12 +141,14 @@ class ExplanationTab(QWidget):
         try:
             from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
             from matplotlib.figure import Figure
+            import matplotlib
+            matplotlib.rcParams["font.family"] = "DejaVu Sans"
             fig = Figure(figsize=(6, 3.5), facecolor="#161922")
             ax = fig.add_subplot(111)
             ax.set_facecolor("#161922")
             ax.set_xticks([]); ax.set_yticks([])
             ax.spines[:].set_color("#2d3348")
-            ax.set_title("Цепочка доказательств", color="#6c7a9c", fontsize=10)
+            ax.set_title("Evidence Chain", color="#6c7a9c", fontsize=10)
             fig.tight_layout()
             self._chain_fig = fig
             self._chain_ax = ax
@@ -256,7 +258,9 @@ class ExplanationTab(QWidget):
             # Добавляем узлы из chain (все, не только root)
             node_map: dict[int, str] = {}
             for node in chain.path_nodes:
-                G.add_node(node.node_name)
+                G.add_node(node.node_name,
+                           ce=getattr(node, "causal_effect", 0.0) or 0.0,
+                           nll=getattr(node, "nll", 0.0) or 0.0)
                 node_map[node.node_idx] = node.node_name
                 if root_name is None:
                     root_name = node.node_name  # первый = root
@@ -280,25 +284,49 @@ class ExplanationTab(QWidget):
                     self._chain_area.draw()
                 return
 
-            pos = nx.spring_layout(G, seed=42, k=2.0)
+            pos = nx.spring_layout(G, seed=42, k=2.5)
             node_list = list(G.nodes)
-            colors = ["#ff5f5f" if n == root_name else "#4a9eff"
-                      for n in node_list]
-            sizes  = [800 if n == root_name else 500 for n in node_list]
+
+            # Окраска: root = красный, остальные по CE (coolwarm)
+            import matplotlib.cm as _cm
+            import matplotlib.colors as _mc
+            ce_vals = [G.nodes[n].get("ce", 0.0) for n in node_list]
+            ce_min, ce_max = min(ce_vals), max(ce_vals)
+            ce_span = max(ce_max - ce_min, 1e-8)
+            cmap = _cm.get_cmap("coolwarm")
+            norm = _mc.Normalize(vmin=ce_min, vmax=ce_max)
+
+            colors = []
+            for n in node_list:
+                if n == root_name:
+                    colors.append("#ff4444")   # ярко-красный для root
+                else:
+                    rgba = cmap(norm(G.nodes[n].get("ce", 0.0)))
+                    colors.append(rgba)
+
+            sizes = [900 if n == root_name else 500 for n in node_list]
 
             nx.draw_networkx_nodes(G, pos, ax=ax, nodelist=node_list,
-                                   node_color=colors, node_size=sizes, alpha=0.9)
+                                   node_color=colors, node_size=sizes, alpha=0.92)
             if G.number_of_edges() > 0:
-                nx.draw_networkx_edges(G, pos, ax=ax, edge_color="#3ecf8e",
-                                       arrows=True, arrowsize=20, width=2.0)
-                edge_labels = {(u, v): d.get("etype", "")[:4]
-                               for u, v, d in G.edges(data=True)}
-                nx.draw_networkx_edge_labels(G, pos, edge_labels, ax=ax,
-                                             font_size=7, font_color="#a0a8bc")
-            nx.draw_networkx_labels(G, pos, ax=ax, font_size=8,
+                # Разные стили для call и colocation рёбер
+                call_edges = [(u,v) for u,v,d in G.edges(data=True)
+                              if d.get("etype","") == "call"]
+                colo_edges = [(u,v) for u,v,d in G.edges(data=True)
+                              if d.get("etype","") == "colocation"]
+                if call_edges:
+                    nx.draw_networkx_edges(G, pos, ax=ax, edgelist=call_edges,
+                                           edge_color="#3ecf8e", arrows=True,
+                                           arrowsize=18, width=2.0, alpha=0.8)
+                if colo_edges:
+                    nx.draw_networkx_edges(G, pos, ax=ax, edgelist=colo_edges,
+                                           edge_color="#f6a623", arrows=True,
+                                           arrowsize=14, width=1.5,
+                                           style="dashed", alpha=0.7)
+            nx.draw_networkx_labels(G, pos, ax=ax, font_size=7,
                                     font_color="#ffffff", font_weight="bold")
-            title = f"Красный = первопричина ({root_name})" if root_name else "Цепочка доказательств"
-            ax.set_title(title, color="#6c7a9c", fontsize=9)
+            title = f"Root: {root_name}" if root_name else "Evidence Chain"
+            ax.set_title(title, color="#a0a8bc", fontsize=9)
             if self._chain_fig is not None:
                 self._chain_fig.tight_layout()
             if hasattr(self._chain_area, "draw"):

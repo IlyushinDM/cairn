@@ -585,10 +585,13 @@ def main(config_path: Optional[str] = None) -> None:
     assert isinstance(app, QApplication)
     app.setApplicationName("CAIRN")
     app.setOrganizationName("SPbGUT")
-    app.setFont(
-        QFont("Segoe UI", 10) if sys.platform == "win32"
-        else QFont("SF Pro Text", 10)
-    )
+    # SF Pro Text недоступен вне macOS — используем системный шрифт
+    if sys.platform == "win32":
+        app.setFont(QFont("Segoe UI", 10))
+    elif sys.platform == "darwin":
+        app.setFont(QFont("SF Pro Text", 10))
+    else:
+        app.setFont(QFont("Ubuntu", 10))
     window = CAIRNMainWindow(config_path=config_path)
     window.show()
     sys.exit(app.exec())
