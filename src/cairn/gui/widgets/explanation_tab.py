@@ -105,29 +105,41 @@ class ExplanationTab(QWidget):
         ll.addWidget(verif_splitter)
         splitter.addWidget(left)
 
-        # ── Правая: текстовое объяснение ────────────────
+        # ── Правая: вкладки объяснения ─────────────────
         right = QWidget()
         rl = QVBoxLayout(right)
         rl.setContentsMargins(0, 0, 0, 0)
-        rl.setSpacing(6)
-        rl.addWidget(self._section_label("ТЕКСТОВОЕ ОБЪЯСНЕНИЕ"))
+        rl.setSpacing(0)
 
+        from PySide6.QtWidgets import QTabWidget as _QTW
+        self._right_tabs = _QTW()
+        self._right_tabs.setDocumentMode(True)
+
+        tab1 = QWidget()
+        t1l  = QVBoxLayout(tab1)
+        t1l.setContentsMargins(0, 6, 0, 0)
         self.explanation_text = QTextEdit()
         self.explanation_text.setReadOnly(True)
         self.explanation_text.setPlaceholderText(
             "Объяснение появится после завершения анализа...\n\n"
             "Запустите анализ: Панель инструментов → [Анализ]"
         )
-        rl.addWidget(self.explanation_text)
+        t1l.addWidget(self.explanation_text)
+        self._right_tabs.addTab(tab1, "Объяснение")
 
-        # Контр-абдуктивная гипотеза
-        rl.addWidget(self._section_label("КОНТР-АБДУКТИВНАЯ ГИПОТЕЗА"))
+        tab2 = QWidget()
+        t2l  = QVBoxLayout(tab2)
+        t2l.setContentsMargins(0, 6, 0, 0)
         self.counter_text = QTextEdit()
         self.counter_text.setReadOnly(True)
-        self.counter_text.setMaximumHeight(120)
-        self.counter_text.setPlaceholderText("Альтернативная гипотеза...")
-        rl.addWidget(self.counter_text)
+        self.counter_text.setPlaceholderText(
+            "Контрфактический анализ.\n"
+            "Нажмите 'Что если?' в разделе Результаты."
+        )
+        t2l.addWidget(self.counter_text)
+        self._right_tabs.addTab(tab2, "Что если?")
 
+        rl.addWidget(self._right_tabs)
         splitter.addWidget(right)
         splitter.setSizes([550, 450])
         layout.addWidget(splitter)
@@ -138,31 +150,12 @@ class ExplanationTab(QWidget):
         return lbl
 
     def _build_chain_area(self) -> QWidget:
-        try:
-            from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
-            from matplotlib.figure import Figure
-            import matplotlib
-            matplotlib.rcParams["font.family"] = "DejaVu Sans"
-            fig = Figure(figsize=(6, 3.5), facecolor="#161922")
-            ax = fig.add_subplot(111)
-            ax.set_facecolor("#161922")
-            ax.set_xticks([]); ax.set_yticks([])
-            ax.spines[:].set_color("#2d3348")
-            ax.set_title("Evidence Chain", color="#6c7a9c", fontsize=10)
-            fig.tight_layout()
-            self._chain_fig = fig
-            self._chain_ax = ax
-            canvas = FigureCanvasQTAgg(fig)
-            canvas.setMinimumHeight(220)
-            return canvas
-        except ImportError:
-            self._chain_fig = None
-            self._chain_ax = None
-            lbl = QLabel("Граф цепочки доказательств\n(требуется matplotlib + networkx)")
-            lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            lbl.setStyleSheet("color: #6c7a9c; border: 1px dashed #2d3348; border-radius:6px;")
-            lbl.setMinimumHeight(220)
-            return lbl
+        from cairn.gui.widgets.interactive_graph import InteractiveGraphWidget
+        import matplotlib
+        matplotlib.rcParams["font.family"] = "DejaVu Sans"
+        self._chain_igraph = InteractiveGraphWidget()
+        self._chain_igraph.setMinimumHeight(220)
+        return self._chain_igraph
 
     def show_chain(self, chain) -> None:
         """Отображает цепочку доказательств."""
@@ -175,39 +168,10 @@ class ExplanationTab(QWidget):
 
     def show_alp_result(self, result) -> None:
         """Обновляет строки ALP-верификатора."""
-        violated = set()
-        for r in result.violated_rules:
-            # violated_rules может быть строками или объектами с .name
-            violated.add(str(r) if not hasattr(r, "name") else r.name)
-
-        # Имена правил как в разметке строк
-        rule_keys = ["IC1", "IC2", "IC3", "IC4", "IC5"]
-        rule_names = ["IC1: первопричина аномальна", "IC2: CE значим",
-                      "IC3: путь существует", "IC4: текст содержит имя",
-                      "IC5: числа согласованы"]
-
-        total  = len(self.alp_rows)
-        passed = 0
-        for i, (row_widget, key, name) in enumerate(zip(self.alp_rows, rule_keys, rule_names)):
-            # Правило нарушено если его ключ встречается в violated
-            is_violated = any(key in v for v in violated)
-            status = "fail" if is_violated else "ok"
-            if not is_violated:
-                passed += 1
-
-            parent_widget = row_widget.parent()
-            from PySide6.QtWidgets import QWidget as _QW
-            parent_layout = parent_widget.layout() if isinstance(parent_widget, _QW) else None
-            if parent_layout is None:
-                continue
-            idx = parent_layout.indexOf(row_widget)
-            new_row = AxiomRow(name, status)
-            parent_layout.removeWidget(row_widget)
-            row_widget.deleteLater()
-            parent_layout.insertWidget(idx, new_row)
-            self.alp_rows[i] = new_row
-
-        color = "#3ecf8e" if passed == total else "#f6a623" if passed >= total - 1 else "#ff5f5f"
+        ok = len(result.violated_rules)
+        total = len(self.alp_rows)
+        passed = total - ok
+        color = "#3ecf8e" if ok == 0 else "#f6a623" if ok <= 1 else "#ff5f5f"
         self.alp_summary.setText(f"{passed} / {total} правил ✓")
         self.alp_summary.setStyleSheet(f"font-size:13px;font-weight:600;color:{color};margin-bottom:6px;")
         if result.counter_hypothesis:
@@ -243,93 +207,20 @@ class ExplanationTab(QWidget):
             self.axiom_rows[i] = new_row
 
     def _draw_chain_graph(self, chain) -> None:
-        if self._chain_ax is None:
+        if not hasattr(self, "_chain_igraph"):
             return
-        try:
-            import networkx as nx
-            ax = self._chain_ax
-            ax.clear()
-            ax.set_facecolor("#161922")
-            ax.set_xticks([]); ax.set_yticks([])
-
-            G = nx.DiGraph()
-            root_name = None
-
-            # Добавляем узлы из chain (все, не только root)
-            node_map: dict[int, str] = {}
-            for node in chain.path_nodes:
-                G.add_node(node.node_name,
-                           ce=getattr(node, "causal_effect", 0.0) or 0.0,
-                           nll=getattr(node, "nll", 0.0) or 0.0)
-                node_map[node.node_idx] = node.node_name
-                if root_name is None:
-                    root_name = node.node_name  # первый = root
-
-            # Если chain содержит только 1 узел — пытаемся добавить соседей из ce_scores
-            if hasattr(chain, "ce_scores") and len(G.nodes) <= 1:
-                for idx, name in getattr(chain, "all_nodes", {}).items():
-                    G.add_node(name)
-                    node_map[idx] = name
-
-            # Рёбра из chain
-            for edge in chain.path_edges:
-                src = node_map.get(edge.src)
-                dst = node_map.get(edge.dst)
-                if src and dst and src != dst:
-                    G.add_edge(src, dst, etype=getattr(edge, "edge_type", "call"))
-
-            if len(G.nodes) == 0:
-                ax.set_title("Нет данных для отображения", color="#6c7a9c", fontsize=10)
-                if hasattr(self._chain_area, "draw"):
-                    self._chain_area.draw()
-                return
-
-            pos = nx.spring_layout(G, seed=42, k=2.5)
-            node_list = list(G.nodes)
-
-            # Окраска: root = красный, остальные по CE (coolwarm)
-            import matplotlib.cm as _cm
-            import matplotlib.colors as _mc
-            ce_vals = [G.nodes[n].get("ce", 0.0) for n in node_list]
-            ce_min, ce_max = min(ce_vals), max(ce_vals)
-            ce_span = max(ce_max - ce_min, 1e-8)
-            cmap = _cm.get_cmap("coolwarm")
-            norm = _mc.Normalize(vmin=ce_min, vmax=ce_max)
-
-            colors = []
-            for n in node_list:
-                if n == root_name:
-                    colors.append("#ff4444")   # ярко-красный для root
-                else:
-                    rgba = cmap(norm(G.nodes[n].get("ce", 0.0)))
-                    colors.append(rgba)
-
-            sizes = [900 if n == root_name else 500 for n in node_list]
-
-            nx.draw_networkx_nodes(G, pos, ax=ax, nodelist=node_list,
-                                   node_color=colors, node_size=sizes, alpha=0.92)
-            if G.number_of_edges() > 0:
-                # Разные стили для call и colocation рёбер
-                call_edges = [(u,v) for u,v,d in G.edges(data=True)
-                              if d.get("etype","") == "call"]
-                colo_edges = [(u,v) for u,v,d in G.edges(data=True)
-                              if d.get("etype","") == "colocation"]
-                if call_edges:
-                    nx.draw_networkx_edges(G, pos, ax=ax, edgelist=call_edges,
-                                           edge_color="#3ecf8e", arrows=True,
-                                           arrowsize=18, width=2.0, alpha=0.8)
-                if colo_edges:
-                    nx.draw_networkx_edges(G, pos, ax=ax, edgelist=colo_edges,
-                                           edge_color="#f6a623", arrows=True,
-                                           arrowsize=14, width=1.5,
-                                           style="dashed", alpha=0.7)
-            nx.draw_networkx_labels(G, pos, ax=ax, font_size=7,
-                                    font_color="#ffffff", font_weight="bold")
-            title = f"Root: {root_name}" if root_name else "Evidence Chain"
-            ax.set_title(title, color="#a0a8bc", fontsize=9)
-            if self._chain_fig is not None:
-                self._chain_fig.tight_layout()
-            if hasattr(self._chain_area, "draw"):
-                self._chain_area.draw()  # type: ignore[union-attr]
-        except ImportError:
-            pass
+        nodes = []
+        node_map = {}
+        root_idx = None
+        for i, node in enumerate(chain.path_nodes):
+            nodes.append({"idx": node.node_idx, "name": node.node_name,
+                           "score": getattr(node, "causal_effect", 0.0) or 0.0})
+            node_map[node.node_idx] = node.node_name
+            if i == 0:
+                root_idx = node.node_idx
+        edges = []
+        for edge in chain.path_edges:
+            if edge.src in node_map and edge.dst in node_map:
+                edges.append({"src": edge.src, "dst": edge.dst,
+                               "type": getattr(edge, "edge_type", "call")})
+        self._chain_igraph.set_graph(nodes, edges, root_idx=root_idx)

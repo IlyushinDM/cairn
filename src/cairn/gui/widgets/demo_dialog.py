@@ -7,7 +7,7 @@ from typing import Optional
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
-    QDialog, QDialogButtonBox, QGroupBox, QLabel,
+    QButtonGroup, QDialog, QDialogButtonBox, QGroupBox, QLabel,
     QRadioButton, QVBoxLayout, QWidget,
 )
 
@@ -38,7 +38,7 @@ SCENARIO_INFO = {
         "dir":         "scenario_3",
     },
     "4": {
-        "name":        "Payment Service Overload",
+        "name":        "Payment Overload",
         "root":        "payment-service-1",
         "fault":       "overload",
         "description": "Перегрузка payment-service-1.\n"
@@ -65,7 +65,8 @@ class ScenarioDialog(QDialog):
         self._selected: Optional[str] = None
 
         self.setWindowTitle("Выбор демонстрационного сценария")
-        self.setMinimumWidth(500)
+        self.setMinimumWidth(520)
+        self.resize(540, 680)
         self.setModal(True)
 
         layout = QVBoxLayout(self)
@@ -76,6 +77,8 @@ class ScenarioDialog(QDialog):
         layout.addWidget(title)
 
         self._radios: dict[str, QRadioButton] = {}
+        self._btn_group = QButtonGroup(self)
+        self._btn_group.setExclusive(True)
 
         for key, info in SCENARIO_INFO.items():
             sc_dir = data_dir / info["dir"]
@@ -93,8 +96,15 @@ class ScenarioDialog(QDialog):
                 radio.setEnabled(False)
                 radio.setText(radio.text() + "  ⚠ данные не найдены")
             self._radios[key] = radio
+            self._btn_group.addButton(radio)
             gl.addWidget(radio)
 
+            radio.setStyleSheet(
+                "QRadioButton{spacing:8px;}"
+                "QRadioButton::indicator{width:16px;height:16px;border-radius:8px;}"
+                "QRadioButton::indicator:unchecked{background:#2d3348;border:2px solid #6c7a9c;}"
+                "QRadioButton::indicator:checked{background:#4a9eff;border:2px solid #4a9eff;}"
+            )
             desc = QLabel(info["description"])
             desc.setWordWrap(True)
             desc.setStyleSheet("color: #8892a4; font-size: 11px; margin-left: 22px;")

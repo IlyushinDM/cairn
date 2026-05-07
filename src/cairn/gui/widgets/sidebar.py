@@ -86,16 +86,25 @@ class Sidebar(QWidget):
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
 
-        # ── Источники данных ──────────────────────────────
-        src_header = QLabel("ИСТОЧНИКИ ДАННЫХ")
-        src_header.setObjectName("sidebarHeader")
-        root.addWidget(src_header)
+        # ── Источники данных (сворачиваемая секция) ──────────
+        self._btn_src = QPushButton("▼  ИСТОЧНИКИ ДАННЫХ")
+        self._btn_src.setObjectName("sidebarHeader")
+        self._btn_src.setCheckable(True)
+        self._btn_src.setChecked(True)
+        self._btn_src.setFlat(True)
+        self._btn_src.setStyleSheet(
+            "text-align: left; padding: 6px 10px; font-size: 11px; "
+            "font-weight: 600; letter-spacing: 1px; border: none;"
+        )
+        self._btn_src.toggled.connect(self._toggle_sources)
+        root.addWidget(self._btn_src)
 
         src_scroll = QScrollArea()
         src_scroll.setWidgetResizable(True)
         src_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         src_scroll.setFrameShape(QFrame.Shape.NoFrame)
         src_scroll.setMaximumHeight(240)
+        self._src_scroll = src_scroll
 
         src_container = QWidget()
         src_layout = QVBoxLayout(src_container)
@@ -126,12 +135,21 @@ class Sidebar(QWidget):
         sep.setFixedHeight(1)
         root.addWidget(sep)
 
-        # ── Модули ────────────────────────────────────────
-        mod_header = QLabel("МОДУЛИ")
-        mod_header.setObjectName("sidebarHeader")
-        root.addWidget(mod_header)
+        # ── Модули (сворачиваемая секция) ────────────────────
+        self._btn_mod = QPushButton("▼  МОДУЛИ")
+        self._btn_mod.setObjectName("sidebarHeader")
+        self._btn_mod.setCheckable(True)
+        self._btn_mod.setChecked(True)
+        self._btn_mod.setFlat(True)
+        self._btn_mod.setStyleSheet(
+            "text-align: left; padding: 6px 10px; font-size: 11px; "
+            "font-weight: 600; letter-spacing: 1px; border: none;"
+        )
+        self._btn_mod.toggled.connect(self._toggle_modules)
+        root.addWidget(self._btn_mod)
 
         mod_scroll = QScrollArea()
+        self._mod_scroll = mod_scroll
         mod_scroll.setWidgetResizable(True)
         mod_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         mod_scroll.setFrameShape(QFrame.Shape.NoFrame)
@@ -211,6 +229,14 @@ class Sidebar(QWidget):
         mod_layout.addStretch()
         mod_scroll.setWidget(mod_container)
         root.addWidget(mod_scroll)
+
+    def _toggle_sources(self, checked: bool) -> None:
+        self._btn_src.setText(("▼" if checked else "▶") + "  ИСТОЧНИКИ ДАННЫХ")
+        self._src_scroll.setVisible(checked)
+
+    def _toggle_modules(self, checked: bool) -> None:
+        self._btn_mod.setText(("▼" if checked else "▶") + "  МОДУЛИ")
+        self._mod_scroll.setVisible(checked)
 
     def set_source_status(self, source: str, ok: bool):
         """Устанавливает статус подключения для источника данных."""

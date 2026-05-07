@@ -181,9 +181,16 @@ class CAIRNMainWindow(QMainWindow):
         self._act_demo.setToolTip("Запустить демонстрационный сценарий (для защиты диплома)")
         self._act_demo.triggered.connect(self._on_demo)
         tb.addAction(self._act_demo)
+        tb.addSeparator()
+        self._act_sidebar = tb.addAction("◀ Панель")
+        self._act_sidebar.setCheckable(True)
+        self._act_sidebar.setChecked(True)
+        self._act_sidebar.setToolTip("Скрыть/показать боковую панель (Alt+B)")
+        self._act_sidebar.triggered.connect(self._toggle_sidebar)
 
     def _build_central(self) -> None:
         splitter = QSplitter(Qt.Orientation.Horizontal)
+        self._main_splitter = splitter
         splitter.setHandleWidth(1)
 
         self.sidebar = Sidebar()
@@ -234,6 +241,16 @@ class CAIRNMainWindow(QMainWindow):
         sb.addWidget(self._data_label)
         sb.addPermanentWidget(QLabel("CAIRN v0.1  "))
 
+    def _toggle_sidebar(self, checked: bool) -> None:
+        """Скрывает/показывает боковую панель влево."""
+        self.sidebar.setVisible(checked)
+        self._act_sidebar.setText("◀ Панель" if checked else "▶ Панель")
+        if hasattr(self, "_main_splitter"):
+            if checked:
+                self._main_splitter.setSizes([260, 1140])
+            else:
+                self._main_splitter.setSizes([0, 1400])
+
     def _connect_signals(self) -> None:
         # Контроллер → окно
         self._ctrl.data_loaded.connect(self._on_data_loaded)
@@ -256,6 +273,11 @@ class CAIRNMainWindow(QMainWindow):
         self.training_tab.start_requested.connect(self._on_train)
         self.training_tab.stop_requested.connect(self._ctrl.stop_training)
         self.results_tab.show_explanation.connect(self._on_show_explanation)
+        self.results_tab.results_table.itemSelectionChanged.connect(
+            lambda: self._on_results_row_selected()
+        )
+        if hasattr(self.results_tab, "counterfactual_requested"):
+            self.results_tab.counterfactual_requested.connect(self._on_counterfactual)
 
     # ── Слоты ─────────────────────────────────────────────────────────
 
@@ -292,15 +314,15 @@ class CAIRNMainWindow(QMainWindow):
         topo = self._ctrl.get_topology()
         if md:
             self.data_tab.load_metric_data(md)
+            try:
+                self.data_tab._plot_from_md(md, "latency_ms")
+            except Exception:
+                pass
             self._data_label.setText(
                 f"Данные: {md.n_instances} экз., {md.n_metrics} метрик"
             )
             self._data_label.setObjectName("statusGood")
             self._refresh_label(self._data_label)
-
-            # 2.1: Отображаем временные ряды на вкладке Данные
-            self._plot_metric_series(md)
-
         if topo:
             self.data_tab.load_topology(topo)
 
@@ -311,13 +333,6 @@ class CAIRNMainWindow(QMainWindow):
         self._act_train.setEnabled(True)
         self.tabs.setCurrentIndex(self.TAB_DATA)
         self._update_status("Данные загружены успешно")
-
-    def _plot_metric_series(self, md, metric: str = "latency_ms") -> None:
-        """2.1: Делегирует отрисовку в DataTab."""
-        try:
-            self.data_tab._plot_from_md(md, metric)
-        except Exception:
-            pass
 
     @Slot()
     def _on_train(self) -> None:
@@ -379,10 +394,19 @@ class CAIRNMainWindow(QMainWindow):
         fault_type = results[0].get("fault_type", "—")
         confidence = results[0].get("confidence", 0.8)
 
+        self._ctrl._last_results = results
         self.results_tab.show_results(ranked, names, nll_scores, confidence, fault_type)
+
+        # Автоматически заполняем контрфактический анализ для root (rank=1)
+        if results:
+            try:
+                self._on_counterfactual(results[0]["idx"])
+            except Exception:
+                pass
         if hg:
             ce_scores = {r["idx"]: r["ce"] for r in results}
-            self.results_tab.draw_hypergraph(hg, ce_scores)
+            root_idx = results[0]["idx"] if results else None
+        self.results_tab.draw_hypergraph(hg, ce_scores, root_idx=root_idx)
 
         chain = self._ctrl.last_chain
         alp   = self._ctrl.last_alp
@@ -397,6 +421,59 @@ class CAIRNMainWindow(QMainWindow):
         self._update_status(f"Анализ завершён. Первопричина: {root_name}")
 
     @Slot(int)
+    def _on_counterfactual(self, node_idx: int) -> None:
+        """3.3: Контрфактический анализ."""
+        from PySide6.QtWidgets import QDialog, QVBoxLayout, QTextEdit, QLabel, QDialogButtonBox
+        results = getattr(self._ctrl, "_last_results", None) or []
+        node_entry = next((r for r in results if r.get("idx") == node_idx), None)
+        if not node_entry:
+            self._update_status("Нет данных — сначала запустите анализ")
+            return
+        node_name   = node_entry.get("name", f"node-{node_idx}")
+        ce          = node_entry.get("ce", 0.0)
+        nll         = node_entry.get("nll", 0.0)
+        conf        = node_entry.get("confidence", 0.0)
+        dom         = node_entry.get("dominant_metric") or "—"
+        delta_nll   = abs(ce)
+        improvement = min(99.0, delta_nll / (abs(nll) + 1e-6) * 100)
+        lines = [
+            f"Что если {node_name} работает нормально?",
+            "-" * 48, "",
+            "Текущее состояние:",
+            f"  CE:                     {ce:+.4f}",
+            f"  NLL:                    {nll:.4f}",
+            f"  Уверенность:            {conf:.1%}",
+            f"  Доминирующая метрика:   {dom}", "",
+            "Прогноз после устранения:",
+            f"  Снижение NLL:           {delta_nll:.4f}",
+            f"  Улучшение состояния:    ~{improvement:.1f}%", "",
+        ]
+        if improvement > 50:
+            lines.append(f"Вывод: устранение {node_name} существенно улучшит систему.")
+        elif improvement > 20:
+            lines.append(f"Вывод: {node_name} — значимая причина деградации.")
+        else:
+            lines.append(f"Вывод: умеренное влияние. Проверьте соседние сервисы.")
+        text = "\n".join(lines)
+        try:
+            self.explanation_tab.counter_text.setPlainText(text)
+            if hasattr(self.explanation_tab, "_right_tabs"):
+                self.explanation_tab._right_tabs.setCurrentIndex(1)
+        except Exception:
+            pass
+        self.tabs.setCurrentIndex(self.TAB_EXPLAIN)
+
+    def _on_results_row_selected(self) -> None:
+        """Выделяет узел графа при выборе строки в таблице."""
+        rows = self.results_tab.results_table.selectedItems()
+        if not rows:
+            return
+        row = rows[0].row()
+        results = getattr(self._ctrl, "_last_results", None) or []
+        if row < len(results):
+            node_idx = results[row].get("idx", -1)
+            self.results_tab.highlight_graph_node_from_table(node_idx)
+
     def _on_show_explanation(self, node_idx: int) -> None:
         chain = self._ctrl.last_chain
         alp   = self._ctrl.last_alp
@@ -585,13 +662,10 @@ def main(config_path: Optional[str] = None) -> None:
     assert isinstance(app, QApplication)
     app.setApplicationName("CAIRN")
     app.setOrganizationName("SPbGUT")
-    # SF Pro Text недоступен вне macOS — используем системный шрифт
-    if sys.platform == "win32":
-        app.setFont(QFont("Segoe UI", 10))
-    elif sys.platform == "darwin":
-        app.setFont(QFont("SF Pro Text", 10))
-    else:
-        app.setFont(QFont("Ubuntu", 10))
+    app.setFont(
+        QFont("Segoe UI", 10) if sys.platform == "win32"
+        else QFont("SF Pro Text", 10)
+    )
     window = CAIRNMainWindow(config_path=config_path)
     window.show()
     sys.exit(app.exec())

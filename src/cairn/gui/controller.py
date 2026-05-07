@@ -104,6 +104,7 @@ class CAIRNController(QObject):
         self._analysis_worker: Optional[AnalysisWorker] = None
         self._last_results:  list[dict] = []
         self._last_chain     = None
+        self._last_results   = []
         self._modules        = ModuleConfig()
 
         self._load_config()
@@ -370,34 +371,6 @@ class CAIRNController(QObject):
             nll_scores=nll_scores,
             anomaly_threshold=float(sorted(nll_scores.values())[len(nll_scores) // 3]),
         )
-        # 2.2: Обогащаем chain всеми узлами топологии для полного графа
-        from cairn.explanation.evidence_chain import NodeAnnotation, EdgeAnnotation
-        existing_idx = {n.node_idx for n in chain.path_nodes}
-
-        # Добавляем узлы которых нет в path (отсутствовали как "нормальные")
-        for i, name in enumerate(names):
-            if i not in existing_idx:
-                chain.path_nodes.append(NodeAnnotation(
-                    node_idx=i,
-                    node_name=name,
-                    nll=nll_scores.get(i, 0.0),
-                    causal_effect=ce_scores.get(i, 0.0),
-                    dominant_metric=dominant_metrics.get(i),
-                ))
-
-        # Добавляем рёбра из топологии которых ещё нет в chain
-        existing_edges = {(e.src, e.dst) for e in chain.path_edges}
-        for edge in self._hypergraph.edges:
-            if len(edge.members) >= 2:
-                src, dst = edge.members[0], edge.members[1]
-                if (src, dst) not in existing_edges:
-                    chain.path_edges.append(EdgeAnnotation(
-                        src=src, dst=dst,
-                        edge_type=edge.edge_type,
-                        strength=float(ce_scores.get(src, 0.0)),
-                    ))
-                    existing_edges.add((src, dst))
-
         # Устанавливаем тип сбоя и доминантную метрику на узлы пути
         for node in chain.path_nodes:
             node.dominant_metric = dominant_metrics.get(node.node_idx)
@@ -420,18 +393,29 @@ class CAIRNController(QObject):
         self._last_chain  = chain
         self._last_alp    = result
 
-        return [
+        # 3.2: Реальный confidence через softmax по CE-скорам
+        # P(node_i = root) = softmax(CE)[i]
+        import numpy as _np
+        ce_arr      = _np.array([ce for _, ce in ranked], dtype=_np.float64)
+        ce_shifted  = ce_arr - ce_arr.max()          # numerical stability
+        exp_ce      = _np.exp(ce_shifted)
+        confidences = exp_ce / (exp_ce.sum() + 1e-12)
+
+        results = [
             {
-                "rank":       i + 1,
-                "idx":        idx,
-                "name":       names[idx] if idx < len(names) else f"node-{idx}",
-                "ce":         round(ce, 4),
-                "nll":        round(nll[idx].item(), 4),
-                "fault_type": getattr(self, "_demo_fault_hint", "unknown") if i == 0 else "—",
-                "confidence": max(0.0, 0.8 - i * 0.15),
+                "rank":           i + 1,
+                "idx":            idx,
+                "name":           names[idx] if idx < len(names) else f"node-{idx}",
+                "ce":             round(ce, 4),
+                "nll":            round(nll[idx].item(), 4),
+                "fault_type":     getattr(self, "_demo_fault_hint", "unknown") if i == 0 else "—",
+                "confidence":     round(float(confidences[i]), 4),
+                "dominant_metric": dominant_metrics.get(idx),
             }
             for i, (idx, ce) in enumerate(ranked)
         ]
+        self._last_results = results  # 3.3: для контрфактического анализа
+        return results
 
     def _compute_dominant_metrics(self, incident, instance_names: list[str]) -> dict[int, str]:
         """1.2: Вычисляет наиболее отклонившуюся метрику для каждого узла.

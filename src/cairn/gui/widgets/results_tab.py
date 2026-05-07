@@ -13,7 +13,8 @@ from PySide6.QtWidgets import (
 class ResultsTab(QWidget):
     """Вкладка с ранжированием первопричин и графом."""
 
-    show_explanation = Signal(int)  # node_idx
+    show_explanation         = Signal(int)  # node_idx
+    counterfactual_requested = Signal(int)  # 3.3
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -21,13 +22,13 @@ class ResultsTab(QWidget):
         layout.setContentsMargins(12, 12, 12, 12)
         layout.setSpacing(10)
 
-        splitter = QSplitter(Qt.Orientation.Horizontal)
+        splitter = QSplitter(Qt.Orientation.Vertical)
 
-        # ── Левая: таблица ──────────────────────────────
+        # ── Верхняя: таблица ────────────────────────────
         left = QWidget()
         ll = QVBoxLayout(left)
         ll.setContentsMargins(0, 0, 0, 0)
-        ll.setSpacing(6)
+        ll.setSpacing(4)
 
         lbl = QLabel("РАНЖИРОВАНИЕ ПЕРВОПРИЧИН")
         lbl.setObjectName("sectionTitle")
@@ -40,9 +41,12 @@ class ResultsTab(QWidget):
         ])
         self.results_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         self.results_table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
+        self.results_table.horizontalHeader().setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)
+        self.results_table.setColumnWidth(5, 215)
         self.results_table.setAlternatingRowColors(True)
         self.results_table.verticalHeader().setVisible(False)
         self.results_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.results_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         ll.addWidget(self.results_table)
 
         # Итоговая строка
@@ -68,18 +72,26 @@ class ResultsTab(QWidget):
 
         splitter.addWidget(left)
 
-        # ── Правая: граф ────────────────────────────────
+        # ── Нижняя: граф на всю ширину ──────────────────
         right = QWidget()
         rl = QVBoxLayout(right)
         rl.setContentsMargins(0, 0, 0, 0)
-        rl.setSpacing(6)
+        rl.setSpacing(4)
 
-        rl.addWidget(self._section_label("ГРАФ ПРИЧИННОГО РАСПРОСТРАНЕНИЯ"))
+        # Заголовок с легендой
+        hdr = QHBoxLayout()
+        hdr.addWidget(self._section_label("ГРАФ ПРИЧИННОГО РАСПРОСТРАНЕНИЯ"))
+        hdr.addStretch()
+        legend = QLabel("● красный = высокий ПЭ  ● синий = низкий ПЭ")
+        legend.setStyleSheet("color: #6c7a9c; font-size: 10px;")
+        hdr.addWidget(legend)
+        rl.addLayout(hdr)
+
         self._graph_area = self._build_graph_area()
         rl.addWidget(self._graph_area)
         splitter.addWidget(right)
 
-        splitter.setSizes([500, 500])
+        splitter.setSizes([320, 400])
         layout.addWidget(splitter)
 
     def _section_label(self, text: str) -> QLabel:
@@ -88,27 +100,10 @@ class ResultsTab(QWidget):
         return lbl
 
     def _build_graph_area(self) -> QWidget:
-        try:
-            from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
-            from matplotlib.figure import Figure
-            fig = Figure(figsize=(6, 5), facecolor="#161922")
-            ax = fig.add_subplot(111)
-            ax.set_facecolor("#161922")
-            ax.set_xticks([]); ax.set_yticks([])
-            ax.spines[:].set_color("#2d3348")
-            ax.set_title("Запустите анализ для отображения", color="#6c7a9c", fontsize=10)
-            fig.tight_layout()
-            self._graph_fig = fig
-            self._graph_ax = ax
-            canvas = FigureCanvasQTAgg(fig)
-            return canvas
-        except ImportError:
-            self._graph_fig = None
-            self._graph_ax = None
-            lbl = QLabel("Граф гиперграфа\n(требуется matplotlib + networkx)")
-            lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            lbl.setStyleSheet("color: #6c7a9c; border: 1px dashed #2d3348; border-radius:6px;")
-            return lbl
+        from cairn.gui.widgets.interactive_graph import InteractiveGraphWidget
+        self._igraph = InteractiveGraphWidget()
+        self._igraph.node_clicked.connect(lambda idx: self._on_graph_node_clicked(idx))
+        return self._igraph
 
     def show_results(self, ranked: list[tuple[int, float]], instance_names: list[str],
                      nll_scores: dict, verification_confidence: float = 1.0,
@@ -126,14 +121,21 @@ class ResultsTab(QWidget):
             self.results_table.setItem(row, 3, QTableWidgetItem(fault_type if rank == 1 else "—"))
             conf_pct = f"{verification_confidence:.0%}" if rank == 1 else "—"
             self.results_table.setItem(row, 4, self._centered(conf_pct))
-            self.results_table.setRowHeight(row, 30)
+            self.results_table.setRowHeight(row, 36)
 
             if rank == 1:
-                btn = QPushButton("Подробнее →")
-                btn.setFixedHeight(24)
-                btn.setObjectName("primaryBtn")
-                btn.clicked.connect(lambda _, i=idx: self.show_explanation.emit(i))
-                self.results_table.setCellWidget(row, 5, btn)
+                cell = QWidget()
+                cl = QHBoxLayout(cell)
+                cl.setContentsMargins(2,2,2,2); cl.setSpacing(3)
+                b1 = QPushButton("Подробнее")
+                b1.setFixedHeight(28); b1.setObjectName("primaryBtn")
+                b1.clicked.connect(lambda _,i=idx: self.show_explanation.emit(i))
+                b2 = QPushButton("Что если?")
+                b2.setFixedHeight(28)
+                b2.setToolTip("Контрфактический анализ")
+                b2.clicked.connect(lambda _,i=idx: self.counterfactual_requested.emit(i))
+                cl.addWidget(b1); cl.addWidget(b2)
+                self.results_table.setCellWidget(row, 5, cell)
 
         if ranked:
             root_idx, root_ce = ranked[0]
@@ -142,75 +144,32 @@ class ResultsTab(QWidget):
             self.ce_label.setText(f"ПЭ: {root_ce:.3f}")
             self.conf_label.setText(f"Достоверность: {verification_confidence:.0%}")
 
-    def draw_hypergraph(self, hypergraph, ce_scores: dict[int, float]):
-        """Рисует гиперграф с окраской по ПЭ."""
-        if self._graph_ax is None:
+    def draw_hypergraph(self, hypergraph, ce_scores: dict[int, float],
+                         root_idx: int = None):
+        """Рисует интерактивный граф."""
+        if not hasattr(self, "_igraph"):
             return
-        try:
-            import networkx as nx
-            import numpy as np
-            import matplotlib.cm as cm
-            import matplotlib.colors as mcolors
+        names   = hypergraph.instance_names
+        ce_vals = [ce_scores.get(i, 0.0) for i in range(len(names))]
+        nodes   = [{"idx": i, "name": names[i], "score": ce_vals[i]}
+                   for i in range(len(names))]
+        edges   = []
+        for edge in hypergraph.edges:
+            if len(edge.members) >= 2:
+                edges.append({"src": edge.members[0], "dst": edge.members[1],
+                               "type": edge.edge_type})
+        self._igraph.set_graph(nodes, edges, root_idx=root_idx)
 
-            ax = self._graph_ax
-            ax.clear()
-            ax.set_facecolor("#161922")
-            ax.set_xticks([]); ax.set_yticks([])
 
-            G = nx.DiGraph()
-            names = hypergraph.instance_names
-            for name in names:
-                G.add_node(name)
-            for edge in hypergraph.edges:
-                if edge.edge_type == "call" and len(edge.members) >= 2:
-                    G.add_edge(names[edge.members[0]], names[edge.members[1]])
+    def _on_graph_node_clicked(self, node_idx: int) -> None:
+        """Выделяет узел при клике по нему в графе."""
+        if hasattr(self, "_igraph"):
+            self._igraph.highlight_node(node_idx)
 
-            pos = nx.spring_layout(G, seed=42, k=2.5)
-
-            import matplotlib.cm as _cm
-            import matplotlib.colors as _mcolors
-
-            ce_vals = [ce_scores.get(i, None) for i in range(len(names))]
-            n_known = sum(1 for v in ce_vals if v is not None)
-
-            if n_known <= 1:
-                # Если CE есть только для root — красить root красным, остальных серым
-                root_idx_g = next((i for i, v in enumerate(ce_vals) if v is not None), None)
-                node_colors = []
-                for i in range(len(names)):
-                    if i == root_idx_g:
-                        node_colors.append((0.85, 0.15, 0.15, 0.9))   # красный
-                    else:
-                        node_colors.append((0.25, 0.35, 0.55, 0.9))   # тёмно-синий
-                node_sizes = [600 if i == root_idx_g else 350 for i in range(len(names))]
-            else:
-                # Все узлы имеют CE — нормализованный coolwarm
-                filled = [v if v is not None else 0.0 for v in ce_vals]
-                ce_min  = min(filled)
-                ce_max  = max(filled)
-                ce_span = max(ce_max - ce_min, 1e-8)
-                cmap = _cm.get_cmap("coolwarm")
-                norm = _mcolors.Normalize(vmin=ce_min, vmax=ce_max)
-                node_colors = [cmap(norm(v)) for v in filled]
-                node_sizes = [
-                    350 + 250 * max(0.0, (filled[i] - ce_min) / ce_span)
-                    for i in range(len(names))
-                ]
-
-            nx.draw_networkx_nodes(G, pos, ax=ax, node_color=node_colors,
-                                   node_size=node_sizes, alpha=0.9)
-            nx.draw_networkx_edges(G, pos, ax=ax, edge_color="#4a9eff",
-                                   arrows=True, arrowsize=15, width=1.5, alpha=0.7)
-            nx.draw_networkx_labels(G, pos, ax=ax, font_size=8,
-                                    font_color="#d1d5e0")
-            ax.set_title("Красный = высокий ПЭ (вероятная первопричина)",
-                        color="#6c7a9c", fontsize=9)
-            if self._graph_fig is not None:
-                self._graph_fig.tight_layout()
-            if hasattr(self._graph_area, 'draw'):
-                self._graph_area.draw()  # type: ignore[union-attr]
-        except ImportError:
-            pass
+    def highlight_graph_node_from_table(self, node_idx: int) -> None:
+        """Выделяет узел при выборе строки в таблице."""
+        if hasattr(self, "_igraph"):
+            self._igraph.highlight_node(node_idx)
 
     def _centered(self, text: str) -> QTableWidgetItem:
         item = QTableWidgetItem(text)

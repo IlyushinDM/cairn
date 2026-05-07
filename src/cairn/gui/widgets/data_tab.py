@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
-    QAbstractItemView, QComboBox, QHBoxLayout, QHeaderView, QLabel,
-    QSplitter, QTableWidget, QTableWidgetItem,
+    QAbstractItemView, QCheckBox, QComboBox, QHBoxLayout, QHeaderView, QLabel,
+    QPushButton, QScrollBar, QSplitter, QTableWidget, QTableWidgetItem,
     QVBoxLayout, QWidget,
 )
 
@@ -20,6 +20,7 @@ class DataTab(QWidget):
         layout.setSpacing(10)
 
         splitter = QSplitter(Qt.Orientation.Vertical)
+        self._splitter = splitter
 
         # ── Верхняя часть: таблицы ──────────────────────
         tables_widget = QWidget()
@@ -47,7 +48,15 @@ class DataTab(QWidget):
         self.metrics_table.setAlternatingRowColors(True)
         self.metrics_table.verticalHeader().setVisible(False)
         self.metrics_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.metrics_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        # Кнопка разворачивания
+        self._btn_expand = QPushButton("Развернуть / Свернуть")
+        self._btn_expand.setFixedHeight(28)
+        self._btn_expand.setCheckable(True)
+        self._btn_expand.toggled.connect(self._toggle_expand)
+        mf_layout.addWidget(self._btn_expand)
         mf_layout.addWidget(self.metrics_table)
+        self._last_md = None
         tables_layout.addWidget(metrics_frame)
 
         # Таблица экземпляров
@@ -70,6 +79,7 @@ class DataTab(QWidget):
         self.instances_table.setAlternatingRowColors(True)
         self.instances_table.verticalHeader().setVisible(False)
         self.instances_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.instances_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         if_layout.addWidget(self.instances_table)
         tables_layout.addWidget(instances_frame, stretch=1)
 
@@ -79,31 +89,142 @@ class DataTab(QWidget):
         chart_widget = QWidget()
         chart_layout = QVBoxLayout(chart_widget)
         chart_layout.setContentsMargins(0, 0, 0, 0)
-        chart_layout.setSpacing(6)
+        chart_layout.setSpacing(4)
 
-        # Заголовок + переключатель метрики
-        hdr = QHBoxLayout()
-        hdr.addWidget(self._section_label("ВРЕМЕННЫЕ РЯДЫ"))
-        hdr.addStretch()
-
-        from PySide6.QtWidgets import QComboBox
+        # Заголовок + выбор метрики (2.3: рядом с графиком)
+        chart_hdr = QHBoxLayout()
+        chart_hdr.addWidget(self._section_label("ВРЕМЕННЫЕ РЯДЫ"))
+        chart_hdr.addStretch()
+        chart_hdr.addWidget(QLabel("Метрика:"))
         self._metric_combo = QComboBox()
-        self._metric_combo.addItems(["latency_ms", "cpu", "memory", "rps"])
         self._metric_combo.setFixedWidth(130)
-        self._metric_combo.setToolTip("Выберите метрику для отображения")
+        self._metric_combo.setFixedHeight(26)
         self._metric_combo.currentTextChanged.connect(self._on_metric_changed)
-        hdr.addWidget(self._metric_combo)
-        chart_layout.addLayout(hdr)
+        chart_hdr.addWidget(self._metric_combo)
+        chart_layout.addLayout(chart_hdr)
+
+        # Фильтр сервисов (2.1: включить/выключить видимость)
+        self._service_filter_row = QHBoxLayout()
+        self._service_filter_row.addWidget(QLabel("Сервисы:"))
+        self._service_checks: dict[str, QCheckBox] = {}
+        self._service_filter_row.addStretch()
+        chart_layout.addLayout(self._service_filter_row)
 
         self._chart_area = self._build_chart_area()
         chart_layout.addWidget(self._chart_area)
         splitter.addWidget(chart_widget)
 
-        # Сохраняем последние данные для перерисовки при смене метрики
-        self._last_md = None
-
         splitter.setSizes([400, 300])
         layout.addWidget(splitter)
+
+    def _toggle_expand(self, expanded: bool) -> None:
+        self._btn_expand.setText("Свернуть" if expanded else "Развернуть / Свернуть")
+        if hasattr(self, '_splitter'):
+            if expanded:
+                # Полностью разворачиваем — убираем нижний виджет
+                self._splitter.setSizes([10000, 0])
+                # 2.4: растягиваем колонки по содержимому
+                for c in range(self.metrics_table.columnCount()):
+                    self.metrics_table.resizeColumnToContents(c)
+                self.metrics_table.horizontalHeader().setSectionResizeMode(
+                    1, QHeaderView.ResizeMode.Stretch)
+                self.metrics_table.horizontalHeader().setSectionResizeMode(
+                    2, QHeaderView.ResizeMode.Stretch)
+            else:
+                self._splitter.setSizes([400, 300])
+
+    def _on_metric_changed(self, metric: str) -> None:
+        if getattr(self, '_last_md', None) is not None:
+            self._plot_filtered()
+
+    def _plot_filtered(self) -> None:
+        """Строит временной ряд с учётом выбранной метрики и фильтра сервисов."""
+        import numpy as np
+        md = getattr(self, '_last_md', None)
+        if md is None:
+            return
+        try:
+            metric = self._metric_combo.currentText()
+            mi = md.metric_names.index(metric) if metric in md.metric_names else 0
+            timestamps = md.timestamps
+            series, labels = [], []
+            for ni, inst in enumerate(md.instance_names):
+                # Проверяем чекбокс видимости
+                cb = self._service_checks.get(inst)
+                if cb is not None and not cb.isChecked():
+                    continue
+                vals = md.values[:, ni, mi]
+                nans = np.isnan(vals)
+                if nans.all():
+                    continue
+                idx_arr = np.arange(len(vals))
+                vals = np.interp(idx_arr, idx_arr[~nans], vals[~nans])
+                series.append(vals)
+                labels.append(inst)
+            if series:
+                self.plot_series(timestamps, series, labels)
+        except Exception:
+            pass
+
+    def _plot_from_md(self, md, metric: str = None) -> None:
+        """Точка входа для построения графика (вызывается из main_window)."""
+        self._last_md = md
+        if metric and hasattr(self, '_metric_combo'):
+            idx = self._metric_combo.findText(metric)
+            if idx >= 0:
+                self._metric_combo.blockSignals(True)
+                self._metric_combo.setCurrentIndex(idx)
+                self._metric_combo.blockSignals(False)
+        self._plot_filtered()
+
+    def load_metric_data(self, metric_data) -> None:
+        """Заполняет таблицу метрик + обновляет комбо метрик и фильтр сервисов."""
+        import numpy as np
+        self._last_md = metric_data
+
+        # ── Заполняем таблицу метрик ──────────────────────────────────────
+        self.metrics_table.setRowCount(0)
+        for ni, inst in enumerate(metric_data.instance_names):
+            for mi, metric in enumerate(metric_data.metric_names):
+                vals = metric_data.values[:, ni, mi]
+                vals = vals[~np.isnan(vals)]
+                row = self.metrics_table.rowCount()
+                self.metrics_table.insertRow(row)
+                cb_item = QTableWidgetItem()
+                cb_item.setFlags(Qt.ItemFlag.ItemIsUserCheckable | Qt.ItemFlag.ItemIsEnabled)
+                cb_item.setCheckState(Qt.CheckState.Checked)
+                self.metrics_table.setItem(row, 0, cb_item)
+                def _ro(t):
+                    it = QTableWidgetItem(t)
+                    it.setFlags(Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled)
+                    return it
+                self.metrics_table.setItem(row, 1, _ro(inst))
+                self.metrics_table.setItem(row, 2, _ro(metric))
+                self.metrics_table.setItem(row, 3, _ro(f"{vals.min():.3f}" if len(vals) else "—"))
+                self.metrics_table.setItem(row, 4, _ro(f"{vals.max():.3f}" if len(vals) else "—"))
+                self.metrics_table.setItem(row, 5, _ro(f"{vals.mean():.3f}" if len(vals) else "—"))
+                self.metrics_table.setItem(row, 6, _ro(f"{vals.std():.3f}" if len(vals) else "—"))
+
+        # ── Обновляем список метрик в комбо из реальных данных ────────────
+        if hasattr(self, '_metric_combo'):
+            self._metric_combo.blockSignals(True)
+            self._metric_combo.clear()
+            self._metric_combo.addItems(metric_data.metric_names)
+            self._metric_combo.blockSignals(False)
+
+        # ── Обновляем чекбоксы фильтра сервисов ──────────────────────────
+        if hasattr(self, '_service_filter_row') and hasattr(self, '_service_checks'):
+            for cb in self._service_checks.values():
+                self._service_filter_row.removeWidget(cb)
+                cb.deleteLater()
+            self._service_checks.clear()
+            for inst in metric_data.instance_names:
+                cb = QCheckBox(inst)
+                cb.setChecked(True)
+                cb.stateChanged.connect(lambda _: self._plot_filtered())
+                self._service_checks[inst] = cb
+                self._service_filter_row.insertWidget(
+                    self._service_filter_row.count() - 1, cb)
 
     def _section_label(self, text: str) -> QLabel:
         lbl = QLabel(text)
@@ -141,57 +262,6 @@ class DataTab(QWidget):
             self._ax = None
             return placeholder
 
-    def _on_metric_changed(self, metric: str) -> None:
-        """Перерисовывает график при смене метрики."""
-        if self._last_md is not None:
-            self._plot_from_md(self._last_md, metric)
-
-    def _plot_from_md(self, md, metric: str) -> None:
-        """Строит временной ряд из MetricData для заданной метрики."""
-        import numpy as np
-        try:
-            if metric in md.metric_names:
-                mi = md.metric_names.index(metric)
-            else:
-                mi = 0
-                metric = md.metric_names[0]
-            timestamps = md.timestamps
-            series, labels = [], []
-            for ni, inst in enumerate(md.instance_names):
-                vals = md.values[:, ni, mi]
-                nans = np.isnan(vals)
-                if nans.all():
-                    continue
-                idx = np.arange(len(vals))
-                vals = np.interp(idx, idx[~nans], vals[~nans])
-                series.append(vals)
-                labels.append(inst)
-            if series:
-                self.plot_series(timestamps, series, labels)
-        except Exception:
-            pass
-
-    def load_metric_data(self, metric_data) -> None:
-        """Заполняет таблицу метрик из MetricData."""
-        import numpy as np
-        self._last_md = metric_data  # сохраняем для перерисовки при смене метрики
-        self.metrics_table.setRowCount(0)
-        for ni, inst in enumerate(metric_data.instance_names):
-            for mi, metric in enumerate(metric_data.metric_names):
-                vals = metric_data.values[:, ni, mi]
-                vals = vals[~np.isnan(vals)]
-                row = self.metrics_table.rowCount()
-                self.metrics_table.insertRow(row)
-                cb_item = QTableWidgetItem()
-                cb_item.setFlags(Qt.ItemFlag.ItemIsUserCheckable | Qt.ItemFlag.ItemIsEnabled)
-                cb_item.setCheckState(Qt.CheckState.Checked)
-                self.metrics_table.setItem(row, 0, cb_item)
-                self.metrics_table.setItem(row, 1, QTableWidgetItem(inst))
-                self.metrics_table.setItem(row, 2, QTableWidgetItem(metric))
-                self.metrics_table.setItem(row, 3, QTableWidgetItem(f"{vals.min():.3f}" if len(vals) else "—"))
-                self.metrics_table.setItem(row, 4, QTableWidgetItem(f"{vals.max():.3f}" if len(vals) else "—"))
-                self.metrics_table.setItem(row, 5, QTableWidgetItem(f"{vals.mean():.3f}" if len(vals) else "—"))
-                self.metrics_table.setItem(row, 6, QTableWidgetItem(f"{vals.std():.3f}" if len(vals) else "—"))
 
     def load_topology(self, topo) -> None:
         """Заполняет таблицу экземпляров из TopologyData."""
