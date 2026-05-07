@@ -1,0 +1,209 @@
+# CAIRN Demo — Online Boutique + Observability Stack
+# Запуск: docker compose -f docker/docker-compose.yml up -d
+# Остановка: docker compose -f docker/docker-compose.yml down
+
+networks:
+  cairn-net:
+    driver: bridge
+
+# ── Метрики ──────────────────────────────────────────────────────────────────
+volumes:
+  prometheus_data: {}
+
+services:
+
+  # ── Prometheus ─────────────────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    container_name: cairn-prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=2h"
+      - "--web.enable-lifecycle"
+    ports:
+      - "9090:9090"
+    networks:
+      - cairn-net
+    restart: unless-stopped
+
+  # ── cAdvisor — метрики контейнеров ─────────────────────────────────────────
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    container_name: cairn-cadvisor
+    privileged: true
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    ports:
+      - "8080:8080"
+    networks:
+      - cairn-net
+    restart: unless-stopped
+
+  # ── Online Boutique: Frontend ───────────────────────────────────────────────
+  frontend:
+    image: gcr.io/google-samples/microservices-demo/frontend:v0.10.1
+    container_name: cairn-frontend
+    ports:
+      - "8081:8080"
+    environment:
+      - PORT=8080
+      - PRODUCT_CATALOG_SERVICE_ADDR=productcatalogservice:3550
+      - CURRENCY_SERVICE_ADDR=currencyservice:7000
+      - CART_SERVICE_ADDR=cartservice:7070
+      - RECOMMENDATION_SERVICE_ADDR=recommendationservice:8080
+      - SHIPPING_SERVICE_ADDR=shippingservice:50051
+      - CHECKOUT_SERVICE_ADDR=checkoutservice:5050
+      - AD_SERVICE_ADDR=adservice:9555
+      - ENABLE_PROFILER=0
+    networks:
+      - cairn-net
+    depends_on:
+      - productcatalogservice
+      - currencyservice
+      - cartservice
+      - recommendationservice
+      - shippingservice
+      - checkoutservice
+      - adservice
+    restart: unless-stopped
+
+  # ── Cart Service ────────────────────────────────────────────────────────────
+  cartservice:
+    image: gcr.io/google-samples/microservices-demo/cartservice:v0.10.1
+    container_name: cairn-cartservice
+    environment:
+      - REDIS_ADDR=redis-cart:6379
+    networks:
+      - cairn-net
+    depends_on:
+      - redis-cart
+    restart: unless-stopped
+
+  redis-cart:
+    image: redis:7.2-alpine
+    container_name: cairn-redis
+    networks:
+      - cairn-net
+    restart: unless-stopped
+
+  # ── Product Catalog ─────────────────────────────────────────────────────────
+  productcatalogservice:
+    image: gcr.io/google-samples/microservices-demo/productcatalogservice:v0.10.1
+    container_name: cairn-productcatalog
+    environment:
+      - PORT=3550
+    networks:
+      - cairn-net
+    restart: unless-stopped
+
+  # ── Currency Service ────────────────────────────────────────────────────────
+  currencyservice:
+    image: gcr.io/google-samples/microservices-demo/currencyservice:v0.10.1
+    container_name: cairn-currencyservice
+    environment:
+      - PORT=7000
+      - DISABLE_PROFILER=1
+    networks:
+      - cairn-net
+    restart: unless-stopped
+
+  # ── Recommendation Service ──────────────────────────────────────────────────
+  recommendationservice:
+    image: gcr.io/google-samples/microservices-demo/recommendationservice:v0.10.1
+    container_name: cairn-recommendationservice
+    environment:
+      - PORT=8080
+      - PRODUCT_CATALOG_SERVICE_ADDR=productcatalogservice:3550
+      - DISABLE_PROFILER=1
+    networks:
+      - cairn-net
+    depends_on:
+      - productcatalogservice
+    restart: unless-stopped
+
+  # ── Checkout Service ────────────────────────────────────────────────────────
+  checkoutservice:
+    image: gcr.io/google-samples/microservices-demo/checkoutservice:v0.10.1
+    container_name: cairn-checkoutservice
+    environment:
+      - PORT=5050
+      - PRODUCT_CATALOG_SERVICE_ADDR=productcatalogservice:3550
+      - SHIPPING_SERVICE_ADDR=shippingservice:50051
+      - PAYMENT_SERVICE_ADDR=paymentservice:50051
+      - EMAIL_SERVICE_ADDR=emailservice:8080
+      - CURRENCY_SERVICE_ADDR=currencyservice:7000
+      - CART_SERVICE_ADDR=cartservice:7070
+    networks:
+      - cairn-net
+    depends_on:
+      - productcatalogservice
+      - shippingservice
+      - paymentservice
+      - emailservice
+      - currencyservice
+      - cartservice
+    restart: unless-stopped
+
+  # ── Shipping Service ────────────────────────────────────────────────────────
+  shippingservice:
+    image: gcr.io/google-samples/microservices-demo/shippingservice:v0.10.1
+    container_name: cairn-shippingservice
+    environment:
+      - PORT=50051
+      - DISABLE_PROFILER=1
+    networks:
+      - cairn-net
+    restart: unless-stopped
+
+  # ── Payment Service ─────────────────────────────────────────────────────────
+  paymentservice:
+    image: gcr.io/google-samples/microservices-demo/paymentservice:v0.10.1
+    container_name: cairn-paymentservice
+    environment:
+      - PORT=50051
+      - DISABLE_PROFILER=1
+    networks:
+      - cairn-net
+    restart: unless-stopped
+
+  # ── Email Service ───────────────────────────────────────────────────────────
+  emailservice:
+    image: gcr.io/google-samples/microservices-demo/emailservice:v0.10.1
+    container_name: cairn-emailservice
+    environment:
+      - PORT=8080
+      - DISABLE_PROFILER=1
+    networks:
+      - cairn-net
+    restart: unless-stopped
+
+  # ── Ad Service ──────────────────────────────────────────────────────────────
+  adservice:
+    image: gcr.io/google-samples/microservices-demo/adservice:v0.10.1
+    container_name: cairn-adservice
+    environment:
+      - PORT=9555
+      - DISABLE_PROFILER=1
+    networks:
+      - cairn-net
+    restart: unless-stopped
+
+  # ── Load Generator — фоновый трафик ────────────────────────────────────────
+  loadgenerator:
+    image: gcr.io/google-samples/microservices-demo/loadgenerator:v0.10.1
+    container_name: cairn-loadgenerator
+    environment:
+      - FRONTEND_ADDR=frontend:8080
+      - USERS=5
+    networks:
+      - cairn-net
+    depends_on:
+      - frontend
+    restart: unless-stopped

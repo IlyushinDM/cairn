@@ -1,0 +1,262 @@
+1700000000.0 | frontend-1 | INFO | GET /api/orders: 200
+1700000000.0 | order-service-1 | INFO | DB запрос 11мс
+1700000000.0 | payment-service-1 | INFO | Транзакция подтверждена
+1700000000.0 | cache-service-1 | INFO | Cache hit ratio 77%
+1700000000.0 | database-1 | INFO | Индекс использован
+1700000010.0 | frontend-1 | INFO | Запрос обработан за 19мс
+1700000010.0 | order-service-1 | INFO | DB запрос 17мс
+1700000010.0 | payment-service-1 | INFO | Платёж авторизован
+1700000010.0 | cache-service-1 | INFO | Cache hit ratio 90%
+1700000010.0 | database-1 | INFO | Индекс использован
+1700000020.0 | frontend-1 | INFO | GET /api/orders: 200
+1700000020.0 | order-service-1 | INFO | Заказ создан id=124
+1700000020.0 | payment-service-1 | INFO | Транзакция подтверждена
+1700000020.0 | cache-service-1 | INFO | TTL обновлён
+1700000020.0 | database-1 | INFO | SELECT 46мс
+1700000030.0 | frontend-1 | INFO | GET /api/orders: 200
+1700000030.0 | order-service-1 | INFO | Заказ создан id=22
+1700000030.0 | payment-service-1 | INFO | Платёж авторизован
+1700000030.0 | cache-service-1 | INFO | TTL обновлён
+1700000030.0 | database-1 | INFO | SELECT 30мс
+1700000040.0 | frontend-1 | INFO | GET /api/orders: 200
+1700000040.0 | order-service-1 | INFO | Заказ создан id=573
+1700000040.0 | payment-service-1 | INFO | Транзакция подтверждена
+1700000040.0 | cache-service-1 | INFO | Cache hit ratio 99%
+1700000040.0 | database-1 | INFO | SELECT 18мс
+1700000050.0 | frontend-1 | INFO | GET /api/orders: 200
+1700000050.0 | order-service-1 | INFO | DB запрос 4мс
+1700000050.0 | payment-service-1 | INFO | Платёж авторизован
+1700000050.0 | cache-service-1 | INFO | Cache hit ratio 91%
+1700000050.0 | database-1 | INFO | Индекс использован
+1700000060.0 | frontend-1 | INFO | Запрос обработан за 10мс
+1700000060.0 | order-service-1 | INFO | DB запрос 13мс
+1700000060.0 | payment-service-1 | INFO | Платёж авторизован
+1700000060.0 | cache-service-1 | INFO | Cache hit ratio 94%
+1700000060.0 | database-1 | INFO | SELECT 47мс
+1700000070.0 | frontend-1 | INFO | Запрос обработан за 48мс
+1700000070.0 | order-service-1 | INFO | DB запрос 10мс
+1700000070.0 | payment-service-1 | INFO | Транзакция подтверждена
+1700000070.0 | cache-service-1 | INFO | Cache hit ratio 99%
+1700000070.0 | database-1 | INFO | Индекс использован
+1700000080.0 | frontend-1 | INFO | Запрос обработан за 19мс
+1700000080.0 | order-service-1 | INFO | DB запрос 37мс
+1700000080.0 | payment-service-1 | INFO | Транзакция подтверждена
+1700000080.0 | cache-service-1 | INFO | Cache hit ratio 81%
+1700000080.0 | database-1 | INFO | SELECT 25мс
+1700000090.0 | frontend-1 | INFO | Запрос обработан за 9мс
+1700000090.0 | order-service-1 | INFO | Заказ создан id=68
+1700000090.0 | payment-service-1 | INFO | Транзакция подтверждена
+1700000090.0 | cache-service-1 | INFO | TTL обновлён
+1700000090.0 | database-1 | INFO | Индекс использован
+1700000100.0 | frontend-1 | INFO | Запрос обработан за 21мс
+1700000100.0 | order-service-1 | INFO | Заказ создан id=937
+1700000100.0 | payment-service-1 | INFO | Платёж авторизован
+1700000100.0 | cache-service-1 | INFO | Cache hit ratio 76%
+1700000100.0 | database-1 | INFO | Индекс использован
+1700000110.0 | frontend-1 | INFO | Запрос обработан за 6мс
+1700000110.0 | order-service-1 | INFO | Заказ создан id=636
+1700000110.0 | payment-service-1 | INFO | Платёж авторизован
+1700000110.0 | cache-service-1 | INFO | Cache hit ratio 70%
+1700000110.0 | database-1 | INFO | SELECT 16мс
+1700000120.0 | frontend-1 | INFO | Запрос обработан за 27мс
+1700000120.0 | order-service-1 | INFO | Заказ создан id=743
+1700000120.0 | payment-service-1 | INFO | Транзакция подтверждена
+1700000120.0 | cache-service-1 | INFO | Cache hit ratio 71%
+1700000120.0 | database-1 | INFO | Индекс использован
+1700000130.0 | frontend-1 | INFO | Запрос обработан за 11мс
+1700000130.0 | order-service-1 | INFO | Заказ создан id=654
+1700000130.0 | payment-service-1 | INFO | Транзакция подтверждена
+1700000130.0 | cache-service-1 | INFO | Cache hit ratio 72%
+1700000130.0 | database-1 | INFO | Индекс использован
+1700000140.0 | frontend-1 | INFO | GET /api/orders: 200
+1700000140.0 | order-service-1 | INFO | Заказ создан id=96
+1700000140.0 | payment-service-1 | INFO | Платёж авторизован
+1700000140.0 | cache-service-1 | INFO | Cache hit ratio 90%
+1700000140.0 | database-1 | INFO | Индекс использован
+1700000150.0 | frontend-1 | INFO | GET /api/orders: 200
+1700000150.0 | order-service-1 | INFO | DB запрос 7мс
+1700000150.0 | payment-service-1 | INFO | Платёж авторизован
+1700000150.0 | cache-service-1 | INFO | Cache hit ratio 94%
+1700000150.0 | database-1 | INFO | Индекс использован
+1700000160.0 | frontend-1 | INFO | Запрос обработан за 40мс
+1700000160.0 | order-service-1 | INFO | DB запрос 6мс
+1700000160.0 | payment-service-1 | INFO | Платёж авторизован
+1700000160.0 | cache-service-1 | INFO | TTL обновлён
+1700000160.0 | database-1 | INFO | SELECT 19мс
+1700000170.0 | frontend-1 | INFO | Запрос обработан за 49мс
+1700000170.0 | order-service-1 | INFO | Заказ создан id=545
+1700000170.0 | payment-service-1 | INFO | Платёж авторизован
+1700000170.0 | cache-service-1 | INFO | Cache hit ratio 76%
+1700000170.0 | database-1 | INFO | Индекс использован
+1700000180.0 | frontend-1 | INFO | Запрос обработан за 29мс
+1700000180.0 | order-service-1 | INFO | Заказ создан id=424
+1700000180.0 | payment-service-1 | INFO | Платёж авторизован
+1700000180.0 | cache-service-1 | INFO | Cache hit ratio 73%
+1700000180.0 | database-1 | INFO | Индекс использован
+1700000190.0 | frontend-1 | INFO | GET /api/orders: 200
+1700000190.0 | order-service-1 | INFO | Заказ создан id=565
+1700000190.0 | payment-service-1 | INFO | Транзакция подтверждена
+1700000190.0 | cache-service-1 | INFO | Cache hit ratio 83%
+1700000190.0 | database-1 | INFO | SELECT 35мс
+1700000200.0 | frontend-1 | INFO | GET /api/orders: 200
+1700000200.0 | order-service-1 | INFO | DB запрос 38мс
+1700000200.0 | payment-service-1 | INFO | Транзакция подтверждена
+1700000200.0 | cache-service-1 | INFO | TTL обновлён
+1700000200.0 | database-1 | INFO | Индекс использован
+1700000210.0 | frontend-1 | INFO | Запрос обработан за 41мс
+1700000210.0 | order-service-1 | INFO | Заказ создан id=864
+1700000210.0 | payment-service-1 | INFO | Транзакция подтверждена
+1700000210.0 | cache-service-1 | INFO | Cache hit ratio 89%
+1700000210.0 | database-1 | INFO | Индекс использован
+1700000220.0 | frontend-1 | INFO | GET /api/orders: 200
+1700000220.0 | order-service-1 | INFO | DB запрос 42мс
+1700000220.0 | payment-service-1 | INFO | Платёж авторизован
+1700000220.0 | cache-service-1 | INFO | Cache hit ratio 89%
+1700000220.0 | database-1 | INFO | Индекс использован
+1700000230.0 | frontend-1 | INFO | GET /api/orders: 200
+1700000230.0 | order-service-1 | INFO | DB запрос 12мс
+1700000230.0 | payment-service-1 | INFO | Транзакция подтверждена
+1700000230.0 | cache-service-1 | INFO | Cache hit ratio 96%
+1700000230.0 | database-1 | INFO | SELECT 32мс
+1700000240.0 | frontend-1 | INFO | Запрос обработан за 39мс
+1700000240.0 | order-service-1 | INFO | Заказ создан id=409
+1700000240.0 | payment-service-1 | INFO | Платёж авторизован
+1700000240.0 | cache-service-1 | INFO | TTL обновлён
+1700000240.0 | database-1 | INFO | SELECT 21мс
+1700000250.0 | frontend-1 | INFO | Запрос обработан за 2мс
+1700000250.0 | order-service-1 | INFO | DB запрос 34мс
+1700000250.0 | payment-service-1 | INFO | Платёж авторизован
+1700000250.0 | cache-service-1 | INFO | TTL обновлён
+1700000250.0 | database-1 | INFO | SELECT 48мс
+1700000260.0 | frontend-1 | INFO | Запрос обработан за 4мс
+1700000260.0 | order-service-1 | INFO | Заказ создан id=543
+1700000260.0 | payment-service-1 | INFO | Транзакция подтверждена
+1700000260.0 | cache-service-1 | INFO | Cache hit ratio 89%
+1700000260.0 | database-1 | INFO | SELECT 42мс
+1700000270.0 | frontend-1 | INFO | Запрос обработан за 25мс
+1700000270.0 | order-service-1 | INFO | Заказ создан id=688
+1700000270.0 | payment-service-1 | INFO | Транзакция подтверждена
+1700000270.0 | cache-service-1 | INFO | Cache hit ratio 82%
+1700000270.0 | database-1 | INFO | Индекс использован
+1700000280.0 | frontend-1 | INFO | GET /api/orders: 200
+1700000280.0 | order-service-1 | INFO | Заказ создан id=60
+1700000280.0 | payment-service-1 | INFO | Транзакция подтверждена
+1700000280.0 | cache-service-1 | INFO | TTL обновлён
+1700000280.0 | database-1 | INFO | Индекс использован
+1700000290.0 | frontend-1 | INFO | Запрос обработан за 42мс
+1700000290.0 | order-service-1 | INFO | DB запрос 4мс
+1700000290.0 | payment-service-1 | INFO | Платёж авторизован
+1700000290.0 | cache-service-1 | INFO | TTL обновлён
+1700000290.0 | database-1 | INFO | SELECT 44мс
+1700000300.0 | frontend-1 | INFO | Запрос обработан за 26мс
+1700000300.0 | order-service-1 | INFO | Заказ создан id=363
+1700000300.0 | payment-service-1 | INFO | Транзакция подтверждена
+1700000300.0 | cache-service-1 | INFO | TTL обновлён
+1700000300.0 | database-1 | INFO | SELECT 14мс
+1700000307.0 | frontend-1 | WARN | WARN: Gateway latency 3125ms
+1700000308.0 | order-service-1 | ERROR | ERROR: CPU throttling, thread pool exhausted
+1700000310.0 | frontend-1 | INFO | Запрос обработан за 13мс
+1700000310.0 | frontend-1 | ERROR | ERROR: 503 Service Unavailable
+1700000310.0 | order-service-1 | INFO | Заказ создан id=634
+1700000310.0 | order-service-1 | ERROR | ERROR: CPU throttling, thread pool exhausted
+1700000310.0 | payment-service-1 | INFO | Платёж авторизован
+1700000310.0 | cache-service-1 | INFO | TTL обновлён
+1700000310.0 | database-1 | INFO | Индекс использован
+1700000316.0 | frontend-1 | WARN | WARN: Gateway latency 3420ms
+1700000318.0 | frontend-1 | ERROR | ERROR: 503 Service Unavailable
+1700000320.0 | frontend-1 | INFO | Запрос обработан за 23мс
+1700000320.0 | order-service-1 | INFO | Заказ создан id=720
+1700000320.0 | payment-service-1 | INFO | Транзакция подтверждена
+1700000320.0 | cache-service-1 | INFO | Cache hit ratio 70%
+1700000320.0 | database-1 | INFO | Индекс использован
+1700000321.0 | frontend-1 | WARN | WARN: Gateway latency 2961ms
+1700000322.0 | frontend-1 | ERROR | ERROR: 503 Service Unavailable
+1700000322.0 | order-service-1 | ERROR | ERROR: CPU throttling, thread pool exhausted
+1700000324.0 | frontend-1 | WARN | WARN: Gateway latency 4370ms
+1700000324.0 | order-service-1 | ERROR | ERROR: CPU throttling, thread pool exhausted
+1700000327.0 | frontend-1 | WARN | WARN: Gateway latency 1564ms
+1700000328.0 | order-service-1 | ERROR | ERROR: CPU throttling, thread pool exhausted
+1700000329.0 | frontend-1 | WARN | WARN: Gateway latency 857ms
+1700000330.0 | frontend-1 | INFO | Запрос обработан за 4мс
+1700000330.0 | order-service-1 | INFO | DB запрос 28мс
+1700000330.0 | order-service-1 | ERROR | ERROR: Upstream timeout after 5000ms
+1700000330.0 | payment-service-1 | INFO | Платёж авторизован
+1700000330.0 | cache-service-1 | INFO | TTL обновлён
+1700000330.0 | database-1 | INFO | Индекс использован
+1700000333.0 | order-service-1 | ERROR | ERROR: Upstream timeout after 5000ms
+1700000334.0 | order-service-1 | ERROR | ERROR: Upstream timeout after 5000ms
+1700000335.0 | frontend-1 | WARN | WARN: Gateway latency 1494ms
+1700000335.0 | order-service-1 | ERROR | ERROR: CPU throttling, thread pool exhausted
+1700000337.0 | frontend-1 | WARN | WARN: Gateway latency 2355ms
+1700000337.0 | order-service-1 | WARN | WARN: Request queue depth=174
+1700000338.0 | frontend-1 | WARN | WARN: Gateway latency 1784ms
+1700000338.0 | order-service-1 | WARN | WARN: Request queue depth=17
+1700000339.0 | order-service-1 | WARN | WARN: Request queue depth=185
+1700000340.0 | frontend-1 | INFO | GET /api/orders: 200
+1700000340.0 | order-service-1 | INFO | Заказ создан id=494
+1700000340.0 | payment-service-1 | INFO | Платёж авторизован
+1700000340.0 | cache-service-1 | INFO | Cache hit ratio 99%
+1700000340.0 | database-1 | INFO | SELECT 9мс
+1700000343.0 | order-service-1 | WARN | WARN: Request queue depth=127
+1700000344.0 | order-service-1 | ERROR | ERROR: Upstream timeout after 5000ms
+1700000345.0 | frontend-1 | WARN | WARN: Gateway latency 256ms
+1700000346.0 | frontend-1 | WARN | WARN: Gateway latency 156ms
+1700000347.0 | order-service-1 | WARN | WARN: Request queue depth=111
+1700000348.0 | frontend-1 | WARN | WARN: Gateway latency 1453ms
+1700000348.0 | order-service-1 | ERROR | ERROR: Upstream timeout after 5000ms
+1700000349.0 | order-service-1 | WARN | WARN: Request queue depth=124
+1700000350.0 | frontend-1 | INFO | GET /api/orders: 200
+1700000350.0 | frontend-1 | WARN | WARN: Gateway latency 3956ms
+1700000350.0 | order-service-1 | INFO | Заказ создан id=694
+1700000350.0 | order-service-1 | WARN | WARN: Request queue depth=27
+1700000350.0 | payment-service-1 | INFO | Транзакция подтверждена
+1700000350.0 | cache-service-1 | INFO | Cache hit ratio 91%
+1700000350.0 | database-1 | INFO | SELECT 37мс
+1700000352.0 | order-service-1 | ERROR | ERROR: Upstream timeout after 5000ms
+1700000355.0 | frontend-1 | ERROR | ERROR: 503 Service Unavailable
+1700000356.0 | order-service-1 | ERROR | ERROR: Upstream timeout after 5000ms
+1700000360.0 | frontend-1 | INFO | Запрос обработан за 27мс
+1700000360.0 | order-service-1 | INFO | DB запрос 39мс
+1700000360.0 | order-service-1 | ERROR | ERROR: Upstream timeout after 5000ms
+1700000360.0 | payment-service-1 | INFO | Платёж авторизован
+1700000360.0 | cache-service-1 | INFO | Cache hit ratio 87%
+1700000360.0 | database-1 | INFO | SELECT 5мс
+1700000364.0 | frontend-1 | ERROR | ERROR: 503 Service Unavailable
+1700000366.0 | frontend-1 | ERROR | ERROR: 503 Service Unavailable
+1700000367.0 | frontend-1 | WARN | WARN: Gateway latency 3020ms
+1700000368.0 | frontend-1 | WARN | WARN: Gateway latency 3660ms
+1700000369.0 | order-service-1 | ERROR | ERROR: Upstream timeout after 5000ms
+1700000370.0 | frontend-1 | INFO | GET /api/orders: 200
+1700000370.0 | order-service-1 | INFO | DB запрос 28мс
+1700000370.0 | payment-service-1 | INFO | Транзакция подтверждена
+1700000370.0 | cache-service-1 | INFO | Cache hit ratio 75%
+1700000370.0 | database-1 | INFO | Индекс использован
+1700000371.0 | frontend-1 | WARN | WARN: Gateway latency 3931ms
+1700000371.0 | order-service-1 | ERROR | ERROR: CPU throttling, thread pool exhausted
+1700000375.0 | frontend-1 | ERROR | ERROR: 503 Service Unavailable
+1700000380.0 | frontend-1 | INFO | Запрос обработан за 47мс
+1700000380.0 | order-service-1 | INFO | Заказ создан id=661
+1700000380.0 | order-service-1 | WARN | WARN: Request queue depth=171
+1700000380.0 | payment-service-1 | INFO | Платёж авторизован
+1700000380.0 | cache-service-1 | INFO | Cache hit ratio 75%
+1700000380.0 | database-1 | INFO | Индекс использован
+1700000381.0 | frontend-1 | WARN | WARN: Gateway latency 822ms
+1700000385.0 | frontend-1 | WARN | WARN: Gateway latency 763ms
+1700000386.0 | frontend-1 | WARN | WARN: Gateway latency 4422ms
+1700000386.0 | order-service-1 | ERROR | ERROR: CPU throttling, thread pool exhausted
+1700000388.0 | order-service-1 | WARN | WARN: Request queue depth=85
+1700000390.0 | frontend-1 | INFO | GET /api/orders: 200
+1700000390.0 | order-service-1 | INFO | Заказ создан id=40
+1700000390.0 | order-service-1 | ERROR | ERROR: Upstream timeout after 5000ms
+1700000390.0 | payment-service-1 | INFO | Платёж авторизован
+1700000390.0 | cache-service-1 | INFO | Cache hit ratio 91%
+1700000390.0 | database-1 | INFO | SELECT 46мс
+1700000391.0 | frontend-1 | WARN | WARN: Gateway latency 2548ms
+1700000391.0 | order-service-1 | ERROR | ERROR: CPU throttling, thread pool exhausted
+1700000392.0 | frontend-1 | WARN | WARN: Gateway latency 3939ms
+1700000393.0 | frontend-1 | WARN | WARN: Gateway latency 2028ms
+1700000393.0 | order-service-1 | WARN | WARN: Request queue depth=191
+1700000394.0 | frontend-1 | WARN | WARN: Gateway latency 1024ms
+1700000395.0 | frontend-1 | WARN | WARN: Gateway latency 4743ms
+1700000397.0 | frontend-1 | ERROR | ERROR: 503 Service Unavailable
+1700000399.0 | frontend-1 | ERROR | ERROR: 503 Service Unavailable

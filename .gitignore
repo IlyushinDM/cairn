@@ -1,4 +1,4 @@
-# Python
+# ── Python ────────────────────────────────────────────────────────────────────
 __pycache__/
 *.py[cod]
 *$py.class
@@ -8,44 +8,58 @@ __pycache__/
 dist/
 build/
 .eggs/
-.mypy_cache/
-.pytest_cache/
-.coverage
-htmlcov/
+.Python
+pip-wheel-metadata/
 
-# Virtual environments
+# ── Виртуальное окружение ─────────────────────────────────────────────────────
 .venv/
 venv/
 env/
+ENV/
 
-# PyTorch checkpoints & model weights
-*.pt
-*.pth
-*.ckpt
+# ── CAIRN — модели и данные ───────────────────────────────────────────────────
+# Чекпоинты модели (большие файлы)
+data/sample/demo_model.pt
+data/sample/checkpoints/
 checkpoints/
-runs/
-lightning_logs/
 
-# Data — benchmarks heavy (gitignored)
-data/benchmarks/
-data/sample/*.csv
-data/sample/*.json
-data/sample/*.txt
+# Сгенерированные демо-данные (воспроизводимы через generate_demo_data.py)
+data/sample/scenario_*/
 
-# IDE
-.idea/
+# Результаты анализа
+cairn_results*.json
+
+# Конфиг с локальными путями (не перезаписывать чужой конфиг)
+data/sample/demo_config.yaml
+
+# ── IDE ───────────────────────────────────────────────────────────────────────
 .vscode/
+.idea/
 *.swp
 *.swo
-
-# OS
 .DS_Store
 Thumbs.db
 
-# Configs with secrets
-configs/local.yaml
-configs/*.secret.yaml
+# ── Тесты и покрытие ──────────────────────────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
 
-# Logs
+# ── Docker ───────────────────────────────────────────────────────────────────
+# Данные Prometheus (пересоздаются при запуске)
+docker/prometheus_data/
+
+# ── Логи ─────────────────────────────────────────────────────────────────────
 *.log
 logs/
+
+# ── Jupyter ───────────────────────────────────────────────────────────────────
+.ipynb_checkpoints/
+*.ipynb
+
+# ── Временные файлы ───────────────────────────────────────────────────────────
+*.tmp
+*.bak
+*.orig

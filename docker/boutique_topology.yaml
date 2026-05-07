@@ -1,0 +1,74 @@
+# Топология Online Boutique для CAIRN
+instances:
+  - name: cairn-frontend
+    service: frontend
+    host: docker-host
+    cpu_limit: 2.0
+    memory_limit: 256
+    version: "v0.10.1"
+  - name: cairn-cartservice
+    service: cartservice
+    host: docker-host
+    cpu_limit: 2.0
+    memory_limit: 256
+    version: "v0.10.1"
+  - name: cairn-productcatalog
+    service: productcatalogservice
+    host: docker-host
+    cpu_limit: 2.0
+    memory_limit: 256
+    version: "v0.10.1"
+  - name: cairn-checkoutservice
+    service: checkoutservice
+    host: docker-host
+    cpu_limit: 2.0
+    memory_limit: 256
+    version: "v0.10.1"
+  - name: cairn-paymentservice
+    service: paymentservice
+    host: docker-host
+    cpu_limit: 2.0
+    memory_limit: 256
+    version: "v0.10.1"
+  - name: cairn-shippingservice
+    service: shippingservice
+    host: docker-host
+    cpu_limit: 2.0
+    memory_limit: 256
+    version: "v0.10.1"
+  - name: cairn-currencyservice
+    service: currencyservice
+    host: docker-host
+    cpu_limit: 2.0
+    memory_limit: 256
+    version: "v0.10.1"
+  - name: cairn-recommendationservice
+    service: recommendationservice
+    host: docker-host
+    cpu_limit: 2.0
+    memory_limit: 256
+    version: "v0.10.1"
+  - name: cairn-redis
+    service: redis-cart
+    host: docker-host
+    cpu_limit: 1.0
+    memory_limit: 128
+    version: "7.2"
+
+call_edges:
+  - [cairn-frontend,             cairn-cartservice]
+  - [cairn-frontend,             cairn-productcatalog]
+  - [cairn-frontend,             cairn-currencyservice]
+  - [cairn-frontend,             cairn-recommendationservice]
+  - [cairn-frontend,             cairn-shippingservice]
+  - [cairn-frontend,             cairn-checkoutservice]
+  - [cairn-checkoutservice,      cairn-cartservice]
+  - [cairn-checkoutservice,      cairn-paymentservice]
+  - [cairn-checkoutservice,      cairn-shippingservice]
+  - [cairn-checkoutservice,      cairn-currencyservice]
+  - [cairn-checkoutservice,      cairn-productcatalog]
+  - [cairn-cartservice,          cairn-redis]
+  - [cairn-recommendationservice, cairn-productcatalog]
+
+colocation_groups: []
+load_balancer_groups: []

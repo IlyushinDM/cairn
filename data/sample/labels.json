@@ -1,0 +1,29 @@
+{
+  "dataset": "cairn-demo-v2-CPU Exhaustion",
+  "scenario": "CPU Exhaustion",
+  "description": "Перегрузка CPU в order-service-1 вызывает деградацию задержки вниз по цепочке",
+  "normal_period": {
+    "start": 1700000000.0,
+    "end": 1700000299.0,
+    "steps": 300
+  },
+  "anomaly_period": {
+    "start": 1700000300.0,
+    "end": 1700000399.0,
+    "steps": 100
+  },
+  "root_cause": {
+    "instance": "order-service-1",
+    "service": "order-service",
+    "type": "cpu_exhaustion",
+    "onset_ts": 1700000300.0,
+    "description": "Перегрузка CPU в order-service-1 вызывает деградацию задержки вниз по цепочке"
+  },
+  "affected_instances": [
+    "order-service-1",
+    "frontend-1",
+    "payment-service-1",
+    "database-1",
+    "cache-service-1"
+  ]
+}
