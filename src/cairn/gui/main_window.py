@@ -18,8 +18,8 @@ from PySide6.QtGui import (
     QAction, QColor, QFont, QIcon, QKeySequence, QPainter, QPixmap,
 )
 from PySide6.QtWidgets import (
-    QApplication, QFileDialog, QLabel, QMainWindow,
-    QMessageBox, QSplitter, QTabWidget, QToolBar,
+    QApplication, QFileDialog, QHBoxLayout, QLabel, QMainWindow,
+    QMessageBox, QSplitter, QTabWidget, QToolBar, QWidget,
 )
 
 from cairn.gui.controller import CAIRNController
@@ -88,7 +88,7 @@ class CAIRNMainWindow(QMainWindow):
     # ── Инициализация ─────────────────────────────────────────────────
 
     def _setup_window(self) -> None:
-        self.setWindowTitle("CAIRN — Система анализа первопричин сбоев")
+        self.setWindowTitle("CAIRN | Система анализа первопричин сбоев")
         self.setWindowIcon(_make_cairn_icon())
         self.setMinimumSize(1000, 700)
         self.resize(1400, 900)
@@ -96,6 +96,20 @@ class CAIRNMainWindow(QMainWindow):
     def _setup_style(self) -> None:
         styles_dir = Path(__file__).parent / "styles"
         qss_path = styles_dir / "dark_theme.qss"
+        # Set matplotlib dark defaults
+        try:
+            import matplotlib
+            matplotlib.rcParams.update({
+                "axes.facecolor":   "#161922",
+                "figure.facecolor": "#161922",
+                "axes.edgecolor":   "#2d3348",
+                "text.color":       "#a0a8bc",
+                "axes.labelcolor":  "#6c7a9c",
+                "xtick.color":      "#6c7a9c",
+                "ytick.color":      "#6c7a9c",
+            })
+        except Exception:
+            pass
         if qss_path.exists():
             _get_app().setStyleSheet(qss_path.read_text(encoding="utf-8"))
 
@@ -113,8 +127,14 @@ class CAIRNMainWindow(QMainWindow):
 
         act = QAction("Загрузить данные…", self)
         act.setShortcut(QKeySequence("Ctrl+O"))
-        act.triggered.connect(self._on_load_data)
+        act.triggered.connect(self._on_load_data_confirmed)
         file_m.addAction(act)
+
+        act_demo = QAction("Демо-режим…", self)
+        act_demo.setShortcut(QKeySequence("Ctrl+D"))
+        act_demo.triggered.connect(self._on_demo)
+        file_m.addAction(act_demo)
+        file_m.addSeparator()
 
         act = QAction("Экспорт результатов…", self)
         act.triggered.connect(self._on_export)
@@ -148,69 +168,91 @@ class CAIRNMainWindow(QMainWindow):
         help_m.addAction(act)
 
     def _build_toolbar(self) -> None:
-        tb = QToolBar("Главная панель")
-        tb.setMovable(False)
-        tb.setIconSize(QSize(16, 16))
-        self.addToolBar(tb)
-
-        self._act_load = QAction("📂  Загрузить данные", self)
-        self._act_load.triggered.connect(self._on_load_data)
-        tb.addAction(self._act_load)
-        tb.addSeparator()
-
-        self._act_train = QAction("🧠  Обучить модель", self)
-        self._act_train.triggered.connect(self._on_train)
-        self._act_train.setEnabled(False)
-        tb.addAction(self._act_train)
-
-        self._act_analyze = QAction("🔍  Анализ", self)
-        self._act_analyze.triggered.connect(self._on_analyze)
+        """Toolbar убран — все действия перенесены в Activity Bar."""
+        # Сохраняем заглушки для совместимости с другими методами
+        from PySide6.QtWidgets import QToolBar
+        from PySide6.QtGui import QAction
+        self._act_load     = QAction("Загрузить данные", self)
+        self._act_analyze  = QAction("Анализ", self)
+        self._act_train    = QAction("Обучить", self)
+        self._act_settings = QAction("Настройки", self)
+        self._act_export   = QAction("Экспорт", self)
+        self._act_demo     = QAction("Демо", self)
+        self._act_load.triggered.connect(self._on_load_data_confirmed)
+        self._act_analyze.triggered.connect(self._on_analyze_confirmed)
+        self._act_train.triggered.connect(self._on_train_confirmed)
+        self._act_settings.triggered.connect(self._on_settings)
         self._act_analyze.setEnabled(False)
-        tb.addAction(self._act_analyze)
-
-        tb.addSeparator()
-
-        self._act_export = QAction("💾  Экспорт", self)
-        self._act_export.triggered.connect(self._on_export)
-        self._act_export.setEnabled(False)
-        tb.addAction(self._act_export)
-
-        tb.addSeparator()
-
-        self._act_demo = QAction("🎓  Демо", self)
-        self._act_demo.setToolTip("Запустить демонстрационный сценарий (для защиты диплома)")
-        self._act_demo.triggered.connect(self._on_demo)
-        tb.addAction(self._act_demo)
-        tb.addSeparator()
-        self._act_sidebar = tb.addAction("◀ Панель")
-        self._act_sidebar.setCheckable(True)
-        self._act_sidebar.setChecked(True)
-        self._act_sidebar.setToolTip("Скрыть/показать боковую панель (Alt+B)")
-        self._act_sidebar.triggered.connect(self._toggle_sidebar)
+        self._act_train.setEnabled(False)
 
     def _build_central(self) -> None:
-        splitter = QSplitter(Qt.Orientation.Horizontal)
-        self._main_splitter = splitter
-        splitter.setHandleWidth(1)
+        """Layout: ActivityBar | SidePanel | Tabs"""
+        from cairn.gui.widgets.activity_bar import ActivityBar
+        from cairn.gui.widgets.side_panels import SourcesPanel, ModulesPanel
 
+        root = QWidget()
+        root_layout = QHBoxLayout(root)
+        root_layout.setContentsMargins(0, 0, 0, 0)
+        root_layout.setSpacing(0)
+        self.setCentralWidget(root)
+
+        # ── Activity Bar ──────────────────────────────────────────────────
+        self._activity_bar = ActivityBar()
+        root_layout.addWidget(self._activity_bar)
+
+        # Подключаем действия
+        self._activity_bar.load_requested.connect(self._on_load_data_confirmed)
+        self._activity_bar.analyze_requested.connect(self._on_analyze_confirmed)
+        self._activity_bar.train_requested.connect(self._on_train_confirmed)
+        self._activity_bar.panel_requested.connect(self._on_panel_requested)
+
+        # ── Боковые панели (скрыты по умолчанию) ─────────────────────────
+        self._sources_panel = SourcesPanel()
+        self._sources_panel.configure_source.connect(self._on_configure_source)
+        self._sources_panel.setVisible(False)
+        root_layout.addWidget(self._sources_panel)
+
+        self._modules_panel = ModulesPanel()
+        self._modules_panel.module_toggled.connect(
+            lambda k, v: self._ctrl.toggle_module(k, v)
+            if hasattr(self._ctrl, "toggle_module") else None
+        )
+        self._modules_panel.setVisible(False)
+        root_layout.addWidget(self._modules_panel)
+
+        # Совместимость: sidebar для старого кода
+        from cairn.gui.widgets.sidebar import Sidebar
         self.sidebar = Sidebar()
-        splitter.addWidget(self.sidebar)
+        self.sidebar.setVisible(False)
+        self.sidebar.configure_source.connect(self._on_configure_source)
 
+        # ── Вкладки ───────────────────────────────────────────────────────
         self.tabs         = QTabWidget()
         self.data_tab        = DataTab()
         self.training_tab    = TrainingTab()
         self.results_tab     = ResultsTab()
         self.explanation_tab = ExplanationTab()
 
-        self.tabs.addTab(self.data_tab,        "📊  Данные")
-        self.tabs.addTab(self.training_tab,    "🧠  Обучение")
-        self.tabs.addTab(self.results_tab,     "📋  Результаты")
-        self.tabs.addTab(self.explanation_tab, "💡  Объяснение")
+        self.tabs.addTab(self.data_tab,        "Данные")
+        self.tabs.addTab(self.results_tab,     "Результаты")
+        self.tabs.addTab(self.explanation_tab, "Объяснение")
+        self.tabs.addTab(self.training_tab,    "Обучение")
 
-        splitter.addWidget(self.tabs)
-        splitter.setSizes([260, 1140])
-        splitter.setStretchFactor(1, 1)
-        self.setCentralWidget(splitter)
+        self.TAB_DATA    = 0
+        self.TAB_RESULTS = 1
+        self.TAB_EXPLAIN = 2
+        self.TAB_TRAIN   = 3
+
+        root_layout.addWidget(self.tabs, stretch=1)
+
+    def _on_panel_requested(self, panel: str) -> None:
+        """Показывает нужную боковую панель."""
+        self._sources_panel.setVisible(panel == "sources")
+        self._modules_panel.setVisible(panel == "modules")
+        if panel == "connect":
+            self._on_connect_live()
+        elif panel == "settings":
+            self._on_settings()
 
     def _build_statusbar(self) -> None:
         sb = self.statusBar()
@@ -241,16 +283,6 @@ class CAIRNMainWindow(QMainWindow):
         sb.addWidget(self._data_label)
         sb.addPermanentWidget(QLabel("CAIRN v0.1  "))
 
-    def _toggle_sidebar(self, checked: bool) -> None:
-        """Скрывает/показывает боковую панель влево."""
-        self.sidebar.setVisible(checked)
-        self._act_sidebar.setText("◀ Панель" if checked else "▶ Панель")
-        if hasattr(self, "_main_splitter"):
-            if checked:
-                self._main_splitter.setSizes([260, 1140])
-            else:
-                self._main_splitter.setSizes([0, 1400])
-
     def _connect_signals(self) -> None:
         # Контроллер → окно
         self._ctrl.data_loaded.connect(self._on_data_loaded)
@@ -273,11 +305,6 @@ class CAIRNMainWindow(QMainWindow):
         self.training_tab.start_requested.connect(self._on_train)
         self.training_tab.stop_requested.connect(self._ctrl.stop_training)
         self.results_tab.show_explanation.connect(self._on_show_explanation)
-        self.results_tab.results_table.itemSelectionChanged.connect(
-            lambda: self._on_results_row_selected()
-        )
-        if hasattr(self.results_tab, "counterfactual_requested"):
-            self.results_tab.counterfactual_requested.connect(self._on_counterfactual)
 
     # ── Слоты ─────────────────────────────────────────────────────────
 
@@ -314,10 +341,6 @@ class CAIRNMainWindow(QMainWindow):
         topo = self._ctrl.get_topology()
         if md:
             self.data_tab.load_metric_data(md)
-            try:
-                self.data_tab._plot_from_md(md, "latency_ms")
-            except Exception:
-                pass
             self._data_label.setText(
                 f"Данные: {md.n_instances} экз., {md.n_metrics} метрик"
             )
@@ -331,6 +354,9 @@ class CAIRNMainWindow(QMainWindow):
         self.sidebar.set_source_status("Трассировки", ok=True)
 
         self._act_train.setEnabled(True)
+        if hasattr(self, "_activity_bar"):
+            self._activity_bar.set_analyze_enabled(True)
+            self._activity_bar.set_train_enabled(True)
         self.tabs.setCurrentIndex(self.TAB_DATA)
         self._update_status("Данные загружены успешно")
 
@@ -394,19 +420,10 @@ class CAIRNMainWindow(QMainWindow):
         fault_type = results[0].get("fault_type", "—")
         confidence = results[0].get("confidence", 0.8)
 
-        self._ctrl._last_results = results
         self.results_tab.show_results(ranked, names, nll_scores, confidence, fault_type)
-
-        # Автоматически заполняем контрфактический анализ для root (rank=1)
-        if results:
-            try:
-                self._on_counterfactual(results[0]["idx"])
-            except Exception:
-                pass
         if hg:
             ce_scores = {r["idx"]: r["ce"] for r in results}
-            root_idx = results[0]["idx"] if results else None
-        self.results_tab.draw_hypergraph(hg, ce_scores, root_idx=root_idx)
+            self.results_tab.draw_hypergraph(hg, ce_scores)
 
         chain = self._ctrl.last_chain
         alp   = self._ctrl.last_alp
@@ -421,59 +438,6 @@ class CAIRNMainWindow(QMainWindow):
         self._update_status(f"Анализ завершён. Первопричина: {root_name}")
 
     @Slot(int)
-    def _on_counterfactual(self, node_idx: int) -> None:
-        """3.3: Контрфактический анализ."""
-        from PySide6.QtWidgets import QDialog, QVBoxLayout, QTextEdit, QLabel, QDialogButtonBox
-        results = getattr(self._ctrl, "_last_results", None) or []
-        node_entry = next((r for r in results if r.get("idx") == node_idx), None)
-        if not node_entry:
-            self._update_status("Нет данных — сначала запустите анализ")
-            return
-        node_name   = node_entry.get("name", f"node-{node_idx}")
-        ce          = node_entry.get("ce", 0.0)
-        nll         = node_entry.get("nll", 0.0)
-        conf        = node_entry.get("confidence", 0.0)
-        dom         = node_entry.get("dominant_metric") or "—"
-        delta_nll   = abs(ce)
-        improvement = min(99.0, delta_nll / (abs(nll) + 1e-6) * 100)
-        lines = [
-            f"Что если {node_name} работает нормально?",
-            "-" * 48, "",
-            "Текущее состояние:",
-            f"  CE:                     {ce:+.4f}",
-            f"  NLL:                    {nll:.4f}",
-            f"  Уверенность:            {conf:.1%}",
-            f"  Доминирующая метрика:   {dom}", "",
-            "Прогноз после устранения:",
-            f"  Снижение NLL:           {delta_nll:.4f}",
-            f"  Улучшение состояния:    ~{improvement:.1f}%", "",
-        ]
-        if improvement > 50:
-            lines.append(f"Вывод: устранение {node_name} существенно улучшит систему.")
-        elif improvement > 20:
-            lines.append(f"Вывод: {node_name} — значимая причина деградации.")
-        else:
-            lines.append(f"Вывод: умеренное влияние. Проверьте соседние сервисы.")
-        text = "\n".join(lines)
-        try:
-            self.explanation_tab.counter_text.setPlainText(text)
-            if hasattr(self.explanation_tab, "_right_tabs"):
-                self.explanation_tab._right_tabs.setCurrentIndex(1)
-        except Exception:
-            pass
-        self.tabs.setCurrentIndex(self.TAB_EXPLAIN)
-
-    def _on_results_row_selected(self) -> None:
-        """Выделяет узел графа при выборе строки в таблице."""
-        rows = self.results_tab.results_table.selectedItems()
-        if not rows:
-            return
-        row = rows[0].row()
-        results = getattr(self._ctrl, "_last_results", None) or []
-        if row < len(results):
-            node_idx = results[row].get("idx", -1)
-            self.results_tab.highlight_graph_node_from_table(node_idx)
-
     def _on_show_explanation(self, node_idx: int) -> None:
         chain = self._ctrl.last_chain
         alp   = self._ctrl.last_alp
@@ -655,6 +619,221 @@ class CAIRNMainWindow(QMainWindow):
 # ---------------------------------------------------------------------------
 # Точка входа
 # ---------------------------------------------------------------------------
+
+    def _on_load_data_confirmed(self) -> None:
+        from PySide6.QtWidgets import QMessageBox
+        r = QMessageBox.question(self, "Загрузить данные",
+            "Выберите директорию с данными (metrics.csv + topology.yaml)?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel)
+        if r == QMessageBox.StandardButton.Yes:
+            self._on_load_data()
+
+    def _on_analyze_confirmed(self) -> None:
+        from PySide6.QtWidgets import QMessageBox
+        r = QMessageBox.question(self, "Запустить анализ",
+            "Запустить анализ первопричин на загруженных данных?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel)
+        if r == QMessageBox.StandardButton.Yes:
+            self._ctrl.start_analysis()
+
+    def _on_train_confirmed(self) -> None:
+        from PySide6.QtWidgets import QMessageBox
+        r = QMessageBox.question(self, "Обучить модель",
+            "Начать обучение модели CAIRN? Это может занять несколько минут.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel)
+        if r == QMessageBox.StandardButton.Yes:
+            self._on_train()
+
+    def _on_connect_live(self) -> None:
+        from cairn.gui.widgets.connect_dialog import ConnectDialog
+        dlg = ConnectDialog(self)
+        dlg.connected.connect(self._on_live_connected)
+        dlg.exec()
+
+    def _on_live_connected(self, connector) -> None:
+        from PySide6.QtCore import QThread, Signal as _Signal
+        from PySide6.QtWidgets import QMessageBox
+        self._live_connector = connector
+        if hasattr(self.sidebar, 'set_live_status'):
+            self.sidebar.set_live_status(connector.system_name, ok=True)
+        window_sec = connector._cfg.get("metrics", {}).get("window_sec", 60)
+        msg = QMessageBox(self)
+        msg.setWindowTitle("Подключение установлено")
+        msg.setText(
+            f"<b>{connector.system_name}</b> подключён.<br><br>"
+            f"Сбор метрик займёт ~{window_sec:.0f} секунд.<br>"
+            f"После завершения вкладка <b>Данные</b> обновится автоматически."
+        )
+        msg.setIcon(QMessageBox.Icon.Information)
+        msg.setStandardButtons(QMessageBox.StandardButton.Ok)
+        msg.exec()
+        try:
+            topo = connector.fetch_topology()
+            self._ctrl._topo_data = topo
+            self.data_tab.load_topology(topo)
+        except Exception as e:
+            self._update_status(f"Ошибка топологии: {e}")
+
+        class _MetricWorker(QThread):
+            done  = _Signal(object)
+            error = _Signal(str)
+            def __init__(self, conn):
+                super().__init__()
+                self._conn = conn
+            def run(self):
+                import time as _t
+                try:
+                    now = _t.time()
+                    md  = self._conn.fetch_metrics(now - 300, now)
+                    self.done.emit(md)
+                except Exception as exc:
+                    self.error.emit(str(exc))
+
+        def _on_done(md):
+            self._ctrl._metric_data = md
+            self.data_tab.load_metric_data(md)
+            try:
+                self.data_tab._plot_from_md(md)
+            except Exception:
+                pass
+            self._update_status(
+                f"{connector.system_name}: {md.n_instances} экз., "
+                f"{md.n_metrics} метрик, {len(md.timestamps)} точек"
+            )
+            self.tabs.setCurrentIndex(self.TAB_DATA)
+            self._start_live_refresh(connector)
+
+        def _on_error(msg):
+            self._update_status(f"Ошибка метрик: {msg}")
+
+        worker = _MetricWorker(connector)
+        worker.done.connect(_on_done)
+        worker.error.connect(_on_error)
+        self._live_worker = worker
+        worker.start()
+
+    def _start_live_refresh(self, connector) -> None:
+        from PySide6.QtCore import QTimer, QThread, Signal as _Signal
+        if hasattr(self, "_live_timer") and self._live_timer is not None:
+            self._live_timer.stop()
+        window_sec  = int(connector._cfg.get("metrics", {}).get("window_sec", 60))
+        interval_ms = window_sec * 1000
+        self._live_refresh_running = False
+
+        def _do_refresh():
+            if getattr(self, "_live_refresh_running", False):
+                return
+            self._live_refresh_running = True
+
+            class _RefreshWorker(QThread):
+                done = _Signal(object)
+                def __init__(self, conn):
+                    super().__init__()
+                    self._conn = conn
+                def run(self):
+                    import time as _t
+                    now = _t.time()
+                    try:
+                        md = self._conn.fetch_metrics(now - 300, now)
+                        self.done.emit(md)
+                    except Exception:
+                        pass
+
+            def _on_refresh_done(md):
+                self._live_refresh_running = False
+                self._ctrl._metric_data = md
+                try:
+                    combo  = getattr(self.data_tab, "_metric_combo", None)
+                    metric = combo.currentText() if combo else "cpu_pct"
+                    self.data_tab._plot_from_md(md, metric)
+                except Exception:
+                    pass
+                self._update_status(
+                    f"Live: {connector.system_name} — "
+                    f"{md.n_instances} экз., {len(md.timestamps)} точек"
+                )
+
+            def _on_finished():
+                self._live_refresh_running = False
+                self._live_refresh_worker = None
+
+            w = _RefreshWorker(connector)
+            w.done.connect(_on_refresh_done)
+            w.finished.connect(_on_finished)
+            self._live_refresh_worker = w
+            w.start()
+
+        self._live_timer = QTimer(self)
+        self._live_timer.setInterval(interval_ms)
+        self._live_timer.timeout.connect(_do_refresh)
+        self._live_timer.start()
+        self._update_status(
+            f"Live: {connector.system_name} — обновление каждые {window_sec}с"
+        )
+
+    def _on_results_row_selected(self) -> None:
+        rows = self.results_tab.results_table.selectedItems()
+        if not rows:
+            return
+        row = rows[0].row()
+        results = getattr(self._ctrl, "_last_results", None) or []
+        if row < len(results):
+            node_idx = results[row].get("idx", -1)
+            self.results_tab.highlight_graph_node_from_table(node_idx)
+
+    def _on_counterfactual(self, node_idx: int) -> None:
+        from PySide6.QtWidgets import QDialog, QVBoxLayout, QTextEdit, QLabel, QDialogButtonBox
+        results = getattr(self._ctrl, "_last_results", None) or []
+        node_entry = next((r for r in results if r.get("idx") == node_idx), None)
+        if not node_entry:
+            self._update_status("Нет данных — сначала запустите анализ")
+            return
+        node_name   = node_entry.get("name", f"node-{node_idx}")
+        ce          = node_entry.get("ce", 0.0)
+        nll         = node_entry.get("nll", 0.0)
+        conf        = node_entry.get("confidence", 0.0)
+        dom         = node_entry.get("dominant_metric") or "—"
+        delta_nll   = abs(ce)
+        improvement = min(99.0, delta_nll / (abs(nll) + 1e-6) * 100)
+        lines = [
+            f"Что если {node_name} работает нормально?",
+            "-" * 48, "",
+            "Текущее состояние:",
+            f"  CE:                     {ce:+.4f}",
+            f"  NLL:                    {nll:.4f}",
+            f"  Уверенность:            {conf:.1%}",
+            f"  Доминирующая метрика:   {dom}", "",
+            "Прогноз после устранения:",
+            f"  Снижение NLL:           {delta_nll:.4f}",
+            f"  Улучшение состояния:    ~{improvement:.1f}%", "",
+        ]
+        if improvement > 50:
+            lines.append(f"Вывод: устранение {node_name} существенно улучшит систему.")
+        elif improvement > 20:
+            lines.append(f"Вывод: {node_name} — значимая причина деградации.")
+        else:
+            lines.append(f"Вывод: умеренное влияние. Проверьте соседние сервисы.")
+        text = "\n".join(lines)
+        try:
+            self.explanation_tab.counter_text.setPlainText(text)
+            if hasattr(self.explanation_tab, "_right_tabs"):
+                self.explanation_tab._right_tabs.setCurrentIndex(1)
+        except Exception:
+            pass
+        self.tabs.setCurrentIndex(self.TAB_EXPLAIN)
+
+    def _toggle_sidebar(self, checked: bool) -> None:
+        self.sidebar.setVisible(checked)
+        if hasattr(self, "_act_sidebar"):
+            self._act_sidebar.setText("Панель" if checked else "Панель")
+        if hasattr(self, "_main_splitter"):
+            self._main_splitter.setSizes([260, 1140] if checked else [0, 1400])
+
+    def _plot_metric_series(self, md, metric: str = "latency_ms") -> None:
+        try:
+            self.data_tab._plot_from_md(md, metric)
+        except Exception:
+            pass
 
 def main(config_path: Optional[str] = None) -> None:
     """Запускает CAIRN GUI."""

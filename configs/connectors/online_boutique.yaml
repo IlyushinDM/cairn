@@ -1,0 +1,36 @@
+# Конфиг коннектора CAIRN для Online Boutique (Google Microservices Demo)
+# Место: configs/connectors/online_boutique.yaml
+#
+# Windows/WSL2: cAdvisor не поддерживает CPU per-container.
+# Используем docker_stats как источник метрик.
+
+system:
+  name: "Online Boutique"
+  description: "Google microservices demo — 10 сервисов, Docker Compose"
+  version: "v0.10.1"
+  docs: "https://github.com/GoogleCloudPlatform/microservices-demo"
+
+topology:
+  source: yaml_file
+  path: docker/boutique_topology.yaml
+
+metrics:
+  # docker_stats: работает на Windows/WSL2, не требует cAdvisor
+  source: docker_stats
+  # Период сбора одного снимка (секунд)
+  window_sec: 30
+  # Интервал между снимками
+  interval_sec: 2.0
+
+  instance_filter:
+    - cairn-frontend
+    - cairn-cartservice
+    - cairn-checkoutservice
+    - cairn-paymentservice
+    - cairn-shippingservice
+    - cairn-currencyservice
+    - cairn-recommendationservice
+    - cairn-productcatalog
+    - cairn-emailservice
+    - cairn-adservice
+    - cairn-redis

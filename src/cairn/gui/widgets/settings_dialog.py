@@ -212,7 +212,7 @@ class SettingsDialog(QDialog):
             ("temporal_tolerance_sec", "Допуск Δ темпорал. (с)",   vc.temporal_tolerance_sec, 0.0, 300.0, 1, 1.0),
             ("transitivity_threshold", "Порог транзитивности",      vc.transitivity_threshold, 0.0, 1.0, 3, 0.05),
             ("monotonicity_epsilon",   "ε монотонности",            vc.monotonicity_epsilon,   0.0, 0.5, 3, 0.01),
-            ("permutation_tests",      "Тестов перестановки K",     vc.permutation_tests,      1, 100, 0),
+            ("permutation_tests",      "Тестов перестановки K",     vc.permutation_tests,      1, 100, 0, 1),
             ("edge_significance_threshold", "Порог значимости θ_е", vc.edge_significance_threshold, 0.0, 0.5, 3, 0.01),
             ("confounder_threshold",   "Порог конфаундера θ_с",    vc.confounder_threshold, 0.0, 1.0, 3, 0.05),
         ]
