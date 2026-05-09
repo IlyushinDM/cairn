@@ -50,7 +50,7 @@ class DataTab(QWidget):
         self.metrics_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.metrics_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         # Кнопка разворачивания
-        self._btn_expand = QPushButton("Развернуть / Свернуть")
+        self._btn_expand = QPushButton("Развернуть")
         self._btn_expand.setFixedHeight(28)
         self._btn_expand.setCheckable(True)
         self._btn_expand.toggled.connect(self._toggle_expand)
@@ -118,7 +118,7 @@ class DataTab(QWidget):
         layout.addWidget(splitter)
 
     def _toggle_expand(self, expanded: bool) -> None:
-        self._btn_expand.setText("Свернуть" if expanded else "Развернуть / Свернуть")
+        self._btn_expand.setText("Свернуть" if expanded else "Развернуть")
         if hasattr(self, '_splitter'):
             if expanded:
                 # Полностью разворачиваем — убираем нижний виджет

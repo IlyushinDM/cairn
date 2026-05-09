@@ -52,6 +52,40 @@ from cairn.connectors.base import (
 )
 
 
+def _write_boutique_topology_yaml(path: "Path") -> None:
+    """Автоматически создаёт topology.yaml для Online Boutique."""
+    yaml_content = """instances:
+  - {name: cairn-frontend,              service: frontend,              host: docker-host, cpu_limit: 2.0, memory_limit: 256, version: "v0.10.1"}
+  - {name: cairn-cartservice,           service: cartservice,           host: docker-host, cpu_limit: 2.0, memory_limit: 256, version: "v0.10.1"}
+  - {name: cairn-productcatalog,        service: productcatalogservice, host: docker-host, cpu_limit: 2.0, memory_limit: 256, version: "v0.10.1"}
+  - {name: cairn-checkoutservice,       service: checkoutservice,       host: docker-host, cpu_limit: 2.0, memory_limit: 256, version: "v0.10.1"}
+  - {name: cairn-paymentservice,        service: paymentservice,        host: docker-host, cpu_limit: 2.0, memory_limit: 256, version: "v0.10.1"}
+  - {name: cairn-shippingservice,       service: shippingservice,       host: docker-host, cpu_limit: 2.0, memory_limit: 256, version: "v0.10.1"}
+  - {name: cairn-currencyservice,       service: currencyservice,       host: docker-host, cpu_limit: 2.0, memory_limit: 256, version: "v0.10.1"}
+  - {name: cairn-recommendationservice, service: recommendationservice, host: docker-host, cpu_limit: 2.0, memory_limit: 256, version: "v0.10.1"}
+  - {name: cairn-redis,                 service: redis-cart,            host: docker-host, cpu_limit: 1.0, memory_limit: 128, version: "7.2"}
+call_edges:
+  - [cairn-frontend, cairn-cartservice]
+  - [cairn-frontend, cairn-productcatalog]
+  - [cairn-frontend, cairn-currencyservice]
+  - [cairn-frontend, cairn-recommendationservice]
+  - [cairn-frontend, cairn-shippingservice]
+  - [cairn-frontend, cairn-checkoutservice]
+  - [cairn-checkoutservice, cairn-cartservice]
+  - [cairn-checkoutservice, cairn-paymentservice]
+  - [cairn-checkoutservice, cairn-shippingservice]
+  - [cairn-checkoutservice, cairn-currencyservice]
+  - [cairn-checkoutservice, cairn-productcatalog]
+  - [cairn-cartservice, cairn-redis]
+  - [cairn-recommendationservice, cairn-productcatalog]
+colocation_groups: []
+load_balancer_groups: []
+"""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(yaml_content, encoding="utf-8")
+
+
+
 class LiveSystemConnector:
     """Универсальный коннектор живой системы.
 
@@ -92,7 +126,18 @@ class LiveSystemConnector:
             from cairn.connectors.csv_file import YAMLTopologyConnector
             topo_path = Path(topo_cfg["path"])
             if not topo_path.is_absolute():
-                topo_path = self._config_path.parent.parent / topo_path
+                # Пробуем относительно CWD (корень проекта) — первый приоритет
+                from_cwd = Path.cwd() / topo_path
+                # Затем относительно корня проекта (3 уровня от конфига)
+                from_cfg = self._config_path.parent.parent.parent / topo_path
+                if from_cwd.exists():
+                    topo_path = from_cwd
+                elif from_cfg.exists():
+                    topo_path = from_cfg
+                else:
+                    # Последняя попытка — сгенерировать топологию автоматически
+                    topo_path.parent.mkdir(parents=True, exist_ok=True)
+                    _write_boutique_topology_yaml(topo_path)
             return YAMLTopologyConnector(topo_path).fetch()
 
         raise ConnectorConfigError(f"Неизвестный источник топологии: {source}")

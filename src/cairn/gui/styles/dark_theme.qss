@@ -22,6 +22,11 @@
     outline: none;
 }
 
+/* Запрещаем наследование font-size для виджетов без текста */
+QGraphicsView, QGraphicsScene {
+    font-size: 12px;
+}
+
 QMainWindow, QDialog {
     background: #1e1e1e;
 }

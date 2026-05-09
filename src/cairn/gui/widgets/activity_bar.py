@@ -114,10 +114,12 @@ class ActivityBar(QWidget):
         self.btn_modules = ActivityButton("Модули", "modules",
                                           checkable=True)
         self.btn_connect = ActivityButton("Подключить систему", "connect")
+        self.btn_log     = ActivityButton("Журнал событий", "log", checkable=True)
 
         layout.addWidget(self.btn_sources)
         layout.addWidget(self.btn_modules)
         layout.addWidget(self.btn_connect)
+        layout.addWidget(self.btn_log)
 
         layout.addStretch()
 
@@ -134,27 +136,33 @@ class ActivityBar(QWidget):
         self.btn_modules.toggled.connect(self._on_modules_toggled)
         self.btn_connect.clicked.connect(
             lambda: self.panel_requested.emit("connect"))
+        self.btn_log.toggled.connect(
+            lambda on: self._toggle("log", on))
         self.btn_settings.clicked.connect(
             lambda: self.panel_requested.emit("settings"))
 
-    def _on_sources_toggled(self, checked: bool) -> None:
-        if checked:
-            # Снять modules если активен
-            self.btn_modules.blockSignals(True)
-            self.btn_modules.setChecked(False)
-            self.btn_modules.blockSignals(False)
-            self.panel_requested.emit("sources")
+    def _toggle(self, panel: str, on: bool) -> None:
+        """Переключает боковую панель — только одна активна."""
+        panel_btns = {
+            "sources": self.btn_sources,
+            "modules": self.btn_modules,
+            "log":     self.btn_log,
+        }
+        if on:
+            for name, btn in panel_btns.items():
+                if name != panel:
+                    btn.blockSignals(True)
+                    btn.setChecked(False)
+                    btn.blockSignals(False)
+            self.panel_requested.emit(panel)
         else:
             self.panel_requested.emit("none")
 
+    def _on_sources_toggled(self, checked: bool) -> None:
+        self._toggle("sources", checked)
+
     def _on_modules_toggled(self, checked: bool) -> None:
-        if checked:
-            self.btn_sources.blockSignals(True)
-            self.btn_sources.setChecked(False)
-            self.btn_sources.blockSignals(False)
-            self.panel_requested.emit("modules")
-        else:
-            self.panel_requested.emit("none")
+        self._toggle("modules", checked)
 
     def set_analyze_enabled(self, enabled: bool) -> None:
         self.btn_analyze.setEnabled(enabled)

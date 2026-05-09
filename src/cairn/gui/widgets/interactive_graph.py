@@ -80,7 +80,9 @@ class GraphNode(QGraphicsEllipseItem):
         # Подпись
         self._label = QGraphicsTextItem(name, self)
         self._label.setDefaultTextColor(COLORS["text_light"])
-        font = QFont("Arial", 7, QFont.Weight.Bold)
+        font = QFont()
+        font.setPointSize(8)
+        font.setWeight(QFont.Weight.Bold)
         self._label.setFont(font)
         self._center_label()
 
@@ -284,16 +286,27 @@ class InteractiveGraphWidget(QWidget):
         positions = self._layout(nodes, edges)
 
         # Нормализуем скоры для цвета
-        scores    = [nd.get("score", 0.0) for nd in nodes]
-        s_min     = min(scores)
-        s_max     = max(scores)
-        s_span    = max(s_max - s_min, 1e-8)
+        scores = [nd.get("score", 0.0) for nd in nodes]
+        s_min  = min(scores)
+        s_max  = max(scores)
+        s_span = s_max - s_min
 
-        for nd in nodes:
+        # Используем ранговую нормализацию когда значения близки
+        use_rank = s_span < 0.1 * (abs(s_max) + 1e-6)
+        if use_rank:
+            sorted_scores = sorted(range(len(scores)), key=lambda i: scores[i])
+            rank_of = {i: sorted_scores.index(i) for i in range(len(scores))}
+            n_nodes = max(len(scores) - 1, 1)
+
+        for ni, nd in enumerate(nodes):
             idx   = nd["idx"]
             name  = nd["name"]
             score = nd.get("score", 0.0)
-            t     = (score - s_min) / s_span
+
+            if use_rank:
+                t = rank_of[ni] / n_nodes
+            else:
+                t = (score - s_min) / max(s_span, 1e-8)
 
             if idx == root_idx:
                 color = COLORS["root"]

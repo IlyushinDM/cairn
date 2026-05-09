@@ -130,7 +130,7 @@ class ResultsTab(QWidget):
                 b1 = QPushButton("Подробнее")
                 b1.setFixedHeight(28); b1.setObjectName("primaryBtn")
                 b1.clicked.connect(lambda _,i=idx: self.show_explanation.emit(i))
-                b2 = QPushButton("Что если?")
+                b2 = QPushButton("Воздействие")
                 b2.setFixedHeight(28)
                 b2.setToolTip("Контрфактический анализ")
                 b2.clicked.connect(lambda _,i=idx: self.counterfactual_requested.emit(i))

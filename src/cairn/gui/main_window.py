@@ -19,7 +19,7 @@ from PySide6.QtGui import (
 )
 from PySide6.QtWidgets import (
     QApplication, QFileDialog, QHBoxLayout, QLabel, QMainWindow,
-    QMessageBox, QSplitter, QTabWidget, QToolBar, QWidget,
+    QMessageBox, QSplitter, QTabWidget, QToolBar, QVBoxLayout, QWidget,
 )
 
 from cairn.gui.controller import CAIRNController
@@ -88,7 +88,7 @@ class CAIRNMainWindow(QMainWindow):
     # ── Инициализация ─────────────────────────────────────────────────
 
     def _setup_window(self) -> None:
-        self.setWindowTitle("CAIRN | Система анализа первопричин сбоев")
+        self.setWindowTitle("CAIRN — Система анализа первопричин сбоев")
         self.setWindowIcon(_make_cairn_icon())
         self.setMinimumSize(1000, 700)
         self.resize(1400, 900)
@@ -243,12 +243,24 @@ class CAIRNMainWindow(QMainWindow):
         self.TAB_EXPLAIN = 2
         self.TAB_TRAIN   = 3
 
+        # Журнал событий — отдельная боковая панель
+        from cairn.gui.widgets.event_log import EventLogWidget
+        self._event_log = EventLogWidget()
+        self._event_log.setFixedWidth(320)
+        self._event_log.setVisible(False)
+        root_layout.addWidget(self._event_log)
+
         root_layout.addWidget(self.tabs, stretch=1)
+
+        # Инициализируем после создания
+        self._event_log.add_info("CAIRN запущен.")
 
     def _on_panel_requested(self, panel: str) -> None:
         """Показывает нужную боковую панель."""
         self._sources_panel.setVisible(panel == "sources")
         self._modules_panel.setVisible(panel == "modules")
+        if hasattr(self, "_event_log"):
+            self._event_log.setVisible(panel == "log")
         if panel == "connect":
             self._on_connect_live()
         elif panel == "settings":
@@ -651,28 +663,60 @@ class CAIRNMainWindow(QMainWindow):
         dlg.exec()
 
     def _on_live_connected(self, connector) -> None:
+        """Обработчик успешного подключения живой системы."""
         from PySide6.QtCore import QThread, Signal as _Signal
         from PySide6.QtWidgets import QMessageBox
+        from cairn.perception import HypergraphBuilder
+
         self._live_connector = connector
-        if hasattr(self.sidebar, 'set_live_status'):
-            self.sidebar.set_live_status(connector.system_name, ok=True)
+        if hasattr(self, "_activity_bar"):
+            self._activity_bar.set_connect_status(True)
+
+        # Явное уведомление
         window_sec = connector._cfg.get("metrics", {}).get("window_sec", 60)
         msg = QMessageBox(self)
         msg.setWindowTitle("Подключение установлено")
         msg.setText(
             f"<b>{connector.system_name}</b> подключён.<br><br>"
             f"Сбор метрик займёт ~{window_sec:.0f} секунд.<br>"
-            f"После завершения вкладка <b>Данные</b> обновится автоматически."
+            f"Прогресс отображается в строке статуса."
         )
         msg.setIcon(QMessageBox.Icon.Information)
         msg.setStandardButtons(QMessageBox.StandardButton.Ok)
         msg.exec()
+
+        # Шаг 1: Топология (быстро — сразу в DataTab)
+        self._update_status(f"Загружаю топологию {connector.system_name}...")
+        import traceback as _tb
+        topo = None
         try:
-            topo = connector.fetch_topology()
-            self._ctrl._topo_data = topo
+            topo       = connector.fetch_topology()
+            hypergraph = HypergraphBuilder.from_topology_data(topo)
+            self._ctrl._topo_data  = topo
+            self._ctrl._hypergraph = hypergraph
             self.data_tab.load_topology(topo)
+            n = len(topo.instances) if hasattr(topo, "instances") else "?"
+            self._update_status(f"Топология загружена: {n} сервисов")
+            print(f"[DEBUG] Topology OK: {n} instances")
         except Exception as e:
+            print(f"[DEBUG] Topology ERROR: {e}")
+            _tb.print_exc()
             self._update_status(f"Ошибка топологии: {e}")
+
+        # Шаг 2: Авто-загрузка модели
+        try:
+            self._auto_load_model()
+            print("[DEBUG] Model: loaded OK")
+        except Exception as e:
+            print(f"[DEBUG] Model load ERROR: {e}")
+            _tb.print_exc()
+
+        # Шаг 3: Метрики в фоне с прогресс-таймером
+        self._update_status(
+            f"Сбор метрик... (~{window_sec:.0f}с) | "
+            f"Готовность через ~{window_sec:.0f}с"
+        )
+        self._start_progress_timer(window_sec)
 
         class _MetricWorker(QThread):
             done  = _Signal(object)
@@ -682,35 +726,107 @@ class CAIRNMainWindow(QMainWindow):
                 self._conn = conn
             def run(self):
                 import time as _t
+                now = _t.time()
                 try:
-                    now = _t.time()
-                    md  = self._conn.fetch_metrics(now - 300, now)
+                    md = self._conn.fetch_metrics(now - 300, now)
                     self.done.emit(md)
                 except Exception as exc:
                     self.error.emit(str(exc))
 
         def _on_done(md):
-            self._ctrl._metric_data = md
+            self._stop_progress_timer()
+            try:
+                self._ctrl.load_live_data(
+                    md,
+                    self._ctrl._topo_data,
+                    self._ctrl._hypergraph,
+                )
+            except Exception as e:
+                self._ctrl._metric_data = md
+
             self.data_tab.load_metric_data(md)
             try:
                 self.data_tab._plot_from_md(md)
             except Exception:
                 pass
+
+            # Обновляем статус модели
+            if self._ctrl._model is not None:
+                self._model_label.setText("Модель: загружена (авто)")
+                self._model_label.setObjectName("statusGood")
+                self._refresh_label(self._model_label)
+
+            self._data_label.setText(
+                f"Данные: {md.n_instances} экз., {md.n_metrics} метрик"
+            )
+            self._data_label.setObjectName("statusGood")
+            self._refresh_label(self._data_label)
+
+            # Активируем кнопку анализа
+            self._act_analyze.setEnabled(True)
+            if hasattr(self, "_activity_bar"):
+                self._activity_bar.set_analyze_enabled(True)
+
             self._update_status(
                 f"{connector.system_name}: {md.n_instances} экз., "
-                f"{md.n_metrics} метрик, {len(md.timestamps)} точек"
+                f"{md.n_metrics} метрик, {len(md.timestamps)} точек — готово"
             )
             self.tabs.setCurrentIndex(self.TAB_DATA)
             self._start_live_refresh(connector)
+            self._start_anomaly_monitor(connector)
 
-        def _on_error(msg):
-            self._update_status(f"Ошибка метрик: {msg}")
+        def _on_error(msg_text):
+            self._stop_progress_timer()
+            self._update_status(f"Ошибка метрик: {msg_text}")
 
         worker = _MetricWorker(connector)
         worker.done.connect(_on_done)
         worker.error.connect(_on_error)
         self._live_worker = worker
         worker.start()
+
+    def _auto_load_model(self) -> None:
+        """Авто-загружает pre-trained модель если доступна."""
+        from pathlib import Path
+        model_path = Path("data/sample/demo_model.pt")
+        if self._ctrl._model is None and model_path.exists():
+            try:
+                self._ctrl._load_checkpoint_silent(str(model_path))
+                self._model_label.setText("Модель: загружена (авто)")
+                self._model_label.setObjectName("statusGood")
+                self._refresh_label(self._model_label)
+                self._act_analyze.setEnabled(True)
+                if hasattr(self, "_activity_bar"):
+                    self._activity_bar.set_analyze_enabled(True)
+            except Exception as e:
+                self._update_status(f"Авто-загрузка модели не удалась: {e}")
+
+    def _start_progress_timer(self, total_sec: float) -> None:
+        """Показывает обратный отсчёт в статусбаре."""
+        from PySide6.QtCore import QTimer
+        self._progress_elapsed = 0
+        self._progress_total   = int(total_sec)
+        self._progress_timer   = QTimer(self)
+        self._progress_timer.setInterval(1000)  # каждую секунду
+
+        def _tick():
+            self._progress_elapsed += 1
+            remaining = max(0, self._progress_total - self._progress_elapsed)
+            pct = min(100, int(self._progress_elapsed / self._progress_total * 100))
+            bar = "█" * (pct // 10) + "░" * (10 - pct // 10)
+            self._update_status(
+                f"Сбор метрик [{bar}] {pct}% — осталось ~{remaining}с"
+            )
+            if self._progress_elapsed >= self._progress_total:
+                self._progress_timer.stop()
+
+        self._progress_timer.timeout.connect(_tick)
+        self._progress_timer.start()
+
+    def _stop_progress_timer(self) -> None:
+        if hasattr(self, "_progress_timer") and self._progress_timer is not None:
+            self._progress_timer.stop()
+            self._progress_timer = None
 
     def _start_live_refresh(self, connector) -> None:
         from PySide6.QtCore import QTimer, QThread, Signal as _Signal
@@ -796,7 +912,7 @@ class CAIRNMainWindow(QMainWindow):
         delta_nll   = abs(ce)
         improvement = min(99.0, delta_nll / (abs(nll) + 1e-6) * 100)
         lines = [
-            f"Что если {node_name} работает нормально?",
+            f"Что если бы {node_name} работал нормально?",
             "-" * 48, "",
             "Текущее состояние:",
             f"  CE:                     {ce:+.4f}",
@@ -834,7 +950,109 @@ class CAIRNMainWindow(QMainWindow):
             self.data_tab._plot_from_md(md, metric)
         except Exception:
             pass
+    def _start_anomaly_monitor(self, connector) -> None:
+        """Запускает автономный мониторинг аномалий."""
+        from cairn.gui.anomaly_monitor import AnomalyMonitor
 
+        # Останавливаем предыдущий монитор если был
+        if hasattr(self, "_anomaly_monitor") and self._anomaly_monitor is not None:
+            self._anomaly_monitor.stop()
+            self._anomaly_monitor.wait(3000)
+
+        poll_interval = connector._cfg.get("metrics", {}).get("window_sec", 30)
+        model = getattr(self._ctrl, "_model", None)
+
+        monitor = AnomalyMonitor(
+            connector=connector,
+            model=model,
+            poll_interval=float(poll_interval),
+            anomaly_threshold=0.5,
+            cooldown=120.0,
+        )
+        monitor.metrics_updated.connect(self._on_monitor_metrics)
+        monitor.anomaly_detected.connect(self._on_anomaly_detected)
+        monitor.status_changed.connect(self._on_monitor_status)
+        self._anomaly_monitor = monitor
+        monitor.start()
+        self._update_status(
+            f"Мониторинг активен: {connector.system_name} "
+            f"(опрос каждые {poll_interval:.0f}с)"
+        )
+
+    def _on_monitor_metrics(self, md) -> None:
+        """Обновляет данные при получении новых метрик от монитора."""
+        self._ctrl._metric_data = md
+        # Обновляем только график — таблицу не перезагружаем каждый раз
+        try:
+            combo  = getattr(self.data_tab, "_metric_combo", None)
+            metric = combo.currentText() if combo else None
+            self.data_tab._plot_from_md(md, metric)
+        except Exception:
+            pass
+
+    def _on_monitor_status(self, message: str, level: str) -> None:
+        """Обновляет строку статуса монитора."""
+        self._update_status(message)
+        if level == "error" and hasattr(self, "_event_log"):
+            self._event_log.add_warning(message)
+        # Меняем цвет статусбара по уровню
+        colors = {"ok": "#007acc", "warn": "#b8860b", "error": "#8b1a1a"}
+        color  = colors.get(level, "#007acc")
+        self.statusBar().setStyleSheet(
+            f"QStatusBar {{ background: {color}; color: #ffffff; }}"
+        )
+
+    def _on_anomaly_detected(self, md, nll_score: float) -> None:
+        """Реагирует на обнаруженную аномалию — автозапуск анализа."""
+        from PySide6.QtWidgets import QMessageBox
+
+        # Обновляем данные
+        self._ctrl._metric_data = md
+        self.data_tab.load_metric_data(md)
+
+        # Журнал событий
+        if hasattr(self, "_event_log"):
+            self._event_log.add_anomaly(
+                service    = "система",
+                score      = nll_score,
+                fault_type = "auto-detected",
+            )
+            # Показываем последнее событие в статусбаре
+            self._update_status(
+                f"АНОМАЛИЯ: score={nll_score:.3f} — см. Журнал событий"
+            )
+
+        # Автоматически запускаем анализ если модель загружена
+        if self._ctrl._model is not None:
+            self._update_status(
+                f"АНОМАЛИЯ (score={nll_score:.3f}) — запускаю анализ..."
+            )
+            self._ctrl.start_analysis()
+            # Переключаемся на результаты
+            self.tabs.setCurrentIndex(self.TAB_RESULTS)
+        else:
+            # Модель не загружена — просто уведомляем
+            self.tabs.setCurrentIndex(self.TAB_DATA)
+            msg = QMessageBox(self)
+            msg.setWindowTitle("Аномалия обнаружена")
+            msg.setIcon(QMessageBox.Icon.Warning)
+            msg.setText(
+                f"<b>Обнаружена аномалия!</b><br><br>"
+                f"Score: <b>{nll_score:.3f}</b><br>"
+                f"Экземпляров: {md.n_instances}<br><br>"
+                f"Загрузите модель для автоматического анализа.<br>"
+                f"Или запустите анализ вручную."
+            )
+            msg.setStandardButtons(
+                QMessageBox.StandardButton.Ok |
+                QMessageBox.StandardButton.Open
+            )
+            msg.button(QMessageBox.StandardButton.Open).setText("Запустить анализ")
+            result = msg.exec()
+            if result == QMessageBox.StandardButton.Open:
+                self._ctrl.start_analysis()
+
+    
 def main(config_path: Optional[str] = None) -> None:
     """Запускает CAIRN GUI."""
     app = QApplication.instance() or QApplication(sys.argv)

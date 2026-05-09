@@ -137,7 +137,7 @@ class ExplanationTab(QWidget):
             "Нажмите 'Что если?' в разделе Результаты."
         )
         t2l.addWidget(self.counter_text)
-        self._right_tabs.addTab(tab2, "Что если?")
+        self._right_tabs.addTab(tab2, "Анализ воздействия")
 
         rl.addWidget(self._right_tabs)
         splitter.addWidget(right)
