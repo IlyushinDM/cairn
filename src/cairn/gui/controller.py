@@ -52,15 +52,21 @@ class AnalysisWorker(QThread):
 # ---------------------------------------------------------------------------
 
 class ModuleConfig:
-    """Отслеживает состояние чекбоксов модулей и их влияние на модель.
+    """Отслеживает состояние модулей CAIRN.
 
-    Ключи совпадают с ключами в Sidebar.
+    Активные модули: реально влияют на анализ.
+    Опциональные: включаются для расширенного режима.
     """
 
     def __init__(self):
-        # Опциональные переключаемые модули
-        self.ssm_branch    = False   # спектральная ветвь SSM
-        self.drift_detect  = False   # обнаружение дрейфа
+        # ── Активные (включены по умолчанию) ──────────────────────────
+        self.graph_verifier = True    # топологическая корректировка скоров
+        self.cf_module      = True    # контрфактический модуль VGAE
+        self.alp_verifier   = True    # логическая верификация цепочки
+
+        # ── Опциональные ───────────────────────────────────────────────
+        self.ssm_branch    = False   # спектральная ветвь SSM (эксп.)
+        self.drift_detect  = False   # обнаружение дрейфа распределения
         self.indep_loss    = False   # ограничение независимости L_нез
 
     def apply(self, key: str, enabled: bool) -> None:
@@ -69,6 +75,10 @@ class ModuleConfig:
 
     def to_dict(self) -> dict:
         return {k: getattr(self, k) for k in vars(self) if not k.startswith("_")}
+
+    def summary(self) -> str:
+        active = [k for k, v in self.to_dict().items() if v]
+        return f"Активных модулей: {len(active)}: {', '.join(active)}"
 
 
 # ---------------------------------------------------------------------------
@@ -154,6 +164,18 @@ class CAIRNController(QObject):
         elif key == "drift_detect":
             gmm = model.gmm
             object.__setattr__(gmm, "_drift_enabled", enabled)
+
+        elif key == "graph_verifier":
+            # Флаг читается в _run_analysis_core напрямую
+            pass
+
+        elif key == "cf_module":
+            # Флаг читается в _run_analysis_core напрямую
+            pass
+
+        elif key == "alp_verifier":
+            # Флаг читается в _run_analysis_core напрямую
+            pass
 
     # ------------------------------------------------------------------
     # Загрузка данных
@@ -453,10 +475,45 @@ class CAIRNController(QObject):
         adj      = hypergraph.adjacency_matrix()
         adj_norm = adj / adj.sum(1, keepdim=True).clamp(min=1)
 
+        # Модуль: cf_module — использовать CounterfactualModule или нет
+        use_cf = self._modules.cf_module
+
         # NLL-ранжирование: GMM корректно оценивает аномальность каждого узла
-        ranked = funnel.run(nll, H, adj_norm,
-                            model.cf_module, model.gmm,
-                            C, hypergraph)
+        # Передаём cf_module только если он активен
+        ranked = funnel.run(
+            nll, H, adj_norm,
+            model.cf_module if use_cf else None,
+            model.gmm, C, hypergraph,
+        )
+
+        # Модуль: graph_verifier — топологическая корректировка скоров
+        if self._modules.graph_verifier:
+            try:
+                import numpy as _np
+                names     = hypergraph.instance_names
+                ce_scores = dict(ranked)
+                # Строим граф вызовов
+                called_by:  dict[int, int]       = {}
+                callee_map: dict[int, list[int]]  = {}
+                for edge in hypergraph.edges:
+                    if edge.edge_type == "call" and len(edge.members) >= 2:
+                        src, dst = edge.members[0], edge.members[1]
+                        callee_map.setdefault(src, []).append(dst)
+                        called_by[dst] = called_by.get(dst, 0) + 1
+
+                adjusted = {}
+                for idx, score in ce_scores.items():
+                    callees     = callee_map.get(idx, [])
+                    cs          = [ce_scores.get(c, 0.0) for c in callees
+                                   if c in ce_scores]
+                    cascade_avg = float(_np.mean(cs)) if cs else 0.0
+                    n_callers   = called_by.get(idx, 0)
+                    adjusted[idx] = score / (1.0 + cascade_avg) / (
+                        1.0 + n_callers * 0.5)
+
+                ranked = sorted(adjusted.items(), key=lambda x: x[1], reverse=True)
+            except Exception:
+                pass  # если топология недоступна — используем исходный ранг
 
         # Строим объяснение
         from cairn.explanation import EvidenceChainBuilder, TemplateTextGenerator, ALPVerifier
@@ -513,10 +570,14 @@ class CAIRNController(QObject):
         ce_sorted  = sorted(ce_scores.values())
         nll_median = nll_sorted[len(nll_sorted) // 2]   # медиана NLL
         ce_median  = ce_sorted[len(ce_sorted) // 2]     # медиана CE
-        result = ALPVerifier(
-            anomaly_threshold=nll_median,
-            ce_threshold=ce_median,
-        ).verify(chain, text)
+        # Модуль: alp_verifier — логическая верификация
+        if self._modules.alp_verifier:
+            result = ALPVerifier(
+                anomaly_threshold=nll_median,
+                ce_threshold=ce_median,
+            ).verify(chain, text)
+        else:
+            result = None
 
         self._last_chain  = chain
         self._last_alp    = result

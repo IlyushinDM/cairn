@@ -132,38 +132,50 @@ class ModulesPanel(SidePanelBase):
     def _build(self) -> None:
         cl = self._content_layout
 
-        enabled = [
-            ("metric_enc",     "Кодировщик метрик"),
-            ("log_enc",        "Кодировщик журналов"),
-            ("cond_gmm",       "Условная модель нормы"),
-            ("vgae",           "Обнаружение скрытых факторов"),
-            ("cf_module",      "Контрфактическое вмешательство"),
-            ("funnel",         "Каскадная воронка"),
-            ("graph_verifier", "Верификатор графа"),
-            ("alp_verifier",   "Логическая верификация"),
-            ("template_gen",   "Шаблонный генератор"),
-        ]
-        optional = [
-            ("ssm_branch",   "Спектральный анализ"),
-            ("drift_detect", "Обнаружение дрейфа"),
-        ]
-        planned = [
-            "Локальная языковая модель",
-            "Коннектор Prometheus",
-            "Коннектор Elasticsearch",
+        # ── Активные модули (влияют на анализ) ───────────────────────────
+        active = [
+            ("graph_verifier", "Топологическая корректировка",
+             "Корректирует скоры с учётом каскадного эффекта. "
+             "Upstream-сервисы получают бонус."),
+            ("cf_module",      "Контрфактический модуль",
+             "VGAE + GNN для причинно-следственного вывода. "
+             "Отключение → только NLL-ранжирование."),
+            ("alp_verifier",   "Логическая верификация",
+             "Проверяет цепочку доказательств через ALP. "
+             "Отключение → без верификации корректности."),
         ]
 
+        # ── Опциональные (расширенный режим) ──────────────────────────
+        optional = [
+            ("ssm_branch",   "Спектральный анализ (SSM)",
+             "Добавляет спектральную ветвь в Metric Encoder. "
+             "Улучшает детекцию периодических аномалий."),
+            ("drift_detect", "Детекция дрейфа",
+             "Мониторит дрейф распределения GMM. "
+             "Полезно при долгосрочном мониторинге."),
+        ]
+
+        # ── В разработке ───────────────────────────────────────────────
+        planned = [
+            ("log_enc",      "Кодировщик журналов (LLM)"),
+            ("trace_enc",    "Кодировщик трассировок (GCN)"),
+            ("indep_loss",   "Ограничение независимости L_нез"),
+            ("modal_attn",   "Мультимодальное внимание"),
+        ]
+
+        # Активные секции
         for section_title, items, is_checked in [
-            ("Активные",     enabled,   True),
+            ("Активные",     active,    True),
             ("Опциональные", optional,  False),
         ]:
             grp = QGroupBox(section_title)
             gl  = QVBoxLayout(grp)
-            gl.setSpacing(2)
+            gl.setSpacing(4)
             gl.setContentsMargins(0, 12, 0, 0)
-            for key, label in items:
+            for key, label, tooltip in items:
                 cb = QCheckBox(label)
                 cb.setChecked(is_checked)
+                cb.setToolTip(tooltip)
                 cb.toggled.connect(
                     lambda v, k=key: self.module_toggled.emit(k, v))
                 self._checkboxes[key] = cb
@@ -173,9 +185,10 @@ class ModulesPanel(SidePanelBase):
         grp_plan = QGroupBox("В разработке")
         gl_plan  = QVBoxLayout(grp_plan)
         gl_plan.setContentsMargins(0, 12, 0, 0)
-        for label in planned:
+        for key, label in planned:
             cb = QCheckBox(label)
             cb.setEnabled(False)
+            cb.setToolTip("Планируется в следующей версии")
             gl_plan.addWidget(cb)
         cl.addWidget(grp_plan)
         cl.addStretch()

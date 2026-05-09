@@ -15,6 +15,7 @@ class ResultsTab(QWidget):
 
     show_explanation         = Signal(int)  # node_idx
     counterfactual_requested = Signal(int)  # 3.3
+    compare_modes_requested  = Signal()     # B2
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -63,6 +64,16 @@ class ResultsTab(QWidget):
         self.conf_label.setStyleSheet("font-size: 14px; color: #6c7a9c;")
 
         sf_layout.addWidget(self.root_label)
+
+        # B2: Кнопка сравнения режимов
+        btn_compare = QPushButton("Сравнить режимы")
+        btn_compare.setToolTip(
+            "Ablation Study: запустить анализ в разных конфигурациях модулей "
+            "и сравнить результаты"
+        )
+        btn_compare.setFixedHeight(28)
+        btn_compare.clicked.connect(self.compare_modes_requested)
+        sf_layout.addWidget(btn_compare)
         sf_layout.addSpacing(24)
         sf_layout.addWidget(self.ce_label)
         sf_layout.addSpacing(24)

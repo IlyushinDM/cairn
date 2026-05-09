@@ -161,10 +161,3 @@ cairn/
 ## Лицензия
 
 MIT — подробнее в файле [LICENSE](LICENSE).
-
-
-
-python scripts/generate_demo_data.py --out data/sample --seed 42
-python scripts/pretrain_demo.py --epochs 10
-python scripts/diagnose.py --scenario 3 --model data/sample/demo_model.pt
-python scripts/evaluate.py --checkpoint data/sample/demo_model.pt --data-dir data/sample/scenario_3

@@ -70,8 +70,8 @@ class CAIRNMainWindow(QMainWindow):
 
     TAB_DATA     = 0
     TAB_TRAINING = 1
-    TAB_RESULTS  = 2
-    TAB_EXPLAIN  = 3
+    TAB_RESULTS  = 2   # обновляется в _build_central
+    TAB_EXPLAIN  = 3   # обновляется в _build_central
 
     def __init__(self, config_path: Optional[str | Path] = None, parent=None):
         super().__init__(parent)
@@ -213,10 +213,7 @@ class CAIRNMainWindow(QMainWindow):
         root_layout.addWidget(self._sources_panel)
 
         self._modules_panel = ModulesPanel()
-        self._modules_panel.module_toggled.connect(
-            lambda k, v: self._ctrl.toggle_module(k, v)
-            if hasattr(self._ctrl, "toggle_module") else None
-        )
+        self._modules_panel.module_toggled.connect(self._on_module_toggled)
         self._modules_panel.setVisible(False)
         root_layout.addWidget(self._modules_panel)
 
@@ -233,15 +230,24 @@ class CAIRNMainWindow(QMainWindow):
         self.results_tab     = ResultsTab()
         self.explanation_tab = ExplanationTab()
 
+        from cairn.gui.widgets.logs_tab import LogsTab
+        from cairn.gui.widgets.traces_tab import TracesTab
+        self.logs_tab   = LogsTab()
+        self.traces_tab = TracesTab()
+
         self.tabs.addTab(self.data_tab,        "Данные")
+        self.tabs.addTab(self.logs_tab,        "Журналы")
+        self.tabs.addTab(self.traces_tab,      "Трассировки")
         self.tabs.addTab(self.results_tab,     "Результаты")
         self.tabs.addTab(self.explanation_tab, "Объяснение")
         self.tabs.addTab(self.training_tab,    "Обучение")
 
         self.TAB_DATA    = 0
-        self.TAB_RESULTS = 1
-        self.TAB_EXPLAIN = 2
-        self.TAB_TRAIN   = 3
+        self.TAB_LOGS    = 1
+        self.TAB_TRACES  = 2
+        self.TAB_RESULTS = 3
+        self.TAB_EXPLAIN = 4
+        self.TAB_TRAIN   = 5
 
         # Журнал событий — отдельная боковая панель
         from cairn.gui.widgets.event_log import EventLogWidget
@@ -450,6 +456,27 @@ class CAIRNMainWindow(QMainWindow):
         self._update_status(f"Анализ завершён. Первопричина: {root_name}")
 
     @Slot(int)
+    def _on_compare_modes(self) -> None:
+        """B2: Открывает диалог сравнения режимов анализа."""
+        if self._ctrl._model is None:
+            from PySide6.QtWidgets import QMessageBox
+            QMessageBox.information(
+                self, "Сравнение режимов",
+                "Загрузите модель и выполните анализ перед сравнением режимов."
+            )
+            return
+        from cairn.gui.widgets.comparison_dialog import ComparisonDialog
+        dlg = ComparisonDialog(self._ctrl, parent=self)
+        dlg.exec()
+
+    def _on_module_toggled(self, key: str, enabled: bool) -> None:
+        """Переключает модуль и обновляет статус в журнале."""
+        self._ctrl.on_module_toggled(key, enabled)
+        state = "включён" if enabled else "отключён"
+        if hasattr(self, "_event_log"):
+            self._event_log.add_info(f"Модуль '{key}' {state}")
+        self._update_status(f"Модуль {key}: {state}")
+
     def _on_show_explanation(self, node_idx: int) -> None:
         chain = self._ctrl.last_chain
         alp   = self._ctrl.last_alp
@@ -962,12 +989,26 @@ class CAIRNMainWindow(QMainWindow):
         poll_interval = connector._cfg.get("metrics", {}).get("window_sec", 30)
         model = getattr(self._ctrl, "_model", None)
 
+        # DockerLogConnector для параллельного сбора журналов
+        try:
+            from cairn.connectors.docker_log_connector import DockerLogConnector
+            inst_filter = list(
+                connector._cfg.get("metrics", {}).get("instance_filter", [])
+            )
+            self._log_connector = DockerLogConnector(
+                instance_filter=inst_filter or None,
+                min_level="WARN",
+            )
+        except Exception:
+            self._log_connector = None
+
         monitor = AnomalyMonitor(
             connector=connector,
             model=model,
             poll_interval=float(poll_interval),
-            anomaly_threshold=0.5,
-            cooldown=120.0,
+            anomaly_threshold=2.0,
+            cooldown=180.0,
+            min_baseline_cycles=5,
         )
         monitor.metrics_updated.connect(self._on_monitor_metrics)
         monitor.anomaly_detected.connect(self._on_anomaly_detected)
@@ -982,13 +1023,88 @@ class CAIRNMainWindow(QMainWindow):
     def _on_monitor_metrics(self, md) -> None:
         """Обновляет данные при получении новых метрик от монитора."""
         self._ctrl._metric_data = md
-        # Обновляем только график — таблицу не перезагружаем каждый раз
         try:
             combo  = getattr(self.data_tab, "_metric_combo", None)
             metric = combo.currentText() if combo else None
             self.data_tab._plot_from_md(md, metric)
         except Exception:
             pass
+
+        # Параллельно собираем журналы (в фоне)
+        if hasattr(self, "_log_connector"):
+            from PySide6.QtCore import QThread, Signal as _Signal
+
+            class _LogWorker(QThread):
+                done = _Signal(object)
+                def __init__(self, conn):
+                    super().__init__()
+                    self._conn = conn
+                def run(self):
+                    try:
+                        data = self._conn.fetch(window_sec=120, step_sec=30)
+                        self.done.emit(data)
+                    except Exception:
+                        pass
+
+            def _on_log_done(log_data):
+                if hasattr(self, "logs_tab"):
+                    self.logs_tab.load_log_data(log_data)
+                # Если есть лог-аномалии — добавляем в журнал событий
+                if hasattr(self, "_event_log"):
+                    for name in log_data.anomalous_containers:
+                        ts = log_data.series[name]
+                        self._event_log.add_warning(
+                            f"Лог-аномалия: рост ошибок "
+                            f"(score={ts.anomaly_score:.2f})",
+                            service=name,
+                        )
+                self._log_worker = None
+
+            if not hasattr(self, "_log_worker") or self._log_worker is None:
+                w = _LogWorker(self._log_connector)
+                w.done.connect(_on_log_done)
+                self._log_worker = w
+                w.start()
+
+        # Сбор latency трассировок из loadgenerator
+        if not hasattr(self, "_trace_connector"):
+            try:
+                from cairn.connectors.latency_trace_connector import (
+                    LatencyTraceConnector)
+                self._trace_connector = LatencyTraceConnector()
+            except Exception:
+                self._trace_connector = None
+
+        if self._trace_connector is not None:
+            class _TraceWorker(QThread):
+                done = _Signal(object)
+                def __init__(self, conn):
+                    super().__init__()
+                    self._conn = conn
+                def run(self):
+                    try:
+                        self.done.emit(self._conn.fetch(window_sec=120))
+                    except Exception:
+                        pass
+
+            def _on_trace_done(trace_data):
+                if hasattr(self, "traces_tab"):
+                    self.traces_tab.load_trace_data(trace_data)
+                if hasattr(self, "_event_log"):
+                    for svc in trace_data.slow_services:
+                        sl = trace_data.services[svc]
+                        self._event_log.add_warning(
+                            f"Latency spike: p50={sl.avg_p50_ms:.0f}мс "
+                            f"(×{1+sl.anomaly_score:.1f} от нормы)",
+                            service=svc,
+                        )
+                self._trace_worker = None
+
+            if not hasattr(self, "_trace_worker") or self._trace_worker is None:
+                w = _TraceWorker(self._trace_connector)
+                w.done.connect(_on_trace_done)
+                self._trace_worker = w
+                w.start()
 
     def _on_monitor_status(self, message: str, level: str) -> None:
         """Обновляет строку статуса монитора."""
