@@ -1,7 +1,7 @@
 """Проверяемая цепочка доказательств и её построитель (раздел 4.1).
 
-EvidenceChain       — структура данных: аннотированный путь от первопричины к симптомам.
-EvidenceChainBuilder — строит цепочку из результатов фазы рассуждения:
+EvidenceChain       – структура данных: аннотированный путь от первопричины к симптомам.
+EvidenceChainBuilder – строит цепочку из результатов фазы рассуждения:
     root_cause, CausalHypergraph, NLL-оценки, CE-оценки, метаданные узлов.
 """
 
@@ -22,7 +22,7 @@ class NodeAnnotation:
     node_idx: int
     node_name: str
     nll: float                          # Аномальность (выше = хуже)
-    causal_effect: float = 0.0          # CE(i) — вклад в снижение аномальности
+    causal_effect: float = 0.0          # CE(i) – вклад в снижение аномальности
     dominant_metric: Optional[str] = None
     failure_type: Optional[str] = None  # cpu_exhaustion | latency | memory | network
 
@@ -33,7 +33,7 @@ class EdgeAnnotation:
     src: int
     dst: int
     edge_type: str                      # call | colocation | loadbalance | adaptive
-    strength: float                     # τ(e) — контрфактическая значимость ребра
+    strength: float                     # τ(e) – контрфактическая значимость ребра
     has_confounder: bool = False        # скрытый общий фактор обнаружен
 
 
@@ -44,10 +44,10 @@ class EvidenceChain:
     Атрибуты
     ----------
     root_cause_idx : int
-    path_nodes : list[NodeAnnotation]   — от первопричины к симптомам
-    path_edges : list[EdgeAnnotation]   — рёбра пути
-    causal_effect : float               — ПЭ(root)
-    confidence : float                  — доля выполненных аксиом [0, 1]
+    path_nodes : list[NodeAnnotation]   – от первопричины к симптомам
+    path_edges : list[EdgeAnnotation]   – рёбра пути
+    causal_effect : float               – ПЭ(root)
+    confidence : float                  – доля выполненных аксиом [0, 1]
     confounder_warnings : list[str]
     drift_warning : bool
     """
@@ -108,7 +108,7 @@ class EvidenceChain:
         for w in self.confounder_warnings:
             lines.append(f"⚠  {w}")
         if self.drift_warning:
-            lines.append("⚠  Дрейф распределения — достоверность снижена.")
+            lines.append("⚠  Дрейф распределения – достоверность снижена.")
         return "\n".join(lines)
 
 
@@ -178,7 +178,7 @@ class EvidenceChainBuilder:
         nll_scores : dict[int, float]
             NLL каждого узла (из ConditionalGMM.nll).
         node_names : list[str] | None
-            Имена узлов. Если None — берутся из causal_graph.instance_names.
+            Имена узлов. Если None – берутся из causal_graph.instance_names.
         metadata : dict | None
             Доп. метаданные: {idx: {dominant_metric, failure_type}}.
         confounder_flags : dict | None
@@ -197,7 +197,7 @@ class EvidenceChainBuilder:
         # ----------------------------------------------------------------
         # BFS: находим путь распространения от root_cause
         # ----------------------------------------------------------------
-        adjacency = causal_graph.adjacency_matrix()   # (N, N) — неориентированный
+        adjacency = causal_graph.adjacency_matrix()   # (N, N) – неориентированный
         call_edges = {
             (e.members[0], e.members[1])
             for e in causal_graph.edges
@@ -280,7 +280,7 @@ class EvidenceChainBuilder:
         anomaly_threshold: float,
         call_edges: set,
     ) -> Tuple[List[int], List[Tuple[int, int, str, float]]]:
-        """BFS от root по аномальным соседям — строит путь распространения."""
+        """BFS от root по аномальным соседям – строит путь распространения."""
         visited   = {root}
         queue     = deque([(root, 0)])
         path_idxs = [root]
@@ -316,7 +316,7 @@ class EvidenceChainBuilder:
         ce_scores: Dict[int, float],
     ) -> Tuple[Optional[str], Optional[str]]:
         """Эвристически определяет доминирующую метрику и тип сбоя."""
-        # Если метаданные уже содержат ответ — используем их
+        # Если метаданные уже содержат ответ – используем их
         if "dominant_metric" in meta and "failure_type" in meta:
             return meta["dominant_metric"], meta["failure_type"]
 

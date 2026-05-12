@@ -1,9 +1,9 @@
-"""Контрфактический интервенционный модуль — ядро CAIRN (раздел 3.3).
+"""Контрфактический интервенционный модуль – ядро CAIRN (раздел 3.3).
 
 Реализует:
-  - HypergraphConv             — нормализованная гиперграфовая свёртка (формула 3.24)
-  - CounterfactualModule       — do(i) вмешательство, ПЭ(i), ранжирование
-  - CounterfactualInterventionModule  — alias для обратной совместимости
+  - HypergraphConv             – нормализованная гиперграфовая свёртка (формула 3.24)
+  - CounterfactualModule       – do(i) вмешательство, ПЭ(i), ранжирование
+  - CounterfactualInterventionModule  – alias для обратной совместимости
 
 Вмешательство дифференцируемо: градиенты проходят через prototype(c_i).
 """
@@ -30,7 +30,7 @@ class HypergraphConv(nn.Module):
     in_dim : int
     out_dim : int
     use_pyg : bool
-        Если True и torch_geometric установлен — используется PyG-реализация.
+        Если True и torch_geometric установлен – используется PyG-реализация.
     """
 
     def __init__(self, in_dim: int, out_dim: int, use_pyg: bool = False) -> None:
@@ -123,16 +123,16 @@ class CounterfactualModule(nn.Module):
         self,
         H: torch.Tensor,              # (N, d)
         i: int,
-        prototype: torch.Tensor,      # (d,) — нормальное состояние узла i
+        prototype: torch.Tensor,      # (d,) – нормальное состояние узла i
         hypergraph,                   # объект с .incidence_matrix() и .edge_weights()
         apply_conv: bool = False,     # свёртка только для propagation, не для scoring
     ) -> torch.Tensor:
         """do(i): заменяем h_i на prototype.
 
-        apply_conv=False (дефолт): возвращает H_cf без свёртки — для вычисления CE.
-        apply_conv=True: прогоняет через гиперграфовую свёртку — для propagation.
+        apply_conv=False (дефолт): возвращает H_cf без свёртки – для вычисления CE.
+        apply_conv=True: прогоняет через гиперграфовую свёртку – для propagation.
 
-        Операция дифференцируема — градиент проходит через ``prototype``.
+        Операция дифференцируема – градиент проходит через ``prototype``.
 
         Возвращает
         ----------
@@ -159,14 +159,14 @@ class CounterfactualModule(nn.Module):
         H_cf: torch.Tensor,
         gmm,                      # ConditionalGMM с методом nll(h, ctx)
         contexts: torch.Tensor,   # (N, context_dim)
-        H_normal: Optional[torch.Tensor] = None,   # (N, d) — нормальные состояния
+        H_normal: Optional[torch.Tensor] = None,   # (N, d) – нормальные состояния
         hypergraph=None,          # для propagation-based CE
     ) -> float:
         """CE(i) = снижение аномальности системы после вмешательства.
 
-        Если H_normal доступен и гиперграф передан — использует distance-CE
+        Если H_normal доступен и гиперграф передан – использует distance-CE
         в post-conv пространстве: CE = Σ||h_anom_conv - h_norm_conv||² - Σ||h_cf_conv - h_norm_conv||²
-        Иначе — fallback на NLL-CE без свёртки.
+        Иначе – fallback на NLL-CE без свёртки.
         """
         with torch.no_grad():
             if H_normal is not None and hypergraph is not None:
@@ -198,16 +198,16 @@ class CounterfactualModule(nn.Module):
         gmm,
         contexts: torch.Tensor,   # (N, context_dim)
         hypergraph,
-        H_normal: Optional[torch.Tensor] = None,  # (N, d) — нормальные состояния
+        H_normal: Optional[torch.Tensor] = None,  # (N, d) – нормальные состояния
     ) -> List[Tuple[int, float]]:
         """Ранжирует кандидатов по убыванию CE (формула 3.28).
 
         Возвращает
         ----------
-        list of (node_idx, ce_value) — отсортированный по убыванию CE.
+        list of (node_idx, ce_value) – отсортированный по убыванию CE.
         """
         # Прототип = реальное нормальное состояние узла (если доступно)
-        # иначе — среднее нормальное состояние по всем узлам
+        # иначе – среднее нормальное состояние по всем узлам
         if H_normal is not None:
             prototypes = H_normal                          # (N, d)
         else:

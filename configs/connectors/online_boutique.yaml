@@ -6,7 +6,7 @@
 
 system:
   name: "Online Boutique"
-  description: "Google microservices demo — 10 сервисов, Docker Compose"
+  description: "Google microservices demo – 10 сервисов, Docker Compose"
   version: "v0.10.1"
   docs: "https://github.com/GoogleCloudPlatform/microservices-demo"
 

@@ -73,7 +73,7 @@ class CSVMetricConnector(BaseMetricConnector):
             if reader.fieldnames is None:
                 raise ConnectorConfigError("CSV-файл пуст или без заголовков")
 
-            # Метрики — все столбцы кроме timestamp и instance
+            # Метрики – все столбцы кроме timestamp и instance
             metrics_set = [
                 col for col in reader.fieldnames
                 if col not in ("timestamp", "instance")

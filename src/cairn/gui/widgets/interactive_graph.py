@@ -36,14 +36,14 @@ from PySide6.QtWidgets import (
 
 # ── Цветовая схема ─────────────────────────────────────────────────────────────
 COLORS = {
-    "root":      QColor("#ff4444"),   # красный — первопричина
-    "high":      QColor("#ff8c00"),   # оранжевый — высокий ПЭ
-    "medium":    QColor("#f0c040"),   # жёлтый — средний ПЭ
-    "low":       QColor("#4a9eff"),   # синий — низкий ПЭ
-    "normal":    QColor("#2d3d5a"),   # тёмно-синий — нормальный
-    "selected":  QColor("#ffffff"),   # белый — выделен
-    "edge_call": QColor("#3ecf8e"),   # зелёный — вызов
-    "edge_colo": QColor("#f6a623"),   # оранжевый — совместное размещение
+    "root":      QColor("#ff4444"),   # красный – первопричина
+    "high":      QColor("#ff8c00"),   # оранжевый – высокий ПЭ
+    "medium":    QColor("#f0c040"),   # жёлтый – средний ПЭ
+    "low":       QColor("#4a9eff"),   # синий – низкий ПЭ
+    "normal":    QColor("#2d3d5a"),   # тёмно-синий – нормальный
+    "selected":  QColor("#ffffff"),   # белый – выделен
+    "edge_call": QColor("#3ecf8e"),   # зелёный – вызов
+    "edge_colo": QColor("#f6a623"),   # оранжевый – совместное размещение
     "bg":        QColor("#161922"),   # фон
     "text_light":QColor("#ffffff"),
     "text_dark": QColor("#111111"),
@@ -242,7 +242,7 @@ class InteractiveGraphWidget(QWidget):
             "<span style='color:#ff8c00'>●</span> высокий &nbsp;"
             "<span style='color:#f0c040'>●</span> средний &nbsp;"
             "<span style='color:#4a9eff'>●</span> низкий &nbsp;"
-            "— вызов &nbsp;"
+            "– вызов &nbsp;"
             "<span style='color:#f6a623'>- -</span> совм.размещение"
         )
         legend.setStyleSheet("color:#6c7a9c; font-size:9px;")
@@ -388,7 +388,7 @@ class InteractiveGraphWidget(QWidget):
         view2.fitInView(self._scene.sceneRect().adjusted(-20,-20,20,20),
                         Qt.AspectRatioMode.KeepAspectRatio)
 
-        hint = QLabel("Колесо мыши — zoom | Перетаскивание — pan | Клик по узлу — выделить")
+        hint = QLabel("Колесо мыши – zoom | Перетаскивание – pan | Клик по узлу – выделить")
         hint.setStyleSheet("color:#6c7a9c; font-size:10px;")
         dlg_layout.addWidget(hint)
         dlg_layout.addWidget(view2)

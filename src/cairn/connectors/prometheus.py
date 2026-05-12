@@ -1,7 +1,7 @@
 """Prometheus-коннектор для CAIRN (опциональный).
 
 Зависимость: prometheus-api-client (pip install prometheus-api-client).
-Если пакет не установлен — импорт модуля не ломает приложение,
+Если пакет не установлен – импорт модуля не ломает приложение,
 но попытка создать экземпляр вызовет ConnectorUnavailableError.
 
 Пример конфигурации (configs/default.yaml):

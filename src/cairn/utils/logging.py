@@ -23,14 +23,14 @@ def setup_logging(
     retention : str
         Срок хранения логов.
     log_file : str | None
-        Путь к файлу. Если None — только консоль.
+        Путь к файлу. Если None – только консоль.
     """
     logger.remove()
     logger.add(
         sys.stderr,
         level=level,
         format="<green>{time:HH:mm:ss}</green> | <level>{level: <8}</level> | "
-               "<cyan>{name}</cyan>:<cyan>{function}</cyan> — <level>{message}</level>",
+               "<cyan>{name}</cyan>:<cyan>{function}</cyan> – <level>{message}</level>",
         colorize=True,
     )
     if log_file:
@@ -40,5 +40,5 @@ def setup_logging(
             rotation=rotation,
             retention=retention,
             encoding="utf-8",
-            format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function} — {message}",
+            format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function} – {message}",
         )

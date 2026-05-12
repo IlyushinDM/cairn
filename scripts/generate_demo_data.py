@@ -1,16 +1,16 @@
 """Генератор синтетических демо-данных для CAIRN.
 
 Создаёт три сценария в data/sample/:
-  scenario_1 — CPU Exhaustion    (первопричина: order-service-1)
-  scenario_2 — Memory Leak       (первопричина: cache-service-1)
-  scenario_3 — Network Delay     (первопричина: frontend-1)
+  scenario_1 – CPU Exhaustion    (первопричина: order-service-1)
+  scenario_2 – Memory Leak       (первопричина: cache-service-1)
+  scenario_3 – Network Delay     (первопричина: frontend-1)
 
 Каждый сценарий содержит:
-  metrics.csv   — временные ряды метрик (300 шагов: 200 норм + 100 аном)
-  logs.txt      — лог-сообщения
-  traces.json   — трассировки вызовов
-  topology.yaml — топология микросервисов
-  labels.json   — разметка первопричины и временных периодов
+  metrics.csv   – временные ряды метрик (300 шагов: 200 норм + 100 аном)
+  logs.txt      – лог-сообщения
+  traces.json   – трассировки вызовов
+  topology.yaml – топология микросервисов
+  labels.json   – разметка первопричины и временных периодов
 
 Использование:
     python scripts/generate_demo_data.py
@@ -73,7 +73,7 @@ SCENARIOS = {
     "scenario_1": {
         "name":       "CPU Exhaustion",
         "root_cause": {"instance": "order-service-1", "type": "cpu_exhaustion"},
-        # 1.1: Усиленные множители — root выделяется по ВСЕМ метрикам
+        # 1.1: Усиленные множители – root выделяется по ВСЕМ метрикам
         # Цель: ratio root/neighbor > 5x, чтобы GMM дал положительный CE
         "anomaly": {
             "order-service-1": {
@@ -138,7 +138,7 @@ SCENARIOS = {
     "scenario_4": {
         "name":       "Payment Service Overload",
         "root_cause": {"instance": "payment-service-1", "type": "overload"},
-        # Перегрузка payment-service-1 — новый корень, новый тип сбоя
+        # Перегрузка payment-service-1 – новый корень, новый тип сбоя
         "anomaly": {
             "payment-service-1": {
                 "cpu":        {"mult": 7.0},   # +600%
@@ -157,7 +157,7 @@ SCENARIOS = {
     "scenario_5": {
         "name":       "Database Bottleneck",
         "root_cause": {"instance": "database-1", "type": "cpu_exhaustion"},
-        # database-1 — центральный хаб, его деградация затрагивает всех
+        # database-1 – центральный хаб, его деградация затрагивает всех
         # Важно: database доминирует СИЛЬНО чтобы выделиться на фоне каскада
         "anomaly": {
             "database-1": {

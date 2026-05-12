@@ -1,4 +1,4 @@
-"""Предобучение модели CAIRN — Группа 1 улучшений.
+"""Предобучение модели CAIRN – Группа 1 улучшений.
 
 Изменения:
   - TRAIN: scenario_1 + scenario_2 + scenario_3 + scenario_4
@@ -34,7 +34,7 @@ def main() -> None:
     # ── Генерируем данные если нужно ─────────────────────────────────────
     for sc in ["scenario_1", "scenario_2", "scenario_3", "scenario_4", "scenario_5"]:
         if not (data_dir / sc / "metrics.csv").exists():
-            print(f"Данные {sc} не найдены — генерируем...")
+            print(f"Данные {sc} не найдены – генерируем...")
             import subprocess
             subprocess.run(
                 [sys.executable, "scripts/generate_demo_data.py",
@@ -184,16 +184,16 @@ def main() -> None:
 
     test_metrics = {}
     if test_ds is not None:
-        print("\nОценка на TEST (честные метрики — unseen data):")
+        print("\nОценка на TEST (честные метрики – unseen data):")
         test_metrics = trainer.evaluate(test_ds)
         for k, v in test_metrics.items():
             print(f"  {k}: {v:.3f}")
 
         gap = train_metrics.get("AC@1", 0) - test_metrics.get("AC@1", 0)
         if gap > 0.2:
-            print(f"\n  ⚠ Разрыв TRAIN/TEST по AC@1: {gap:.2f} — возможно переобучение.")
+            print(f"\n  ⚠ Разрыв TRAIN/TEST по AC@1: {gap:.2f} – возможно переобучение.")
         else:
-            print(f"\n  ✓ Разрыв TRAIN/TEST по AC@1: {gap:.2f} — обобщение нормальное.")
+            print(f"\n  ✓ Разрыв TRAIN/TEST по AC@1: {gap:.2f} – обобщение нормальное.")
 
     # ── Сохранение ────────────────────────────────────────────────────────
     model_path = out_dir / "demo_model.pt"

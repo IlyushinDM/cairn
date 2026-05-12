@@ -1,14 +1,14 @@
-"""Контроллер CAIRN — связывает GUI-события с вычислительным ядром.
+"""Контроллер CAIRN – связывает GUI-события с вычислительным ядром.
 
 Паттерн: CAIRNMainWindow владеет CAIRNController.
 Контроллер держит всё состояние модели/данных и эмитирует Qt-сигналы.
 Main window только подключает сигналы к слотам виджетов.
 
 Сигналы:
-    data_loaded()                      — данные успешно загружены
+    data_loaded()                      – данные успешно загружены
     training_progress(ep, total, stage, losses)
     training_finished(history)
-    analysis_complete(results)         — список dict с результатами
+    analysis_complete(results)         – список dict с результатами
     error(title, message)
 """
 
@@ -48,7 +48,7 @@ class AnalysisWorker(QThread):
 
 
 # ---------------------------------------------------------------------------
-# ModuleConfig — конфигурация включённых модулей
+# ModuleConfig – конфигурация включённых модулей
 # ---------------------------------------------------------------------------
 
 class ModuleConfig:
@@ -144,7 +144,7 @@ class CAIRNController(QObject):
 
     @Slot(str, bool)
     def on_module_toggled(self, key: str, enabled: bool) -> None:
-        """Реакция на чекбокс модуля — обновляет ModuleConfig и применяет к модели."""
+        """Реакция на чекбокс модуля – обновляет ModuleConfig и применяет к модели."""
         self._modules.apply(key, enabled)
 
         model = self._model
@@ -374,14 +374,14 @@ class CAIRNController(QObject):
                             "Сначала обучите модель или загрузите чекпоинт.")
             return
 
-        # Если старый воркер ещё жив — ждём завершения (макс 3 сек)
+        # Если старый воркер ещё жив – ждём завершения (макс 3 сек)
         if self._analysis_worker is not None:
             if self._analysis_worker.isRunning():
                 self._analysis_worker.quit()
                 self._analysis_worker.wait(3000)
             self._analysis_worker = None
 
-        # parent=None — управляем временем жизни вручную
+        # parent=None – управляем временем жизни вручную
         worker = AnalysisWorker(self, parent=None)
         worker.finished.connect(self._on_analysis_finished)
         worker.finished.connect(self._cleanup_analysis_worker)
@@ -397,7 +397,7 @@ class CAIRNController(QObject):
             self._analysis_worker = None
 
     def _run_analysis_core(self) -> list[dict]:
-        """Ядро анализа — работает на живых данных или демо."""
+        """Ядро анализа – работает на живых данных или демо."""
         import torch
         import numpy as np
         from cairn.reasoning import CascadeFunnel
@@ -475,7 +475,7 @@ class CAIRNController(QObject):
         adj      = hypergraph.adjacency_matrix()
         adj_norm = adj / adj.sum(1, keepdim=True).clamp(min=1)
 
-        # Модуль: cf_module — использовать CounterfactualModule или нет
+        # Модуль: cf_module – использовать CounterfactualModule или нет
         use_cf = self._modules.cf_module
 
         # NLL-ранжирование: GMM корректно оценивает аномальность каждого узла
@@ -486,7 +486,7 @@ class CAIRNController(QObject):
             model.gmm, C, hypergraph,
         )
 
-        # Модуль: graph_verifier — топологическая корректировка скоров
+        # Модуль: graph_verifier – топологическая корректировка скоров
         if self._modules.graph_verifier:
             try:
                 import numpy as _np
@@ -513,7 +513,7 @@ class CAIRNController(QObject):
 
                 ranked = sorted(adjusted.items(), key=lambda x: x[1], reverse=True)
             except Exception:
-                pass  # если топология недоступна — используем исходный ранг
+                pass  # если топология недоступна – используем исходный ранг
 
         # Строим объяснение
         from cairn.explanation import EvidenceChainBuilder, TemplateTextGenerator, ALPVerifier
@@ -530,7 +530,7 @@ class CAIRNController(QObject):
             else {}
         )
 
-        # Передаём все оценки — builder строит путь через граф по убыванию NLL
+        # Передаём все оценки – builder строит путь через граф по убыванию NLL
         chain = EvidenceChainBuilder().build(
             root_cause=root_idx,
             causal_graph=self._hypergraph,
@@ -570,7 +570,7 @@ class CAIRNController(QObject):
         ce_sorted  = sorted(ce_scores.values())
         nll_median = nll_sorted[len(nll_sorted) // 2]   # медиана NLL
         ce_median  = ce_sorted[len(ce_sorted) // 2]     # медиана CE
-        # Модуль: alp_verifier — логическая верификация
+        # Модуль: alp_verifier – логическая верификация
         if self._modules.alp_verifier:
             result = ALPVerifier(
                 anomaly_threshold=nll_median,
@@ -592,7 +592,7 @@ class CAIRNController(QObject):
                 "fault_type": self._infer_fault_type(
                     getattr(self, "_demo_fault_hint", None),
                     dominant_metrics.get(idx)
-                ) if i == 0 else "—",
+                ) if i == 0 else "–",
                 "confidence": max(0.0, 0.8 - i * 0.15),
             }
             for i, (idx, ce) in enumerate(ranked)
@@ -632,9 +632,9 @@ class CAIRNController(QObject):
             N, T, F = m.shape
             third = max(1, T // 3)
 
-            # Базовый период — первая треть окна
+            # Базовый период – первая треть окна
             base = m[:, :third, :].mean(dim=1)          # (N, F)
-            # Аномальный период — последняя треть
+            # Аномальный период – последняя треть
             anom = m[:, -third:, :].mean(dim=1)         # (N, F)
 
             # Относительное отклонение |Δ| / (|base| + ε)
@@ -647,7 +647,7 @@ class CAIRNController(QObject):
                 if best_delta > 0.20 and best_f < len(METRIC_NAMES):
                     result[i] = METRIC_NAMES[best_f]
         except Exception:
-            pass  # не критично — dominant_metric остаётся null
+            pass  # не критично – dominant_metric остаётся null
 
         return result
 

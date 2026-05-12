@@ -1,4 +1,4 @@
-"""DockerLogConnector — сбор и анализ журналов контейнеров.
+"""DockerLogConnector – сбор и анализ журналов контейнеров.
 
 MVP-подход (без тяжёлого NLP):
   - Читает docker logs --since N для каждого контейнера
@@ -230,7 +230,7 @@ class DockerLogConnector:
         self, events: list[LogEvent], n: int = 3
     ) -> list[str]:
         """Извлекает топ повторяющихся сообщений."""
-        # Нормализуем сообщения — убираем числа и UUID
+        # Нормализуем сообщения – убираем числа и UUID
         normalized = []
         for e in events:
             if LOG_LEVELS.get(e.level, 0) >= 2:  # WARN+
@@ -252,7 +252,7 @@ class DockerLogConnector:
         current_rate = np.mean(ts.error_rate[-3:])  # последние 3 интервала
 
         if container not in self._baseline:
-            # Первый раз — устанавливаем baseline
+            # Первый раз – устанавливаем baseline
             self._baseline[container] = current_rate
             return 0.0, False
 
@@ -260,7 +260,7 @@ class DockerLogConnector:
         # Обновляем baseline экспоненциально
         self._baseline[container] = 0.9 * baseline + 0.1 * current_rate
 
-        if baseline < 0.01:  # нет ошибок в baseline — любая ошибка аномалия
+        if baseline < 0.01:  # нет ошибок в baseline – любая ошибка аномалия
             score = current_rate * 10
         else:
             score = (current_rate - baseline) / (baseline + 1e-6)
@@ -280,7 +280,7 @@ def merge_log_anomalies_with_metrics(
 ) -> dict[str, float]:
     """Повышает metric score для сервисов с лог-аномалиями.
 
-    Если сервис аномален и по метрикам, и по логам —
+    Если сервис аномален и по метрикам, и по логам –
     это сильный сигнал первопричины.
 
     Args:

@@ -1,4 +1,4 @@
-"""Activity Bar — вертикальная панель иконок в стиле VS Code.
+"""Activity Bar – вертикальная панель иконок в стиле VS Code.
 
 Верхняя группа: действия (Load, Analyze, Train)
 Средняя группа: панели (Sources, Modules, Connect)
@@ -21,7 +21,7 @@ def _make_icon(name: str, color: str = "#858585", size: int = 22):
 
 
 class ActivityButton(QToolButton):
-    """Кнопка activity bar — иконка с tooltip."""
+    """Кнопка activity bar – иконка с tooltip."""
 
     def __init__(self, tooltip: str, icon_name: str,
                  checkable: bool = False, parent=None):
@@ -142,7 +142,7 @@ class ActivityBar(QWidget):
             lambda: self.panel_requested.emit("settings"))
 
     def _toggle(self, panel: str, on: bool) -> None:
-        """Переключает боковую панель — только одна активна."""
+        """Переключает боковую панель – только одна активна."""
         panel_btns = {
             "sources": self.btn_sources,
             "modules": self.btn_modules,

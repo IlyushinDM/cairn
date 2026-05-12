@@ -4,7 +4,7 @@
 Подход аналогичен позиционному кодированию трансформеров и CHASE [5].
 
 Дополнительно реализует агрегацию по трассировке:
-если у одного экземпляра несколько span'ов — берётся среднее кодирование.
+если у одного экземпляра несколько span'ов – берётся среднее кодирование.
 """
 
 from __future__ import annotations
@@ -48,14 +48,14 @@ class TraceEncoder(nn.Module):
         ----------
         depth : Tensor, shape (batch,) или (batch, n_spans)
             Глубина вызова (целые числа ≥ 0).
-            Если 2D — усредняет по span'ам.
+            Если 2D – усредняет по span'ам.
 
         Возвращает
         ----------
         h_tr : Tensor, shape (batch, d_out)
         """
         if depth.dim() == 2:
-            # Несколько span'ов — берём среднее
+            # Несколько span'ов – берём среднее
             depth_clamped = depth.clamp(0, self.pe.shape[0] - 1).long()
             return self.pe[depth_clamped].mean(dim=1)   # (batch, d_out)
 

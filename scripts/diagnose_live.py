@@ -12,7 +12,7 @@ conn = LiveSystemConnector(cfg)
 
 print(f"Система: {conn.system_name}")
 ok, msg = conn.is_available()
-print(f"Статус:  {'OK' if ok else 'FAIL'} — {msg}\n")
+print(f"Статус:  {'OK' if ok else 'FAIL'} – {msg}\n")
 
 print("Запрашиваем метрики (последние 5 минут)...")
 now = time.time()
@@ -23,7 +23,7 @@ try:
     print(f"Точек:       {len(md.timestamps)}")
     print(f"Экземпляры:  {md.instance_names[:10]}")
     if md.n_instances == 0:
-        print("\n[!!] Нет данных — смотрим raw запрос:")
+        print("\n[!!] Нет данных – смотрим raw запрос:")
         import requests, yaml
         with open(cfg) as f:
             c = yaml.safe_load(f)

@@ -1,9 +1,9 @@
-"""AnomalyMonitor — автономный мониторинг аномалий для CAIRN.
+"""AnomalyMonitor – автономный мониторинг аномалий для CAIRN.
 
 Цикл работы:
   1. Собирает метрики через LiveSystemConnector каждые poll_interval секунд
   2. Быстро оценивает аномальность через GMM (без полного анализа)
-  3. Если NLL > порога — эмитирует сигнал anomaly_detected
+  3. Если NLL > порога – эмитирует сигнал anomaly_detected
   4. Контроллер запускает полный анализ и уведомляет оператора
 
 Использование:
@@ -104,7 +104,7 @@ class AnomalyMonitor(QThread):
         # Быстрая оценка аномальности
         nll_score = self._compute_anomaly_score(md)
         if nll_score is None:
-            # Модель не загружена — используем статистический метод
+            # Модель не загружена – используем статистический метод
             nll_score = self._statistical_anomaly_score(md)
 
         # Обновляем историю для адаптивного порога
@@ -202,7 +202,7 @@ class AnomalyMonitor(QThread):
             return None
 
     def _statistical_anomaly_score(self, md) -> float:
-        """Статистическая оценка без модели — Cohen's d от baseline."""
+        """Статистическая оценка без модели – Cohen's d от baseline."""
         if len(md.timestamps) < 6:
             return 0.0
 
@@ -230,7 +230,7 @@ class AnomalyMonitor(QThread):
         До этого момента алерты не отправляются (возвращаем inf).
         """
         if len(self._nll_history) < self._min_baseline_cycles:
-            return float('inf')  # Ещё нет baseline — не алертим
+            return float('inf')  # Ещё нет baseline – не алертим
         if self._baseline_nll is not None:
             return self._baseline_nll + max(
                 self._threshold * self._baseline_std,

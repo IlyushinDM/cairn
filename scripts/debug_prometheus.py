@@ -1,4 +1,4 @@
-"""Диагностика Prometheus — показывает доступные метрики и labels."""
+"""Диагностика Prometheus – показывает доступные метрики и labels."""
 
 import subprocess
 import json

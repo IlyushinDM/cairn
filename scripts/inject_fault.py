@@ -1,9 +1,9 @@
 """Инъекция сбоев в Online Boutique и запуск CAIRN-анализа.
 
 Три типа сбоев:
-  cpu       — CPU stress в целевом контейнере (требует stress-ng)
-  pause     — приостановка контейнера (имитирует network partition)
-  memory    — утечка памяти через stress-ng
+  cpu       – CPU stress в целевом контейнере (требует stress-ng)
+  pause     – приостановка контейнера (имитирует network partition)
+  memory    – утечка памяти через stress-ng
 
 Использование:
     # Инъекция CPU в cartservice, 60 секунд
@@ -101,8 +101,8 @@ def inject_cpu(container: str, duration: int) -> None:
                 print(f"[OK] stress запущен")
                 return
 
-    # Distroless — pause/unpause cycle
-    print("[~~] Distroless-образ — использую pause/unpause cycle...")
+    # Distroless – pause/unpause cycle
+    print("[~~] Distroless-образ – использую pause/unpause cycle...")
     stop = threading.Event()
 
     def _cycle():
@@ -121,7 +121,7 @@ def inject_cpu(container: str, duration: int) -> None:
 
 
 def inject_pause(container: str, duration: int) -> None:
-    """Приостановка контейнера — имитирует network partition."""
+    """Приостановка контейнера – имитирует network partition."""
     print(f"\n[→] Pause {container} на {duration}с...")
     subprocess.run(["docker", "pause", container], check=True)
     print(f"[OK] Контейнер приостановлен")
@@ -131,7 +131,7 @@ def inject_pause(container: str, duration: int) -> None:
 
 
 def inject_memory(container: str, duration: int) -> None:
-    """Memory stress. Для distroless — fallback на pause/unpause."""
+    """Memory stress. Для distroless – fallback на pause/unpause."""
     print(f"\n[->] Memory stress в {container} на {duration}с...")
     if _has_shell(container):
         cmds = [
@@ -144,12 +144,12 @@ def inject_memory(container: str, duration: int) -> None:
             if r.returncode == 0:
                 print("[OK] memory stress запущен")
                 return
-    print("[~~] Distroless — fallback на pause/unpause cycle")
+    print("[~~] Distroless – fallback на pause/unpause cycle")
     inject_cpu(container, duration)
 
 
 # Метрики которые запрашиваем из Prometheus (cAdvisor)
-# Используем rate(60s) — надёжнее irate после перезапуска стека
+# Используем rate(60s) – надёжнее irate после перезапуска стека
 PROM_QUERIES = {
     "cpu":        'irate(container_cpu_usage_seconds_total{id=~"/docker/.+"}[60s])',
     "memory_mb":  'container_memory_usage_bytes{id=~"/docker/.+"} / 1048576',
@@ -219,7 +219,7 @@ def _fetch_prometheus_direct(url: str, metric_names: list,
     if not all_data:
         print("[!!] Нет данных из Prometheus.")
         print(f"     Найдено cairn-контейнеров: {len(hash_to_name)}")
-        print("     Возможно временной диапазон слишком мал — увеличьте --warmup.")
+        print("     Возможно временной диапазон слишком мал – увеличьте --warmup.")
         return None
 
     inst_names   = sorted(all_data.keys())
@@ -392,7 +392,7 @@ def _analyze_stats(norm_data: dict, anom_data: dict,
     import numpy as np
 
     # Фильтруем: только сервисы из boutique_topology.yaml
-    # Инфраструктурные (prometheus, cadvisor) исключаем — они не часть приложения
+    # Инфраструктурные (prometheus, cadvisor) исключаем – они не часть приложения
     BOUTIQUE_SERVICES = {
         "cairn-frontend", "cairn-cartservice", "cairn-checkoutservice",
         "cairn-paymentservice", "cairn-shippingservice", "cairn-currencyservice",
@@ -432,7 +432,7 @@ def _analyze_stats(norm_data: dict, anom_data: dict,
         hypergraph = HypergraphBuilder.from_topology_data(topo)
 
         # Для каждого сервиса: сколько других вызывает его (n_callers)?
-        # Downstream (много вызывающих) — жертва, штраф к скору
+        # Downstream (много вызывающих) – жертва, штраф к скору
         called_by: dict[str, int] = {}
         callee_map: dict[str, list] = {}
         for edge in hypergraph.edges:
@@ -458,7 +458,7 @@ def _analyze_stats(norm_data: dict, anom_data: dict,
             print(f"     [топология] скор скорректирован: {top_orig} -> {top_adj}")
         scores = adjusted
     except Exception as e:
-        pass  # топология недоступна — используем исходные скоры
+        pass  # топология недоступна – используем исходные скоры
 
     ranked = sorted(scores.items(), key=lambda x: x[1], reverse=True)
 
@@ -481,9 +481,9 @@ def _analyze_stats(norm_data: dict, anom_data: dict,
     print(f"Инжектированный сбой:     {target_container} ({fault_type})")
 
     if root_name == target_container:
-        print("Результат: ✓ ВЕРНО — первопричина определена точно")
+        print("Результат: ✓ ВЕРНО – первопричина определена точно")
     elif target_rank and target_rank <= 3:
-        print(f"Результат: ~ ЧАСТИЧНО — {target_container} на ранге #{target_rank}")
+        print(f"Результат: ~ ЧАСТИЧНО – {target_container} на ранге #{target_rank}")
         print(f"           Каскадный эффект через топологию")
     else:
         print(f"Результат: ✗ {target_container} на ранге #{target_rank}")
@@ -548,7 +548,7 @@ def _run_cairn_on_live_data(md, hypergraph, target_service, fault_type,
     """Запускает CAIRN-анализ на живых данных.
 
     Метод: сравниваем variance ratio метрик в нормальный и аномальный периоды.
-    Pause/unpause создаёт высокую дисперсию в аномальный период — это
+    Pause/unpause создаёт высокую дисперсию в аномальный период – это
     физически корректный детектор для live-данных любого формата.
     """
     import numpy as np
@@ -587,7 +587,7 @@ def _run_cairn_on_live_data(md, hypergraph, target_service, fault_type,
             std_norm = col[norm_mask].std()
             std_anom = col[anom_mask].std()
 
-            # Pooled std (Cohen's d style) — не взрывается при std_norm → 0
+            # Pooled std (Cohen's d style) – не взрывается при std_norm → 0
             pooled = np.sqrt((std_norm**2 + std_anom**2) / 2.0 + 1e-9)
 
             # Effect size: насколько изменилось среднее относительно типичного разброса
@@ -645,9 +645,9 @@ def _run_cairn_on_live_data(md, hypergraph, target_service, fault_type,
     print(f"\nПервопричина по CAIRN:    {root_name}  (score={root_score:.3f})")
     print(f"Инжектированный сбой:     {target_container} ({fault_type})")
     if correct:
-        print("Результат: ✓ ВЕРНО — первопричина определена точно")
+        print("Результат: ✓ ВЕРНО – первопричина определена точно")
     elif target_rank and target_rank <= 3:
-        print(f"Результат: ~ ЧАСТИЧНО — {target_container} на ранге #{target_rank}")
+        print(f"Результат: ~ ЧАСТИЧНО – {target_container} на ранге #{target_rank}")
         print(f"           Каскадный эффект: {root_name} показал наибольшую аномалию")
         print(f"           как downstream-зависимость инжектированного сбоя")
     else:
@@ -660,7 +660,7 @@ def _run_cairn_on_live_data(md, hypergraph, target_service, fault_type,
         print(f"  #{rank}  {name:<35} score={score:.3f}{marker}")
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="CAIRN Fault Injector — Online Boutique")
+    parser = argparse.ArgumentParser(description="CAIRN Fault Injector – Online Boutique")
     parser.add_argument("--type",     default="cpu",
                         choices=["cpu", "pause", "memory"],
                         help="Тип инъекции")
@@ -683,7 +683,7 @@ def main() -> None:
         check_stack()
         return
 
-    # --live: docker stats режим — собираем норму ДО, аномалию ВО ВРЕМЯ инъекции
+    # --live: docker stats режим – собираем норму ДО, аномалию ВО ВРЕМЯ инъекции
     if args.live or (args.analyze and not _prometheus_has_per_container_data()):
         print(f"╔══════════════════════════════════════════╗")
         print(f"║     CAIRN Live Analysis (docker stats)   ║")
@@ -727,7 +727,7 @@ def main() -> None:
 
     container = SERVICE_MAP.get(args.target, args.target)
 
-    # Прогрев — нормальная работа
+    # Прогрев – нормальная работа
     if args.warmup > 0:
         print(f"\n[→] Прогрев {args.warmup}с (нормальная работа)...")
         time.sleep(args.warmup)
@@ -755,7 +755,7 @@ def main() -> None:
             # docker stats: собираем нормальный период ДО и аномальный ВО ВРЕМЯ инъекции
             # Поэтому запускаем collect_and_analyze параллельно с инъекцией
             print(f"\n[~~] Windows/WSL2 режим: docker stats собирается параллельно с инъекцией.")
-            print(f"     Запустите заново с флагом --analyze — "
+            print(f"     Запустите заново с флагом --analyze – "
                   f"сбор нормы ({args.warmup}с) и аномалии ({args.duration}с).")
             print(f"\n     Команда для полного теста:")
             print(f"     python scripts/inject_fault.py "

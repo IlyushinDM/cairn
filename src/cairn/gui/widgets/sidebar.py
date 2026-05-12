@@ -64,7 +64,7 @@ class ModuleCheckBox(QCheckBox):
         super().__init__(text, parent)
         if planned:
             self.setEnabled(False)
-            self.setToolTip("В разработке — модуль планируется в следующей версии")
+            self.setToolTip("В разработке – модуль планируется в следующей версии")
         elif not enabled:
             self.setEnabled(False)
         else:
@@ -125,13 +125,13 @@ class Sidebar(QWidget):
         src_layout.setSpacing(12)
 
         self.metrics_src = DataSourceSection(
-            "Метрики", ["CSV-файл", "Prometheus", "—"]
+            "Метрики", ["CSV-файл", "Prometheus", "–"]
         )
         self.log_src = DataSourceSection(
-            "Журналы", ["Текстовый файл", "Elasticsearch", "—"]
+            "Журналы", ["Текстовый файл", "Elasticsearch", "–"]
         )
         self.trace_src = DataSourceSection(
-            "Трассировки", ["JSON-файл", "Jaeger", "—"]
+            "Трассировки", ["JSON-файл", "Jaeger", "–"]
         )
 
         for src in (self.metrics_src, self.log_src, self.trace_src):

@@ -7,7 +7,7 @@ global:
 
 scrape_configs:
 
-  # ── cAdvisor — метрики всех контейнеров ────────────────────────────────────
+  # ── cAdvisor – метрики всех контейнеров ────────────────────────────────────
   - job_name: "cadvisor"
     static_configs:
       - targets: ["cadvisor:8080"]

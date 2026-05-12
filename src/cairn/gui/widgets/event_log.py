@@ -1,4 +1,4 @@
-"""Журнал событий CAIRN — фиксирует инциденты и действия системы.
+"""Журнал событий CAIRN – фиксирует инциденты и действия системы.
 
 Показывает оператору что происходило в системе с временными метками.
 Новые события добавляются сверху.
@@ -124,7 +124,7 @@ class EventLogWidget(QWidget):
 
     def add_anomaly(self, service: str, score: float, fault_type: str) -> None:
         self.add_event(
-            f"АНОМАЛИЯ: {service} — тип: {fault_type}",
+            f"АНОМАЛИЯ: {service} – тип: {fault_type}",
             level=EventLevel.ERROR,
             service=service,
             score=score,
@@ -134,7 +134,7 @@ class EventLogWidget(QWidget):
                              fault_type: str, confidence: float) -> None:
         self.add_event(
             f"Первопричина: {root_name} ({fault_type}) "
-            f"— уверенность {confidence:.0%}",
+            f"– уверенность {confidence:.0%}",
             level=EventLevel.SUCCESS,
             service=root_name,
             score=score,

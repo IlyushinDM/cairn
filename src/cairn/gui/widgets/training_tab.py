@@ -168,7 +168,7 @@ class TrainingTab(QWidget):
         self.btn_stop.setEnabled(False)
         self.btn_stop.clicked.connect(self.stop_requested)
 
-        self.stage_label = QLabel("Этап: —")
+        self.stage_label = QLabel("Этап: –")
         self.stage_label.setStyleSheet("color: #6c7a9c; font-size: 12px;")
 
         ctrl.addWidget(self.btn_start)
@@ -211,12 +211,12 @@ class TrainingTab(QWidget):
         self.loss_table.setAlternatingRowColors(True)
 
         components = [
-            ("L_ПЭ",  "—", "Ранжирование причинных эффектов"),
-            ("L_УМ",  "—", "Условная модель нормального состояния"),
-            ("L_ВАК", "—", "Вариационный автокодировщик"),
-            ("L_нез", "—", "Ограничение независимости"),
-            ("L_КР",  "—", "Контрастное разделение"),
-            ("L_реб", "—", "Штраф за необоснованные рёбра"),
+            ("L_ПЭ",  "–", "Ранжирование причинных эффектов"),
+            ("L_УМ",  "–", "Условная модель нормального состояния"),
+            ("L_ВАК", "–", "Вариационный автокодировщик"),
+            ("L_нез", "–", "Ограничение независимости"),
+            ("L_КР",  "–", "Контрастное разделение"),
+            ("L_реб", "–", "Штраф за необоснованные рёбра"),
         ]
         for row, (name, val, desc) in enumerate(components):
             self.loss_table.setItem(row, 0, QTableWidgetItem(name))
@@ -232,7 +232,7 @@ class TrainingTab(QWidget):
         self.epoch_label.setText(f"Эпоха {epoch} / {total}")
         pct = int(epoch / max(total, 1) * 100)
         self.progress_bar.setValue(pct)
-        self.stage_label.setText(f"Этап {stage}/3 — {stage_name}")
+        self.stage_label.setText(f"Этап {stage}/3 – {stage_name}")
         # Обновляем график
         key_map = {1: "pretrain", 2: "main", 3: "finetune"}
 

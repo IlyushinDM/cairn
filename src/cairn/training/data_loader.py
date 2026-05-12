@@ -1,10 +1,10 @@
 """Загрузчик данных для обучения CAIRN (раздел 5.2).
 
 Иерархия:
-  Incident        — одна размеченная аномалия с тензорами и метками
-  CAIRNDataset    — набор инцидентов (torch.utils.data.Dataset)
-  IncidentBuilder — строит Incident из MetricData + LogData + TraceData
-  create_demo_dataset — создаёт датасет из демо-файлов
+  Incident        – одна размеченная аномалия с тензорами и метками
+  CAIRNDataset    – набор инцидентов (torch.utils.data.Dataset)
+  IncidentBuilder – строит Incident из MetricData + LogData + TraceData
+  create_demo_dataset – создаёт датасет из демо-файлов
 """
 
 from __future__ import annotations
@@ -26,17 +26,17 @@ from torch.utils.data import Dataset, DataLoader
 
 @dataclass
 class Incident:
-    """Один обучающий пример — инцидент или нормальное окно.
+    """Один обучающий пример – инцидент или нормальное окно.
 
     Атрибуты
     ----------
-    metric_data  : Tensor (N, T, F)  — временные ряды метрик
-    log_data     : Tensor (N, L)     — ID шаблонов журналов
-    trace_data   : Tensor (N,)       — глубины вызовов
-    context      : Tensor (N, C)     — контекстные векторы (или нули)
-    root_cause   : int               — индекс первопричины (-1 = нормальное окно)
-    fault_type   : str               — тип сбоя ("normal" для нормальных окон)
-    instance_names: list[str]        — имена экземпляров (длина N)
+    metric_data  : Tensor (N, T, F)  – временные ряды метрик
+    log_data     : Tensor (N, L)     – ID шаблонов журналов
+    trace_data   : Tensor (N,)       – глубины вызовов
+    context      : Tensor (N, C)     – контекстные векторы (или нули)
+    root_cause   : int               – индекс первопричины (-1 = нормальное окно)
+    fault_type   : str               – тип сбоя ("normal" для нормальных окон)
+    instance_names: list[str]        – имена экземпляров (длина N)
     is_anomaly   : bool
     """
     metric_data:    torch.Tensor
@@ -68,9 +68,9 @@ class CAIRNDataset(Dataset):
     ----------
     incidents : list[Incident]
     normal_only : bool
-        Если True — возвращает только нормальные окна (для претрейна).
+        Если True – возвращает только нормальные окна (для претрейна).
     anomaly_only : bool
-        Если True — возвращает только аномальные окна (для основного этапа).
+        Если True – возвращает только аномальные окна (для основного этапа).
     """
 
     def __init__(

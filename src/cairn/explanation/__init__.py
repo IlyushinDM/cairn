@@ -1,18 +1,18 @@
-"""Фаза объяснения CAIRN — цепочки доказательств, верификация, отчёты.
+"""Фаза объяснения CAIRN – цепочки доказательств, верификация, отчёты.
 
 Публичный API:
-    EvidenceChain           — структура данных цепочки доказательств
-    NodeAnnotation          — аннотация узла
-    EdgeAnnotation          — аннотация ребра
-    EvidenceChainBuilder    — строит цепочку из результатов рассуждения
-    TemplateTextGenerator   — шаблонный генератор объяснений (MVP)
-    TextExplanationGenerator — фасад с выбором уровня генерации
-    ALPVerifier             — верификатор по 5 правилам целостности
-    ALPVerificationResult   — результат верификации
-    MediationDiagnostic     — медиационная диагностика вклада компонентов
-    MediationReport         — отчёт медиации
-    LayerContribution       — вклад слоя свёртки
-    EdgeContribution        — вклад гиперребра
+    EvidenceChain           – структура данных цепочки доказательств
+    NodeAnnotation          – аннотация узла
+    EdgeAnnotation          – аннотация ребра
+    EvidenceChainBuilder    – строит цепочку из результатов рассуждения
+    TemplateTextGenerator   – шаблонный генератор объяснений (MVP)
+    TextExplanationGenerator – фасад с выбором уровня генерации
+    ALPVerifier             – верификатор по 5 правилам целостности
+    ALPVerificationResult   – результат верификации
+    MediationDiagnostic     – медиационная диагностика вклада компонентов
+    MediationReport         – отчёт медиации
+    LayerContribution       – вклад слоя свёртки
+    EdgeContribution        – вклад гиперребра
 """
 
 from cairn.explanation.evidence_chain import (

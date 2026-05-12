@@ -1,4 +1,4 @@
-"""Боковые панели CAIRN — Sources и Modules как отдельные виджеты.
+"""Боковые панели CAIRN – Sources и Modules как отдельные виджеты.
 
 Каждая панель показывается независимо при нажатии на иконку в ActivityBar.
 """
@@ -93,9 +93,9 @@ class SourcesPanel(SidePanelBase):
         cl = self._content_layout
 
         for src_title, options in [
-            ("Метрики",     ["CSV-файл", "Prometheus", "docker_stats", "—"]),
-            ("Журналы",     ["Текстовый файл", "Elasticsearch", "—"]),
-            ("Трассировки", ["JSON-файл", "Jaeger", "—"]),
+            ("Метрики",     ["CSV-файл", "Prometheus", "docker_stats", "–"]),
+            ("Журналы",     ["Текстовый файл", "Elasticsearch", "–"]),
+            ("Трассировки", ["JSON-файл", "Jaeger", "–"]),
         ]:
             grp = QGroupBox(src_title)
             gl  = QVBoxLayout(grp)

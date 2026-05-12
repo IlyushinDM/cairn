@@ -1,10 +1,10 @@
 """Метрики качества локализации первопричин.
 
 Функции:
-    compute_precision_at_k  — AC@k (Accuracy@k)
-    compute_ndcg            — NDCG@k
-    compute_mrr             — Mean Reciprocal Rank
-    compute_extended_metrics — все метрики для одного инцидента
+    compute_precision_at_k  – AC@k (Accuracy@k)
+    compute_ndcg            – NDCG@k
+    compute_mrr             – Mean Reciprocal Rank
+    compute_extended_metrics – все метрики для одного инцидента
 """
 from __future__ import annotations
 import math

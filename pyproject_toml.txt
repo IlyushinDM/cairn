@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "cairn"
 version = "0.1.0"
-description = "Causal Attentive Intervention Reasoning Network — система поиска первопричин сбоев в микросервисных системах"
+description = "Causal Attentive Intervention Reasoning Network – система поиска первопричин сбоев в микросервисных системах"
 readme = "README.md"
 license = { file = "LICENSE" }
 authors = [{ name = "Ткач Д.М." }]

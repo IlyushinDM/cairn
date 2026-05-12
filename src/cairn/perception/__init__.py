@@ -1,16 +1,16 @@
-"""Фаза восприятия CAIRN — кодировщики данных и построитель гиперграфа.
+"""Фаза восприятия CAIRN – кодировщики данных и построитель гиперграфа.
 
 Публичный API:
-    DualBranchMetricEncoder  — двухветвевой кодировщик метрик (SSM + разрыв)
-    LogEncoder               — кодировщик журналов (Drain → GRU)
-    DrainTokenizer           — парсер шаблонов журналов
-    TraceEncoder             — синусоидальное кодирование глубины вызова
-    ContextBuilder           — контекстный вектор cᵢ ∈ ℝ¹⁶
-    StateBuilder             — объединитель модальностей → hᵢ ∈ ℝ¹²⁸
-    HypergraphBuilder        — строитель причинного гиперграфа
-    CausalHypergraph         — структура данных гиперграфа
-    HyperEdge                — одно гиперребро
-    EdgeType                 — тип гиперребра
+    DualBranchMetricEncoder  – двухветвевой кодировщик метрик (SSM + разрыв)
+    LogEncoder               – кодировщик журналов (Drain → GRU)
+    DrainTokenizer           – парсер шаблонов журналов
+    TraceEncoder             – синусоидальное кодирование глубины вызова
+    ContextBuilder           – контекстный вектор cᵢ ∈ ℝ¹⁶
+    StateBuilder             – объединитель модальностей → hᵢ ∈ ℝ¹²⁸
+    HypergraphBuilder        – строитель причинного гиперграфа
+    CausalHypergraph         – структура данных гиперграфа
+    HyperEdge                – одно гиперребро
+    EdgeType                 – тип гиперребра
 """
 
 from cairn.perception.metric_encoder import (

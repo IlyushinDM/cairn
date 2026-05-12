@@ -1,12 +1,12 @@
 """Формирование вектора состояния и контекстного вектора экземпляра (разделы 2.4–2.5).
 
 Компоненты:
-  ContextBuilder  — строит контекстный вектор cᵢ ∈ ℝ¹⁶ из метаданных среды.
-  StateBuilder    — объединяет три модальности в вектор состояния hᵢ ∈ ℝ¹²⁸:
+  ContextBuilder  – строит контекстный вектор cᵢ ∈ ℝ¹⁶ из метаданных среды.
+  StateBuilder    – объединяет три модальности в вектор состояния hᵢ ∈ ℝ¹²⁸:
 
       hᵢ = LayerNorm(W_fuse · [h_met ∥ h_log ∥ h_tr] + b_fuse)   (формула 2.11)
 
-  PerceptionPipeline — точка входа: принимает батч сырых данных,
+  PerceptionPipeline – точка входа: принимает батч сырых данных,
       возвращает H ∈ ℝ^{N×128} и C ∈ ℝ^{N×16}.
 """
 
@@ -38,7 +38,7 @@ class ContextBuilder(nn.Module):
       - cpu_norm     : cpu_limit / cpu_max (1)
       - mem_norm     : memory_limit / mem_max (1)
 
-    Плюс версия деплоя — кодируется как номер в [0, 1] (1).
+    Плюс версия деплоя – кодируется как номер в [0, 1] (1).
     Итого raw_dim=8, проецируется в context_dim=16.
 
     Параметры
@@ -74,11 +74,11 @@ class ContextBuilder(nn.Module):
     @staticmethod
     def build_raw(
         rps: torch.Tensor,          # (batch,)
-        hour: torch.Tensor,         # (batch,) — час [0,23]
-        day_of_week: torch.Tensor,  # (batch,) — день [0,6]
-        cpu_norm: torch.Tensor,     # (batch,) — cpu_limit/max_cpu
-        mem_norm: torch.Tensor,     # (batch,) — memory_limit/max_mem
-        version_norm: torch.Tensor, # (batch,) — версия в [0,1]
+        hour: torch.Tensor,         # (batch,) – час [0,23]
+        day_of_week: torch.Tensor,  # (batch,) – день [0,6]
+        cpu_norm: torch.Tensor,     # (batch,) – cpu_limit/max_cpu
+        mem_norm: torch.Tensor,     # (batch,) – memory_limit/max_mem
+        version_norm: torch.Tensor, # (batch,) – версия в [0,1]
         rps_max: float = 1000.0,
     ) -> torch.Tensor:
         """Строит raw-вектор из числовых метаданных среды.
@@ -97,7 +97,7 @@ class ContextBuilder(nn.Module):
 
 
 # ---------------------------------------------------------------------------
-# StateBuilder — объединение модальностей
+# StateBuilder – объединение модальностей
 # ---------------------------------------------------------------------------
 
 
@@ -107,13 +107,13 @@ class StateBuilder(nn.Module):
     Параметры
     ----------
     n_metrics : int
-        F — число метрик в временном ряду.
+        F – число метрик в временном ряду.
     log_vocab_size : int
         Размер словаря шаблонов журналов (включая PAD=0 и UNK=1).
     state_dim : int
-        d = 128 — итоговая размерность вектора состояния.
+        d = 128 – итоговая размерность вектора состояния.
     context_dim : int
-        dc = 16 — размерность контекстного вектора.
+        dc = 16 – размерность контекстного вектора.
     d_met : int
         Размерность выхода кодировщика метрик.
     d_log : int
@@ -125,9 +125,9 @@ class StateBuilder(nn.Module):
     d_brk : int
         Размерность ветви разрыва метрик.
     ssm_state_dim : int
-        D — размерность скрытого состояния SSM.
+        D – размерность скрытого состояния SSM.
     window : int
-        W — размер окна для ветви разрыва.
+        W – размер окна для ветви разрыва.
     context_raw_dim : int
         Размерность сырого контекстного вектора.
     """
@@ -183,7 +183,7 @@ class StateBuilder(nn.Module):
     def forward(
         self,
         metrics: torch.Tensor,                       # (batch, T, F)
-        log_ids: torch.Tensor,                       # (batch, T_l) — ID шаблонов
+        log_ids: torch.Tensor,                       # (batch, T_l) – ID шаблонов
         trace_depth: torch.Tensor,                   # (batch,) или (batch, n_spans)
         context_raw: Optional[torch.Tensor] = None,  # (batch, raw_dim)
         log_lengths: Optional[torch.Tensor] = None,  # (batch,)
@@ -191,10 +191,10 @@ class StateBuilder(nn.Module):
         """
         Возвращает
         ----------
-        h : Tensor, shape (batch, state_dim)      — вектор состояния
-        c : Tensor, shape (batch, context_dim)    — контекстный вектор
+        h : Tensor, shape (batch, state_dim)      – вектор состояния
+        c : Tensor, shape (batch, context_dim)    – контекстный вектор
 
-        Если context_raw не передан — c возвращается как нулевой тензор.
+        Если context_raw не передан – c возвращается как нулевой тензор.
         """
         h_met = self.metric_enc(metrics)                    # (batch, d_met)
         h_log = self.log_enc(log_ids, log_lengths)         # (batch, d_log)

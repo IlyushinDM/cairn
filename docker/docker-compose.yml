@@ -1,4 +1,4 @@
-# CAIRN Demo — Online Boutique + Observability Stack
+# CAIRN Demo – Online Boutique + Observability Stack
 # Запуск: docker compose -f docker/docker-compose.yml up -d
 # Остановка: docker compose -f docker/docker-compose.yml down
 
@@ -30,7 +30,7 @@ services:
       - cairn-net
     restart: unless-stopped
 
-  # ── cAdvisor — метрики контейнеров ─────────────────────────────────────────
+  # ── cAdvisor – метрики контейнеров ─────────────────────────────────────────
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:v0.49.1
     container_name: cairn-cadvisor
@@ -195,7 +195,7 @@ services:
       - cairn-net
     restart: unless-stopped
 
-  # ── Load Generator — фоновый трафик ────────────────────────────────────────
+  # ── Load Generator – фоновый трафик ────────────────────────────────────────
   loadgenerator:
     image: gcr.io/google-samples/microservices-demo/loadgenerator:v0.10.1
     container_name: cairn-loadgenerator

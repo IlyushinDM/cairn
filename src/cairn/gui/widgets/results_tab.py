@@ -1,4 +1,4 @@
-"""Вкладка «Результаты» — таблица ранжирования + визуализация гиперграфа."""
+"""Вкладка «Результаты» – таблица ранжирования + визуализация гиперграфа."""
 
 from __future__ import annotations
 
@@ -58,9 +58,9 @@ class ResultsTab(QWidget):
 
         self.root_label = QLabel("Первопричина не определена")
         self.root_label.setObjectName("metricValue")
-        self.ce_label = QLabel("ПЭ: —")
+        self.ce_label = QLabel("ПЭ: –")
         self.ce_label.setStyleSheet("font-size: 14px; color: #6c7a9c;")
-        self.conf_label = QLabel("Достоверность: —")
+        self.conf_label = QLabel("Достоверность: –")
         self.conf_label.setStyleSheet("font-size: 14px; color: #6c7a9c;")
 
         sf_layout.addWidget(self.root_label)
@@ -118,7 +118,7 @@ class ResultsTab(QWidget):
 
     def show_results(self, ranked: list[tuple[int, float]], instance_names: list[str],
                      nll_scores: dict, verification_confidence: float = 1.0,
-                     fault_type: str = "—"):
+                     fault_type: str = "–"):
         """Заполняет таблицу результатами воронки."""
         self.results_table.setRowCount(0)
         for rank, (idx, ce) in enumerate(ranked, 1):
@@ -129,8 +129,8 @@ class ResultsTab(QWidget):
             self.results_table.setItem(row, 0, self._centered(str(rank)))
             self.results_table.setItem(row, 1, QTableWidgetItem(name))
             self.results_table.setItem(row, 2, self._centered(f"{ce:.3f}"))
-            self.results_table.setItem(row, 3, QTableWidgetItem(fault_type if rank == 1 else "—"))
-            conf_pct = f"{verification_confidence:.0%}" if rank == 1 else "—"
+            self.results_table.setItem(row, 3, QTableWidgetItem(fault_type if rank == 1 else "–"))
+            conf_pct = f"{verification_confidence:.0%}" if rank == 1 else "–"
             self.results_table.setItem(row, 4, self._centered(conf_pct))
             self.results_table.setRowHeight(row, 36)
 

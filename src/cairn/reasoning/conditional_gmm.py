@@ -2,10 +2,10 @@
 
 P(h | c, Θ) = Σ_k ω_k(c) · N(h | μ_k(c), diag(σ_k²(c)))
 
-Параметры каждой компоненты — функция контекстного вектора c:
+Параметры каждой компоненты – функция контекстного вектора c:
   MLP_μ  : c → (D × d)
-  MLP_σ  : c → (D × d) — log-дисперсии
-  MLP_ω  : c → D        — логиты весов
+  MLP_σ  : c → (D × d) – log-дисперсии
+  MLP_ω  : c → D        – логиты весов
 """
 
 from __future__ import annotations
@@ -25,11 +25,11 @@ class ConditionalGMM(nn.Module):
     Параметры
     ----------
     state_dim : int
-        d — размерность вектора состояния.
+        d – размерность вектора состояния.
     context_dim : int
-        d_c = 16 — размерность контекстного вектора.
+        d_c = 16 – размерность контекстного вектора.
     n_components : int
-        D = 5 — число гауссовых компонент.
+        D = 5 – число гауссовых компонент.
     hidden_dim : int
         Ширина скрытого слоя MLP.
     """
@@ -45,17 +45,17 @@ class ConditionalGMM(nn.Module):
         self.state_dim = state_dim
         self.n_components = n_components
 
-        # MLP_μ: c → (D × d)   — условные центры (формула 3.2)
+        # MLP_μ: c → (D × d)   – условные центры (формула 3.2)
         self.mlp_mu = nn.Sequential(
             nn.Linear(context_dim, hidden_dim), nn.ReLU(),
             nn.Linear(hidden_dim, n_components * state_dim),
         )
-        # MLP_σ: c → (D × d)   — log-дисперсии (формула 3.3)
+        # MLP_σ: c → (D × d)   – log-дисперсии (формула 3.3)
         self.mlp_log_sigma = nn.Sequential(
             nn.Linear(context_dim, hidden_dim), nn.ReLU(),
             nn.Linear(hidden_dim, n_components * state_dim),
         )
-        # MLP_ω: c → D          — логиты весов (формула 3.4)
+        # MLP_ω: c → D          – логиты весов (формула 3.4)
         self.mlp_omega = nn.Sequential(
             nn.Linear(context_dim, hidden_dim // 2), nn.ReLU(),
             nn.Linear(hidden_dim // 2, n_components),
@@ -76,9 +76,9 @@ class ConditionalGMM(nn.Module):
 
         Возвращает
         ----------
-        weights : Tensor, shape (batch, D)       — суммируются в 1
+        weights : Tensor, shape (batch, D)       – суммируются в 1
         means   : Tensor, shape (batch, D, d)
-        log_vars: Tensor, shape (batch, D, d)    — log σ²
+        log_vars: Tensor, shape (batch, D, d)    – log σ²
         """
         batch = context.shape[0]
         D, d = self.n_components, self.state_dim
@@ -89,7 +89,7 @@ class ConditionalGMM(nn.Module):
         return weights, means, log_vars
 
     def log_prob(self, h: torch.Tensor, context: torch.Tensor) -> torch.Tensor:
-        """log P(h | c, Θ) — формула 3.1.
+        """log P(h | c, Θ) – формула 3.1.
 
         Параметры
         ----------
@@ -107,7 +107,7 @@ class ConditionalGMM(nn.Module):
         weights, means, log_vars = self.forward(context)    # (B, D, d)
         h_exp = h.unsqueeze(1).expand_as(means)             # (B, D, d)
 
-        # log N(h | μ_k, diag(σ_k²)) — формула 3.1 (диагональная ковариация)
+        # log N(h | μ_k, diag(σ_k²)) – формула 3.1 (диагональная ковариация)
         log_gauss = -0.5 * (
             ((h_exp - means) ** 2 / (log_vars.exp() + 1e-8)).sum(-1)
             + log_vars.sum(-1)
@@ -120,11 +120,11 @@ class ConditionalGMM(nn.Module):
         return log_p
 
     def nll(self, h: torch.Tensor, context: torch.Tensor) -> torch.Tensor:
-        """Отрицательный логарифм правдоподобия — мера аномальности NLL_i (формула 3.7)."""
+        """Отрицательный логарифм правдоподобия – мера аномальности NLL_i (формула 3.7)."""
         return -self.log_prob(h, context)
 
     def prototype(self, context: torch.Tensor) -> torch.Tensor:
-        """Условный прототип μ*(c) — центр компоненты с максимальным весом (формула 3.5–3.6).
+        """Условный прототип μ*(c) – центр компоненты с максимальным весом (формула 3.5–3.6).
 
         Параметры
         ----------
@@ -168,7 +168,7 @@ class ConditionalGMM(nn.Module):
 
         Возвращает
         ----------
-        bool — True если дрейф обнаружен.
+        bool – True если дрейф обнаружен.
         """
         if nll_history.numel() < window:
             return False

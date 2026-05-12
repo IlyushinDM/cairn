@@ -8,8 +8,8 @@
 Адаптивные гиперрёбра добавляются верификатором (раздел 3.4).
 
 Интеграция:
-  HypergraphBuilder.from_topology_data(topo) — строит граф из TopologyData.
-  CausalHypergraph.to_pyg_tensors()          — возвращает тензоры для PyG/HGNN.
+  HypergraphBuilder.from_topology_data(topo) – строит граф из TopologyData.
+  CausalHypergraph.to_pyg_tensors()          – возвращает тензоры для PyG/HGNN.
 """
 
 from __future__ import annotations
@@ -65,7 +65,7 @@ class CausalHypergraph:
     def incidence_matrix(self, causal_only: bool = False) -> torch.Tensor:
         """Матрица инцидентности H ∈ {0,1}^{N×M}.
 
-        Строки — вершины, столбцы — гиперрёбра.
+        Строки – вершины, столбцы – гиперрёбра.
         Используется в формуле 3.24: X^{l+1} = D_v^{-½} H W_H D_e^{-1} H^T D_v^{-½} X^{l} Θ
         """
         edges = [e for e in self.edges if e.verified] if causal_only else self.edges
@@ -86,9 +86,9 @@ class CausalHypergraph:
         """Возвращает словарь тензоров для использования в PyG/HGNN.
 
         Ключи:
-          incidence       : Tensor (N, M) — матрица инцидентности
-          edge_weights    : Tensor (M,)   — веса рёбер
-          edge_type_ids   : Tensor (M,)   — int-коды типов рёбер
+          incidence       : Tensor (N, M) – матрица инцидентности
+          edge_weights    : Tensor (M,)   – веса рёбер
+          edge_type_ids   : Tensor (M,)   – int-коды типов рёбер
           n_nodes         : int
           n_edges         : int
           instance_names  : list[str]
@@ -170,7 +170,7 @@ class HypergraphBuilder:
         self.n_nodes = n_nodes
 
     # ------------------------------------------------------------------
-    # Основной метод — из TopologyData (интеграция с коннекторами)
+    # Основной метод – из TopologyData (интеграция с коннекторами)
     # ------------------------------------------------------------------
 
     @classmethod
@@ -258,13 +258,13 @@ class HypergraphBuilder:
         Параметры
         ----------
         call_paths : list[list[int]]
-            Каждый элемент — упорядоченный путь вызова (индексы вершин).
+            Каждый элемент – упорядоченный путь вызова (индексы вершин).
         colocated_groups : list[list[int]]
             Группы узлов на одном физическом сервере.
         lb_groups : list[list[int]]
             Группы реплик одного сервиса.
         instance_names : list[str] | None
-            Человекочитаемые имена (если None — генерируются автоматически).
+            Человекочитаемые имена (если None – генерируются автоматически).
         node_types : dict[int, str] | None
         """
         names = instance_names or [f"instance-{i}" for i in range(self.n_nodes)]

@@ -21,7 +21,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 @pytest.fixture(scope="session")
 def device():
-    """CPU для всех тестов (GPU — только с маркером @pytest.mark.gpu)."""
+    """CPU для всех тестов (GPU – только с маркером @pytest.mark.gpu)."""
     return torch.device("cpu")
 
 

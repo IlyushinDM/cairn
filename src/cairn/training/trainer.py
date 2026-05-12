@@ -1,13 +1,13 @@
 """Трёхэтапный тренер CAIRN (раздел 5.2).
 
-Этап 1 — Претрейн (normal_only):    L_УМ + L_ВАК
-Этап 2 — Основное (anomaly_only):   L_ПЭ + L_нез + L_КР + L_реб
-Этап 3 — Файнтюн (all):             L = λ₁·L_ПЭ + … + λ₆·L_реб
+Этап 1 – Претрейн (normal_only):    L_УМ + L_ВАК
+Этап 2 – Основное (anomaly_only):   L_ПЭ + L_нез + L_КР + L_реб
+Этап 3 – Файнтюн (all):             L = λ₁·L_ПЭ + … + λ₆·L_реб
 
 Функции:
-  train()    — полный цикл обучения
-  evaluate() — метрики AC@1, AC@3, Avg@5, F1
-  save() / load() — чекпоинты
+  train()    – полный цикл обучения
+  evaluate() – метрики AC@1, AC@3, Avg@5, F1
+  save() / load() – чекпоинты
 """
 
 from __future__ import annotations
@@ -92,7 +92,7 @@ class CAIRNModel(nn.Module):
         H, C = self.state_builder(metrics, log_ids, depths, context_raw=ctx_raw)  # (N, d), (N, 16)
 
         # Нормальное состояние
-        nll_normal = self.gmm.nll(H, C)     # (N,) — аномальность каждого узла
+        nll_normal = self.gmm.nll(H, C)     # (N,) – аномальность каждого узла
 
         # Абдукция
         inc_mat   = hypergraph.incidence_matrix().to(dev)
@@ -111,7 +111,7 @@ class CAIRNModel(nn.Module):
         if root_idx >= 0 and root_idx < H.shape[0]:
             H_cf   = self.cf_module.intervene(H, root_idx, prototypes[root_idx], hypergraph)
             nll_cf = self.gmm.nll(H_cf, C)
-            pe_scores = (nll_normal - nll_cf)            # (N,) — градиент сохранён
+            pe_scores = (nll_normal - nll_cf)            # (N,) – градиент сохранён
 
             # Для L_КР: первопричина vs остальные
             others = [i for i in range(H.shape[0]) if i != root_idx]
@@ -127,7 +127,7 @@ class CAIRNModel(nn.Module):
             h_others_anom = H[1:] if N > 1 else H[:0]
             h_others_norm = prototypes[1:] if N > 1 else prototypes[:0]
 
-        # Ковариационные матрицы GMM (диагональные — возвращаем как identity для простоты)
+        # Ковариационные матрицы GMM (диагональные – возвращаем как identity для простоты)
         _, _, log_vars = self.gmm(C)        # (N, D, d)
         cov_matrices = [torch.diag(log_vars[0, k].exp()) for k in range(log_vars.shape[1])]
 
@@ -211,7 +211,7 @@ class CAIRNTrainer:
     ----------
     model : CAIRNModel
     loss_fn : CAIRNLoss
-    hypergraph : CausalHypergraph — фиксированный для всего датасета
+    hypergraph : CausalHypergraph – фиксированный для всего датасета
     config : TrainerConfig
     """
 

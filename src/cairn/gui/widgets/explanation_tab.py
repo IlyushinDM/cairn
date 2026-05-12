@@ -1,4 +1,4 @@
-"""Вкладка «Объяснение» — цепочка доказательств, текст, верификация."""
+"""Вкладка «Объяснение» – цепочка доказательств, текст, верификация."""
 
 from __future__ import annotations
 
@@ -13,13 +13,13 @@ from PySide6.QtWidgets import (
 class AxiomRow(QWidget):
     """Одна строка верификации аксиомы/правила."""
 
-    def __init__(self, name: str, status: str = "—", parent=None):
+    def __init__(self, name: str, status: str = "–", parent=None):
         super().__init__(parent)
         layout = QHBoxLayout(self)
         layout.setContentsMargins(6, 3, 6, 3)
         layout.setSpacing(10)
 
-        icon = "✓" if status == "ok" else ("✗" if status == "fail" else "—")
+        icon = "✓" if status == "ok" else ("✗" if status == "fail" else "–")
         color = "#3ecf8e" if status == "ok" else ("#ff5f5f" if status == "fail" else "#6c7a9c")
 
         icon_lbl = QLabel(icon)
@@ -75,7 +75,7 @@ class ExplanationTab(QWidget):
                   "Транзитивность", "Согласованность с топологией",
                   "Монотонность вмешательства"]
         for ax in axioms:
-            row = AxiomRow(ax, "—")
+            row = AxiomRow(ax, "–")
             self.axiom_rows.append(row)
             ag_layout.addWidget(row)
         ag_layout.addStretch()
@@ -96,7 +96,7 @@ class ExplanationTab(QWidget):
                  "IC3: путь существует", "IC4: текст содержит имя",
                  "IC5: числа согласованы"]
         for r in rules:
-            row = AxiomRow(r, "—")
+            row = AxiomRow(r, "–")
             self.alp_rows.append(row)
             alp_layout.addWidget(row)
         alp_layout.addStretch()

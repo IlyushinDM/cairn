@@ -37,7 +37,7 @@ try:
     from cairn.connectors.live_connector import LiveSystemConnector
     conn = LiveSystemConnector("configs/connectors/online_boutique.yaml")
     ok, msg = conn.is_available()
-    print(f"  Статус: {'OK' if ok else 'FAIL'} — {msg}")
+    print(f"  Статус: {'OK' if ok else 'FAIL'} – {msg}")
     topo = conn.fetch_topology()
     print(f"  Топология: {len(topo.instances)} экземпляров")
     for inst in topo.instances[:3]:

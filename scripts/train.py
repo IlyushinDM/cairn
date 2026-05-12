@@ -53,7 +53,7 @@ def main() -> None:
     logger.info(dataset.summary())
 
     if len(dataset) == 0:
-        logger.error("Датасет пуст — проверьте данные в data/sample/")
+        logger.error("Датасет пуст – проверьте данные в data/sample/")
         sys.exit(1)
 
     # --- Топология ---

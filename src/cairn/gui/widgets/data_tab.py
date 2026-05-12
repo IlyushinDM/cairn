@@ -1,4 +1,4 @@
-"""Вкладка «Данные» — таблицы метрик, экземпляров, временной ряд."""
+"""Вкладка «Данные» – таблицы метрик, экземпляров, временной ряд."""
 
 from __future__ import annotations
 
@@ -121,7 +121,7 @@ class DataTab(QWidget):
         self._btn_expand.setText("Свернуть" if expanded else "Развернуть")
         if hasattr(self, '_splitter'):
             if expanded:
-                # Полностью разворачиваем — убираем нижний виджет
+                # Полностью разворачиваем – убираем нижний виджет
                 self._splitter.setSizes([10000, 0])
                 # 2.4: растягиваем колонки по содержимому
                 for c in range(self.metrics_table.columnCount()):
@@ -200,10 +200,10 @@ class DataTab(QWidget):
                     return it
                 self.metrics_table.setItem(row, 1, _ro(inst))
                 self.metrics_table.setItem(row, 2, _ro(metric))
-                self.metrics_table.setItem(row, 3, _ro(f"{vals.min():.3f}" if len(vals) else "—"))
-                self.metrics_table.setItem(row, 4, _ro(f"{vals.max():.3f}" if len(vals) else "—"))
-                self.metrics_table.setItem(row, 5, _ro(f"{vals.mean():.3f}" if len(vals) else "—"))
-                self.metrics_table.setItem(row, 6, _ro(f"{vals.std():.3f}" if len(vals) else "—"))
+                self.metrics_table.setItem(row, 3, _ro(f"{vals.min():.3f}" if len(vals) else "–"))
+                self.metrics_table.setItem(row, 4, _ro(f"{vals.max():.3f}" if len(vals) else "–"))
+                self.metrics_table.setItem(row, 5, _ro(f"{vals.mean():.3f}" if len(vals) else "–"))
+                self.metrics_table.setItem(row, 6, _ro(f"{vals.std():.3f}" if len(vals) else "–"))
 
         # ── Обновляем список метрик в комбо из реальных данных ────────────
         if hasattr(self, '_metric_combo'):

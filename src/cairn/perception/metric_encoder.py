@@ -3,7 +3,7 @@
 Ветвь A (SSMBranch): модель пространства состояний в частотной области.
     s_k = A·s_{k-1} + B·x_k
     y_k = C·s_k
-    Φ(ω) = C·(e^{jω}I - A)^{-1}·B  — передаточная функция
+    Φ(ω) = C·(e^{jω}I - A)^{-1}·B  – передаточная функция
     Свёртка: Y = IRFFT(Φ(ω) · X_f(ω))
 
 Ветвь B (BreakpointBranch): нормированный вектор разрыва.
@@ -24,16 +24,16 @@ import torch.fft
 
 
 class SSMBranch(nn.Module):
-    """Ветвь A — SSM в частотной области (формулы 2.1–2.4).
+    """Ветвь A – SSM в частотной области (формулы 2.1–2.4).
 
     Параметры
     ----------
     n_metrics : int
-        F — число входных каналов.
+        F – число входных каналов.
     ssm_state_dim : int
-        D — размерность скрытого состояния SSM.
+        D – размерность скрытого состояния SSM.
     d_out : int
-        d_ssm — размерность выхода ветви.
+        d_ssm – размерность выхода ветви.
     """
 
     def __init__(self, n_metrics: int, ssm_state_dim: int = 64, d_out: int = 32) -> None:
@@ -42,7 +42,7 @@ class SSMBranch(nn.Module):
         self.d_out = d_out
 
         # Обучаемые матрицы SSM
-        self.A = nn.Parameter(torch.randn(ssm_state_dim) * 0.01)       # (D,) — диагональ
+        self.A = nn.Parameter(torch.randn(ssm_state_dim) * 0.01)       # (D,) – диагональ
         self.B = nn.Parameter(torch.randn(ssm_state_dim, n_metrics) * 0.01)  # (D, F)
         self.C = nn.Parameter(torch.randn(d_out, ssm_state_dim) * 0.01)      # (d_out, D)
 
@@ -92,16 +92,16 @@ class SSMBranch(nn.Module):
 
 
 class BreakpointBranch(nn.Module):
-    """Ветвь B — обнаружение разрывов (формулы 2.5–2.9).
+    """Ветвь B – обнаружение разрывов (формулы 2.5–2.9).
 
     Параметры
     ----------
     n_metrics : int
-        F — число каналов.
+        F – число каналов.
     window : int
-        W — размер окна.
+        W – размер окна.
     d_out : int
-        d_brk — размерность выхода.
+        d_brk – размерность выхода.
     """
 
     def __init__(self, n_metrics: int, window: int = 60, d_out: int = 32) -> None:
@@ -136,7 +136,7 @@ class BreakpointBranch(nn.Module):
         sigma_ref = x_ref.std(dim=1) + 1e-6   # (batch, F)
         mu_cur = x_cur.mean(dim=1)             # (batch, F)
 
-        delta = (mu_cur - mu_ref) / sigma_ref  # (batch, F) — нормированный разрыв
+        delta = (mu_cur - mu_ref) / sigma_ref  # (batch, F) – нормированный разрыв
 
         # Разворачиваем в «временну́ю» последовательность для Conv1d
         delta_seq = delta.unsqueeze(2).expand(-1, -1, W)  # (batch, F, W)
@@ -151,17 +151,17 @@ class DualBranchMetricEncoder(nn.Module):
     Параметры
     ----------
     n_metrics : int
-        F — число входных метрик.
+        F – число входных метрик.
     d_ssm : int
         Размерность выхода SSM-ветви.
     d_brk : int
         Размерность выхода ветви разрыва.
     d_out : int
-        d_met — итоговая размерность после проекции.
+        d_met – итоговая размерность после проекции.
     ssm_state_dim : int
-        D — размерность скрытого состояния SSM.
+        D – размерность скрытого состояния SSM.
     window : int
-        W — размер окна для ветви разрыва.
+        W – размер окна для ветви разрыва.
     """
 
     def __init__(

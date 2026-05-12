@@ -1,9 +1,9 @@
 """Трёхрежимная декомпозиция множественных первопричин (раздел 3.3.5).
 
 Режимы:
-  ADDITIVE      — η < ε_add → причины независимы, суммируем ПЭ
-  JOINT         — η ≥ ε_add → перебор подмножеств top-кандидатов
-  PROBABILISTIC — N > порога → Beta-Binomial fallback (для больших систем)
+  ADDITIVE      – η < ε_add → причины независимы, суммируем ПЭ
+  JOINT         – η ≥ ε_add → перебор подмножеств top-кандидатов
+  PROBABILISTIC – N > порога → Beta-Binomial fallback (для больших систем)
 """
 
 from __future__ import annotations
@@ -44,7 +44,7 @@ def joint_causal_effect(
     candidate_indices: List[int],
     prototypes: torch.Tensor,       # (N, d)
 ) -> float:
-    """ПЭ(A ∪ B ...) — совместное вмешательство на нескольких узлах."""
+    """ПЭ(A ∪ B ...) – совместное вмешательство на нескольких узлах."""
     with torch.no_grad():
         a_before = gmm.nll(H, contexts).mean().item()
 
@@ -83,11 +83,11 @@ class MultiRootCauseDecomposition:
     Параметры
     ----------
     additivity_threshold : float
-        ε_add — порог η, ниже которого считаем причины аддитивными (0.15).
+        ε_add – порог η, ниже которого считаем причины аддитивными (0.15).
     max_joint_size : int
         Максимальный размер подмножества в совместном режиме (3).
     probabilistic_threshold : int
-        Если N > этого значения — используем вероятностный режим.
+        Если N > этого значения – используем вероятностный режим.
     """
 
     def __init__(
@@ -167,7 +167,7 @@ class MultiRootCauseDecomposition:
     def _probabilistic(
         self, ranked_candidates: List[Tuple[int, float]]
     ) -> Tuple[DecompositionMode, List[Tuple[int, float]]]:
-        """Режим 3: Beta-Binomial fallback — берём top-k по ПЭ.
+        """Режим 3: Beta-Binomial fallback – берём top-k по ПЭ.
 
         При N > probabilistic_threshold полный перебор нецелесообразен.
         Возвращаем всех кандидатов сверху до первого значительного падения ПЭ.

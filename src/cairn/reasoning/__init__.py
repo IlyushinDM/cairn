@@ -1,17 +1,17 @@
-"""Фаза рассуждения CAIRN — причинно-следственное ядро.
+"""Фаза рассуждения CAIRN – причинно-следственное ядро.
 
 Публичный API:
-    ConditionalGMM           — условная GMM нормального состояния
-    ConfoundedVGAE           — VGAE со скрытыми конфаундерами
-    ExogenousEncoder         — attention-агрегация предшественников
-    LatentConfounderModule   — K скрытых общих факторов
-    CounterfactualModule     — дифференцируемое вмешательство do(i)
-    HypergraphConv           — нормализованная гиперграфовая свёртка
-    MultiRootCauseDecomposition — трёхрежимная декомпозиция
-    DecompositionMode        — режимы декомпозиции
-    CascadeFunnel            — каскадная воронка 500→30→5→1
-    CausalGraphVerifier      — верификатор по 5 аксиомам
-    AxiomStatus, AxiomResult, VerificationReport — результаты верификации
+    ConditionalGMM           – условная GMM нормального состояния
+    ConfoundedVGAE           – VGAE со скрытыми конфаундерами
+    ExogenousEncoder         – attention-агрегация предшественников
+    LatentConfounderModule   – K скрытых общих факторов
+    CounterfactualModule     – дифференцируемое вмешательство do(i)
+    HypergraphConv           – нормализованная гиперграфовая свёртка
+    MultiRootCauseDecomposition – трёхрежимная декомпозиция
+    DecompositionMode        – режимы декомпозиции
+    CascadeFunnel            – каскадная воронка 500→30→5→1
+    CausalGraphVerifier      – верификатор по 5 аксиомам
+    AxiomStatus, AxiomResult, VerificationReport – результаты верификации
 """
 
 from cairn.reasoning.conditional_gmm import ConditionalGMM

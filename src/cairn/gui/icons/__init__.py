@@ -1,4 +1,4 @@
-"""Иконки CAIRN GUI — SVG файлы в стиле VS Code.
+"""Иконки CAIRN GUI – SVG файлы в стиле VS Code.
 
 Использование:
     from cairn.gui.icons import icon

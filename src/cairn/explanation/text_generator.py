@@ -1,8 +1,8 @@
 """Генератор текстовых объяснений (раздел 4.3).
 
 Три уровня с нарастающим качеством:
-  TemplateTextGenerator  — шаблонный генератор (MVP, мгновенно)
-  TextExplanationGenerator — фасад с выбором уровня (template | local_llm | cloud_llm)
+  TemplateTextGenerator  – шаблонный генератор (MVP, мгновенно)
+  TextExplanationGenerator – фасад с выбором уровня (template | local_llm | cloud_llm)
 """
 
 from __future__ import annotations
@@ -83,7 +83,7 @@ class TemplateTextGenerator:
         if chain.confounder_warnings:
             text += "\n" + "\n".join(f"⚠  {w}" for w in chain.confounder_warnings)
         if chain.drift_warning:
-            text += "\n⚠  Обнаружен дрейф распределения — результат требует дополнительной проверки."
+            text += "\n⚠  Обнаружен дрейф распределения – результат требует дополнительной проверки."
 
         return text
 
@@ -139,7 +139,7 @@ class TextExplanationGenerator:
             return self._template.generate(chain)
         if self.level == "local_llm":
             return self._local_llm_generate(chain)
-        # cloud_llm — заглушка для MVP
+        # cloud_llm – заглушка для MVP
         return self._template.generate(chain)
 
     def _local_llm_generate(self, chain: EvidenceChain) -> str:

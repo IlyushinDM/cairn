@@ -1,7 +1,7 @@
-"""LiveSystemConnector — универсальный коннектор живых систем для CAIRN.
+"""LiveSystemConnector – универсальный коннектор живых систем для CAIRN.
 
 Читает конфиг-файл формата YAML и создаёт нужные коннекторы.
-CAIRN не знает о конкретных системах — только об этом интерфейсе.
+CAIRN не знает о конкретных системах – только об этом интерфейсе.
 
 Пример использования:
     conn = LiveSystemConnector.from_config("configs/connectors/online_boutique.yaml")
@@ -108,7 +108,7 @@ class LiveSystemConnector:
 
     @classmethod
     def from_config(cls, config_path: str | Path) -> "LiveSystemConnector":
-        """Фабричный метод — создаёт коннектор из файла конфига."""
+        """Фабричный метод – создаёт коннектор из файла конфига."""
         return cls(config_path)
 
     @property
@@ -126,7 +126,7 @@ class LiveSystemConnector:
             from cairn.connectors.csv_file import YAMLTopologyConnector
             topo_path = Path(topo_cfg["path"])
             if not topo_path.is_absolute():
-                # Пробуем относительно CWD (корень проекта) — первый приоритет
+                # Пробуем относительно CWD (корень проекта) – первый приоритет
                 from_cwd = Path.cwd() / topo_path
                 # Затем относительно корня проекта (3 уровня от конфига)
                 from_cfg = self._config_path.parent.parent.parent / topo_path
@@ -135,7 +135,7 @@ class LiveSystemConnector:
                 elif from_cfg.exists():
                     topo_path = from_cfg
                 else:
-                    # Последняя попытка — сгенерировать топологию автоматически
+                    # Последняя попытка – сгенерировать топологию автоматически
                     topo_path.parent.mkdir(parents=True, exist_ok=True)
                     _write_boutique_topology_yaml(topo_path)
             return YAMLTopologyConnector(topo_path).fetch()
@@ -197,7 +197,7 @@ class LiveSystemConnector:
         """Собирает метрики через docker stats.
 
         Делает несколько снимков за window_sec секунд и строит временной ряд.
-        Метрики: cpu_pct, memory_mb — доступны на всех платформах.
+        Метрики: cpu_pct, memory_mb – доступны на всех платформах.
         """
         metrics_cfg   = self._cfg.get("metrics", {})
         window_sec    = float(metrics_cfg.get("window_sec", 60))

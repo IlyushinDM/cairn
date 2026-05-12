@@ -1,8 +1,8 @@
-"""Главное окно CAIRN — точка входа графического интерфейса.
+"""Главное окно CAIRN – точка входа графического интерфейса.
 
 Архитектура: CAIRNMainWindow (View) ↔ CAIRNController (Presenter/ViewModel).
 Окно только маршрутизирует события и обновляет виджеты;
-вся бизнес-логика — в контроллере.
+вся бизнес-логика – в контроллере.
 
 Совместимость: PySide6 >= 6.0 (используются новые enum-пространства имён).
 """
@@ -31,7 +31,7 @@ from cairn.gui.widgets.explanation_tab import ExplanationTab
 
 
 # ---------------------------------------------------------------------------
-# Иконка-пирамида (рисуется программно — без внешних ресурсов)
+# Иконка-пирамида (рисуется программно – без внешних ресурсов)
 # ---------------------------------------------------------------------------
 
 def _make_cairn_icon(size: int = 64, color: str = "#4a9eff") -> QIcon:
@@ -88,7 +88,7 @@ class CAIRNMainWindow(QMainWindow):
     # ── Инициализация ─────────────────────────────────────────────────
 
     def _setup_window(self) -> None:
-        self.setWindowTitle("CAIRN — Система анализа первопричин сбоев")
+        self.setWindowTitle("CAIRN – Система анализа первопричин сбоев")
         self.setWindowIcon(_make_cairn_icon())
         self.setMinimumSize(1000, 700)
         self.resize(1400, 900)
@@ -168,7 +168,7 @@ class CAIRNMainWindow(QMainWindow):
         help_m.addAction(act)
 
     def _build_toolbar(self) -> None:
-        """Toolbar убран — все действия перенесены в Activity Bar."""
+        """Toolbar убран – все действия перенесены в Activity Bar."""
         # Сохраняем заглушки для совместимости с другими методами
         from PySide6.QtWidgets import QToolBar
         from PySide6.QtGui import QAction
@@ -249,7 +249,7 @@ class CAIRNMainWindow(QMainWindow):
         self.TAB_EXPLAIN = 4
         self.TAB_TRAIN   = 5
 
-        # Журнал событий — отдельная боковая панель
+        # Журнал событий – отдельная боковая панель
         from cairn.gui.widgets.event_log import EventLogWidget
         self._event_log = EventLogWidget()
         self._event_log.setFixedWidth(320)
@@ -286,7 +286,7 @@ class CAIRNMainWindow(QMainWindow):
                 self._gpu_label.setText("GPU: ✗ CPU-режим")
                 self._gpu_label.setObjectName("statusWarn")
         except ImportError:
-            self._gpu_label.setText("GPU: —")
+            self._gpu_label.setText("GPU: –")
 
         self._model_label = QLabel("Модель: не загружена")
         self._model_label.setObjectName("statusBad")
@@ -435,7 +435,7 @@ class CAIRNMainWindow(QMainWindow):
         names      = hg.instance_names if hg else []
         ranked     = [(r["idx"], r["ce"]) for r in results]
         nll_scores = {r["idx"]: r["nll"] for r in results}
-        fault_type = results[0].get("fault_type", "—")
+        fault_type = results[0].get("fault_type", "–")
         confidence = results[0].get("confidence", 0.8)
 
         self.results_tab.show_results(ranked, names, nll_scores, confidence, fault_type)
@@ -452,7 +452,7 @@ class CAIRNMainWindow(QMainWindow):
 
         self._act_export.setEnabled(True)
         self.tabs.setCurrentIndex(self.TAB_RESULTS)
-        root_name = results[0]["name"] if results else "—"
+        root_name = results[0]["name"] if results else "–"
         self._update_status(f"Анализ завершён. Первопричина: {root_name}")
 
     @Slot(int)
@@ -615,7 +615,7 @@ class CAIRNMainWindow(QMainWindow):
                     model.load_state_dict(state["model_state"], strict=False)
                 self._update_status("Демо: модель загружена из чекпоинта")
             else:
-                self._update_status("Демо: чекпоинт не найден — быстрое обучение 1 эп.")
+                self._update_status("Демо: чекпоинт не найден – быстрое обучение 1 эп.")
                 from cairn.training import create_demo_dataset, TrainerConfig
                 ds  = create_demo_dataset(sc_dir, window_size=30, stride=15)
                 cfg = TrainerConfig(
@@ -712,7 +712,7 @@ class CAIRNMainWindow(QMainWindow):
         msg.setStandardButtons(QMessageBox.StandardButton.Ok)
         msg.exec()
 
-        # Шаг 1: Топология (быстро — сразу в DataTab)
+        # Шаг 1: Топология (быстро – сразу в DataTab)
         self._update_status(f"Загружаю топологию {connector.system_name}...")
         import traceback as _tb
         topo = None
@@ -796,7 +796,7 @@ class CAIRNMainWindow(QMainWindow):
 
             self._update_status(
                 f"{connector.system_name}: {md.n_instances} экз., "
-                f"{md.n_metrics} метрик, {len(md.timestamps)} точек — готово"
+                f"{md.n_metrics} метрик, {len(md.timestamps)} точек – готово"
             )
             self.tabs.setCurrentIndex(self.TAB_DATA)
             self._start_live_refresh(connector)
@@ -842,7 +842,7 @@ class CAIRNMainWindow(QMainWindow):
             pct = min(100, int(self._progress_elapsed / self._progress_total * 100))
             bar = "█" * (pct // 10) + "░" * (10 - pct // 10)
             self._update_status(
-                f"Сбор метрик [{bar}] {pct}% — осталось ~{remaining}с"
+                f"Сбор метрик [{bar}] {pct}% – осталось ~{remaining}с"
             )
             if self._progress_elapsed >= self._progress_total:
                 self._progress_timer.stop()
@@ -892,7 +892,7 @@ class CAIRNMainWindow(QMainWindow):
                 except Exception:
                     pass
                 self._update_status(
-                    f"Live: {connector.system_name} — "
+                    f"Live: {connector.system_name} – "
                     f"{md.n_instances} экз., {len(md.timestamps)} точек"
                 )
 
@@ -911,7 +911,7 @@ class CAIRNMainWindow(QMainWindow):
         self._live_timer.timeout.connect(_do_refresh)
         self._live_timer.start()
         self._update_status(
-            f"Live: {connector.system_name} — обновление каждые {window_sec}с"
+            f"Live: {connector.system_name} – обновление каждые {window_sec}с"
         )
 
     def _on_results_row_selected(self) -> None:
@@ -929,13 +929,13 @@ class CAIRNMainWindow(QMainWindow):
         results = getattr(self._ctrl, "_last_results", None) or []
         node_entry = next((r for r in results if r.get("idx") == node_idx), None)
         if not node_entry:
-            self._update_status("Нет данных — сначала запустите анализ")
+            self._update_status("Нет данных – сначала запустите анализ")
             return
         node_name   = node_entry.get("name", f"node-{node_idx}")
         ce          = node_entry.get("ce", 0.0)
         nll         = node_entry.get("nll", 0.0)
         conf        = node_entry.get("confidence", 0.0)
-        dom         = node_entry.get("dominant_metric") or "—"
+        dom         = node_entry.get("dominant_metric") or "–"
         delta_nll   = abs(ce)
         improvement = min(99.0, delta_nll / (abs(nll) + 1e-6) * 100)
         lines = [
@@ -953,7 +953,7 @@ class CAIRNMainWindow(QMainWindow):
         if improvement > 50:
             lines.append(f"Вывод: устранение {node_name} существенно улучшит систему.")
         elif improvement > 20:
-            lines.append(f"Вывод: {node_name} — значимая причина деградации.")
+            lines.append(f"Вывод: {node_name} – значимая причина деградации.")
         else:
             lines.append(f"Вывод: умеренное влияние. Проверьте соседние сервисы.")
         text = "\n".join(lines)
@@ -1049,7 +1049,7 @@ class CAIRNMainWindow(QMainWindow):
             def _on_log_done(log_data):
                 if hasattr(self, "logs_tab"):
                     self.logs_tab.load_log_data(log_data)
-                # Если есть лог-аномалии — добавляем в журнал событий
+                # Если есть лог-аномалии – добавляем в журнал событий
                 if hasattr(self, "_event_log"):
                     for name in log_data.anomalous_containers:
                         ts = log_data.series[name]
@@ -1119,7 +1119,7 @@ class CAIRNMainWindow(QMainWindow):
         )
 
     def _on_anomaly_detected(self, md, nll_score: float) -> None:
-        """Реагирует на обнаруженную аномалию — автозапуск анализа."""
+        """Реагирует на обнаруженную аномалию – автозапуск анализа."""
         from PySide6.QtWidgets import QMessageBox
 
         # Обновляем данные
@@ -1135,19 +1135,19 @@ class CAIRNMainWindow(QMainWindow):
             )
             # Показываем последнее событие в статусбаре
             self._update_status(
-                f"АНОМАЛИЯ: score={nll_score:.3f} — см. Журнал событий"
+                f"АНОМАЛИЯ: score={nll_score:.3f} – см. Журнал событий"
             )
 
         # Автоматически запускаем анализ если модель загружена
         if self._ctrl._model is not None:
             self._update_status(
-                f"АНОМАЛИЯ (score={nll_score:.3f}) — запускаю анализ..."
+                f"АНОМАЛИЯ (score={nll_score:.3f}) – запускаю анализ..."
             )
             self._ctrl.start_analysis()
             # Переключаемся на результаты
             self.tabs.setCurrentIndex(self.TAB_RESULTS)
         else:
-            # Модель не загружена — просто уведомляем
+            # Модель не загружена – просто уведомляем
             self.tabs.setCurrentIndex(self.TAB_DATA)
             msg = QMessageBox(self)
             msg.setWindowTitle("Аномалия обнаружена")

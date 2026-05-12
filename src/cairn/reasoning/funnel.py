@@ -2,7 +2,7 @@
 
 Упрощённая реализация: ранжирование по NLL (аномальности состояния узла).
 GMM корректно оценивает вероятность нормального состояния.
-Узел с максимальным NLL — наиболее вероятная первопричина.
+Узел с максимальным NLL – наиболее вероятная первопричина.
 """
 
 from __future__ import annotations
@@ -13,7 +13,7 @@ import torch
 class CascadeFunnel:
     """Ранжирование кандидатов первопричины по NLL-скору.
 
-    score(i) = NLL(h_i) — насколько состояние узла i аномально
+    score(i) = NLL(h_i) – насколько состояние узла i аномально
                согласно условной модели нормы GMM.
 
     Параметры
@@ -35,9 +35,9 @@ class CascadeFunnel:
 
     def run(
         self,
-        nll: torch.Tensor,           # (N,) — NLL каждого узла
-        H: torch.Tensor,             # (N, d) — состояния (для совместимости)
-        adjacency: torch.Tensor,     # (N, N) — не используется
+        nll: torch.Tensor,           # (N,) – NLL каждого узла
+        H: torch.Tensor,             # (N, d) – состояния (для совместимости)
+        adjacency: torch.Tensor,     # (N, N) – не используется
         cf_module,                   # не используется
         gmm,                         # не используется
         contexts: torch.Tensor,      # не используется
@@ -48,7 +48,7 @@ class CascadeFunnel:
 
         Возвращает
         ----------
-        list of (node_idx, nll_value) — до l2_top_k записей.
+        list of (node_idx, nll_value) – до l2_top_k записей.
         """
         N = nll.shape[0]
         k = min(self.l0_top_k, N)

@@ -1,11 +1,11 @@
 """Вариационный графовый автокодировщик со скрытыми конфаундерами (раздел 3.2).
 
 Конвейер абдукции:
-  1. ExogenousEncoder  — вычисляет û_i через attention-агрегацию предшественников
-  2. LatentConfounderModule — K скрытых общих факторов ẑ_k, каждый влияет на узлы через маску
-  3. ConfoundedVGAE     — объединяет (1) и (2), добавляет декодер и функцию независимости
+  1. ExogenousEncoder  – вычисляет û_i через attention-агрегацию предшественников
+  2. LatentConfounderModule – K скрытых общих факторов ẑ_k, каждый влияет на узлы через маску
+  3. ConfoundedVGAE     – объединяет (1) и (2), добавляет декодер и функцию независимости
 
-Намеренно не используется torch_scatter — scatter softmax реализован через
+Намеренно не используется torch_scatter – scatter softmax реализован через
 стандартные операции PyTorch (>= 2.0).
 """
 
@@ -23,8 +23,8 @@ import torch.nn.functional as F
 # ---------------------------------------------------------------------------
 
 def _scatter_softmax(
-    src: torch.Tensor,     # (E,) — веса рёбер
-    index: torch.Tensor,   # (E,) long — индекс целевого узла
+    src: torch.Tensor,     # (E,) – веса рёбер
+    index: torch.Tensor,   # (E,) long – индекс целевого узла
     num_nodes: int,
 ) -> torch.Tensor:
     """Численно стабильный scatter softmax (без torch_scatter).
@@ -58,7 +58,7 @@ class ExogenousEncoder(nn.Module):
     Параметры
     ----------
     state_dim : int
-        d — размерность вектора состояния.
+        d – размерность вектора состояния.
     edge_dim : int
         Размерность признаков рёбер.
     n_node_types : int
@@ -95,7 +95,7 @@ class ExogenousEncoder(nn.Module):
         """
         Возвращает
         ----------
-        u_hat     : (N, d) — экзогенная переменная (reparameterised sample)
+        u_hat     : (N, d) – экзогенная переменная (reparameterised sample)
         mu_u      : (N, d)
         log_var_u : (N, d)
         """
@@ -181,12 +181,12 @@ class LatentConfounderModule(nn.Module):
 
         Возвращает
         ----------
-        correction : (N, d)    — суммарная поправка Σ_k m_ki · W_dec · ẑ_k
-        z_hats     : list[K]   — выборки (dz,) каждого фактора
-        kl_terms   : list[K]   — KL-дивергенции
+        correction : (N, d)    – суммарная поправка Σ_k m_ki · W_dec · ẑ_k
+        z_hats     : list[K]   – выборки (dz,) каждого фактора
+        kl_terms   : list[K]   – KL-дивергенции
         """
         N = h.shape[0]
-        h_mean = h.mean(0, keepdim=True)               # (1, d) — глобальный пул
+        h_mean = h.mean(0, keepdim=True)               # (1, d) – глобальный пул
 
         correction = torch.zeros(N, self.state_dim, device=h.device, dtype=h.dtype)
         z_hats, kl_terms = [], []
@@ -213,7 +213,7 @@ class LatentConfounderModule(nn.Module):
 
 
 # ---------------------------------------------------------------------------
-# ConfoundedVGAE — объединяющий класс
+# ConfoundedVGAE – объединяющий класс
 # ---------------------------------------------------------------------------
 
 class ConfoundedVGAE(nn.Module):
@@ -260,17 +260,17 @@ class ConfoundedVGAE(nn.Module):
         self,
         h: torch.Tensor,                         # (N, d)
         edge_index: torch.Tensor,                # (2, E)
-        edge_type: torch.Tensor,                 # (E,) long — тип ребра
+        edge_type: torch.Tensor,                 # (E,) long – тип ребра
         node_types: Optional[torch.Tensor] = None,  # (N,) long
     ) -> tuple[torch.Tensor, list, list, torch.Tensor]:
         """Абдукция: вычисляет модифицированные экзогенные переменные û.
 
         Возвращает
         ----------
-        exogenous  : (N, d)          — û_i
-        conf_latents : list[K]       — ẑ_k (dz,) каждый
-        masks      : list[K]         — пустой список (маски внутри LatentConfounder)
-        kl_loss    : scalar Tensor   — KL_u + KL_z
+        exogenous  : (N, d)          – û_i
+        conf_latents : list[K]       – ẑ_k (dz,) каждый
+        masks      : list[K]         – пустой список (маски внутри LatentConfounder)
+        kl_loss    : scalar Tensor   – KL_u + KL_z
         """
         N = h.shape[0]
         if node_types is None:
@@ -292,7 +292,7 @@ class ConfoundedVGAE(nn.Module):
 
     def decode(
         self,
-        exogenous_modified: torch.Tensor,        # (N, d) — û
+        exogenous_modified: torch.Tensor,        # (N, d) – û
         edge_index: Optional[torch.Tensor] = None,
         edge_type: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:

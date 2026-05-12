@@ -35,4 +35,4 @@ for name, result in checks:
         all_ok = False
     print(f"  {'OK' if ok else 'FAIL'}  {name}: {result}")
 
-print(f"\n{'Все файлы установлены корректно.' if all_ok else 'Некоторые файлы не обновлены — замените их.'}")
+print(f"\n{'Все файлы установлены корректно.' if all_ok else 'Некоторые файлы не обновлены – замените их.'}")

@@ -5,8 +5,8 @@
 к конкретному выводу.
 
 Методология:
-  CE_layer(l) = CE(full) - CE(bypass_l)   — вклад l-го слоя свёртки
-  CE_edge(e)  = CE(full) - CE(mask_e)     — вклад ребра e гиперграфа
+  CE_layer(l) = CE(full) - CE(bypass_l)   – вклад l-го слоя свёртки
+  CE_edge(e)  = CE(full) - CE(mask_e)     – вклад ребра e гиперграфа
 """
 
 from __future__ import annotations
@@ -42,10 +42,10 @@ class MediationReport:
     Атрибуты
     ----------
     root_cause_idx : int
-    ce_full : float                    — CE при полной модели
+    ce_full : float                    – CE при полной модели
     layer_contributions : list
     edge_contributions : list
-    top_edges : list[EdgeContribution] — топ-3 важных ребра
+    top_edges : list[EdgeContribution] – топ-3 важных ребра
     """
     root_cause_idx: int
     ce_full: float
@@ -138,7 +138,7 @@ class MediationDiagnostic:
         """CE_layer(l) = CE(full) - CE(bypass_l) для каждого слоя свёртки.
 
         «Bypass» слоя l: после вмешательства пропускаем l-й слой (используем
-        вход слоя как его выход — это эквивалентно удалению слоя).
+        вход слоя как его выход – это эквивалентно удалению слоя).
         """
         _proto: torch.Tensor = (
             proto if proto is not None

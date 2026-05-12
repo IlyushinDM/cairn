@@ -140,7 +140,7 @@ class TestGraphVerifierEffect:
             n_call  = called_by.get(idx, 0)
             adjusted[idx] = score / (1.0 + cascade) / (1.0 + n_call * 0.5)
 
-        # Лист (svc-2) получает наибольший adjusted score —
+        # Лист (svc-2) получает наибольший adjusted score –
         # он не имеет аномальных зависимостей, значит скорее всего root
         assert adjusted[idx_2] >= adjusted[idx_0], (
             f"Leaf score {adjusted[idx_2]:.3f} должен быть >= "

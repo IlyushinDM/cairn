@@ -158,12 +158,12 @@ class ComparisonDialog(QDialog):
         layout.setSpacing(8)
 
         # Заголовок
-        hdr = QLabel("Ablation Study — влияние модулей на результат анализа")
+        hdr = QLabel("Ablation Study – влияние модулей на результат анализа")
         hdr.setStyleSheet("font-size:13px; font-weight:600; color:#4a9eff;")
         layout.addWidget(hdr)
 
         hint = QLabel(
-            "Каждый столбец — отдельный прогон с отключённым модулем. "
+            "Каждый столбец – отдельный прогон с отключённым модулем. "
             "Выделены позиции где ранг изменился."
         )
         hint.setStyleSheet("color:#858585; font-size:11px;")
@@ -266,7 +266,7 @@ class ComparisonDialog(QDialog):
                     None
                 )
                 if rank is None:
-                    item = QTableWidgetItem("—")
+                    item = QTableWidgetItem("–")
                     item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                     self._table.setItem(row, col, item)
                     continue

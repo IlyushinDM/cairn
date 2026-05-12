@@ -1,4 +1,4 @@
-"""LatencyTraceConnector — latency трассировки через логи loadgenerator.
+"""LatencyTraceConnector – latency трассировки через логи loadgenerator.
 
 Online Boutique использует Locust как load generator.
 Locust логирует per-endpoint статистику в формате:
@@ -86,7 +86,7 @@ class LatencyTraceConnector:
     """Коннектор latency трассировок через логи loadgenerator (Locust).
 
     Архитектурно: реализует интерфейс TraceConnector.
-    Для замены на OTel/Jaeger — переопределить _fetch_raw_latency().
+    Для замены на OTel/Jaeger – переопределить _fetch_raw_latency().
     """
 
     def __init__(

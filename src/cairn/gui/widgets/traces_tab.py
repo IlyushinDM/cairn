@@ -1,4 +1,4 @@
-"""Вкладка 'Трассировки' — latency per service из loadgenerator."""
+"""Вкладка 'Трассировки' – latency per service из loadgenerator."""
 from __future__ import annotations
 
 from PySide6.QtCore import Qt

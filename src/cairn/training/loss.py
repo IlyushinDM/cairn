@@ -3,7 +3,7 @@
 L = λ₁·L_ПЭ + λ₂·L_УМ + λ₃·L_ВАК + λ₄·L_нез + λ₅·L_КР + λ₆·L_реб
 
 Адаптивное перевзвешивание: λ_k обновляются через экспоненциальное
-скользящее среднее потерь — компоненты с высокой потерей получают больший вес.
+скользящее среднее потерь – компоненты с высокой потерей получают больший вес.
 """
 
 from __future__ import annotations
@@ -20,20 +20,20 @@ import torch.nn.functional as F
 @dataclass
 class LossWeights:
     """Начальные веса λ₁–λ₆ (формула 5.1)."""
-    lambda_pe:  float = 1.0   # L_ПЭ — ранжирование причинных эффектов
-    lambda_um:  float = 1.0   # L_УМ — условная модель нормального состояния
-    lambda_vak: float = 1.0   # L_ВАК — вариационный автокодировщик
-    lambda_nez: float = 0.5   # L_нез — ограничение независимости
-    lambda_kr:  float = 0.5   # L_КР — контрастное разделение
-    lambda_reb: float = 0.1   # L_реб — штраф за необоснованные рёбра
+    lambda_pe:  float = 1.0   # L_ПЭ – ранжирование причинных эффектов
+    lambda_um:  float = 1.0   # L_УМ – условная модель нормального состояния
+    lambda_vak: float = 1.0   # L_ВАК – вариационный автокодировщик
+    lambda_nez: float = 0.5   # L_нез – ограничение независимости
+    lambda_kr:  float = 0.5   # L_КР – контрастное разделение
+    lambda_reb: float = 0.1   # L_реб – штраф за необоснованные рёбра
 
 
 class CAIRNLoss(nn.Module):
     """Композитная функция потерь CAIRN.
 
     Поддерживает два режима вызова:
-      1. Полный forward(outputs, targets) — для тренера
-      2. Отдельные методы loss_pe(), loss_um() и т.д. — для ступенчатого обучения
+      1. Полный forward(outputs, targets) – для тренера
+      2. Отдельные методы loss_pe(), loss_um() и т.д. – для ступенчатого обучения
 
     Параметры
     ----------
@@ -44,11 +44,11 @@ class CAIRNLoss(nn.Module):
     tcd_margin : float
         δ_KR для L_КР (формула 5.6).
     beta_kl : float
-        β — KL для экзогенных переменных (формула 5.4).
+        β – KL для экзогенных переменных (формула 5.4).
     beta_kl_z : float
-        β_z — KL для скрытых факторов.
+        β_z – KL для скрытых факторов.
     cov_reg : float
-        λ_рег — регуляризация ковариации (формула 5.3).
+        λ_рег – регуляризация ковариации (формула 5.3).
     adaptive : bool
         Включить адаптивное перевзвешивание через EMA.
     ema_decay : float
@@ -101,7 +101,7 @@ class CAIRNLoss(nn.Module):
 
         Параметры
         ----------
-        outputs : dict — выходы модели:
+        outputs : dict – выходы модели:
             pe_scores    : (N,) причинные эффекты
             nll_normal   : (M,) NLL нормальных наблюдений
             cov_matrices : list[Tensor] ковариационные матрицы GMM
@@ -118,7 +118,7 @@ class CAIRNLoss(nn.Module):
             edge_weights : (E,) | None
             edge_cf_stats: (E,) | None
         targets : dict:
-            root_idx : int — индекс первопричины
+            root_idx : int – индекс первопричины
 
         Возвращает
         ----------
@@ -211,7 +211,7 @@ class CAIRNLoss(nn.Module):
     def loss_pe(
         self, pe_scores: torch.Tensor, root_idx: int
     ) -> torch.Tensor:
-        """L_ПЭ — ранжирование причинных эффектов (формула 5.2).
+        """L_ПЭ – ранжирование причинных эффектов (формула 5.2).
 
         Штраф за то, что CE других узлов выше CE первопричины.
         """
@@ -227,7 +227,7 @@ class CAIRNLoss(nn.Module):
         nll_normal: torch.Tensor,
         cov_matrices: List[torch.Tensor],
     ) -> torch.Tensor:
-        """L_УМ — условная модель нормального состояния (формула 5.3)."""
+        """L_УМ – условная модель нормального состояния (формула 5.3)."""
         nll_mean = nll_normal.mean()
         frob_reg = (
             sum(torch.norm(c, "fro") for c in cov_matrices)
@@ -244,14 +244,14 @@ class CAIRNLoss(nn.Module):
         log_var_u: torch.Tensor,
         kl_z_terms: List[torch.Tensor],
     ) -> torch.Tensor:
-        """L_ВАК — вариационный автокодировщик (формула 5.4)."""
+        """L_ВАК – вариационный автокодировщик (формула 5.4)."""
         mse   = F.mse_loss(h_recon, h)
         kl_u  = -0.5 * (1 + log_var_u - mu_u.pow(2) - log_var_u.exp()).mean()
         kl_z  = sum(kl_z_terms) if kl_z_terms else torch.tensor(0.0, device=h.device)
         return mse + self.beta_kl * kl_u + self.beta_kl_z * kl_z
 
     def loss_nez(self, u_hat: torch.Tensor) -> torch.Tensor:
-        """L_нез — ограничение независимости (формула 5.5)."""
+        """L_нез – ограничение независимости (формула 5.5)."""
         N = u_hat.shape[0]
         if N < 2:
             return torch.tensor(0.0, device=u_hat.device)
@@ -269,7 +269,7 @@ class CAIRNLoss(nn.Module):
         h_others_anom: torch.Tensor,
         h_others_norm: torch.Tensor,
     ) -> torch.Tensor:
-        """L_КР — контрастное разделение (формула 5.6)."""
+        """L_КР – контрастное разделение (формула 5.6)."""
         cos      = nn.CosineSimilarity(dim=-1)
         sim_root = cos(h_root_anom.unsqueeze(0), h_root_norm.unsqueeze(0))
         if h_others_anom.shape[0] == 0:
@@ -283,7 +283,7 @@ class CAIRNLoss(nn.Module):
         edge_cf_stats: torch.Tensor,
         threshold: float = 0.05,
     ) -> torch.Tensor:
-        """L_реб — штраф за необоснованные адаптивные рёбра (формула 5.7)."""
+        """L_реб – штраф за необоснованные адаптивные рёбра (формула 5.7)."""
         return (edge_weights * F.relu(threshold - edge_cf_stats)).sum()
 
     # ------------------------------------------------------------------

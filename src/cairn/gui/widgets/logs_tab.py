@@ -1,4 +1,4 @@
-"""Вкладка 'Журналы' — отображение лог-аномалий по контейнерам.
+"""Вкладка 'Журналы' – отображение лог-аномалий по контейнерам.
 
 Показывает:
   - Таблицу контейнеров с частотой ERROR/WARN и статусом аномалии
@@ -159,7 +159,7 @@ class LogsTab(QWidget):
             self._table.setItem(row, 3, item_anom)
 
             # Последние ошибки (превью)
-            preview = ts.top_errors[0][:60] if ts.top_errors else "—"
+            preview = ts.top_errors[0][:60] if ts.top_errors else "–"
             item_err_prev = QTableWidgetItem(preview)
             item_err_prev.setFlags(Qt.ItemFlag.ItemIsSelectable |
                                    Qt.ItemFlag.ItemIsEnabled)

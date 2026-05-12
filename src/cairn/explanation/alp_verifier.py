@@ -48,7 +48,7 @@ class ALPVerifier:
     Параметры
     ----------
     anomaly_threshold : float
-        δ — порог NLL для IC1.
+        δ – порог NLL для IC1.
     ce_threshold : float
         Минимальный CE для IC2.
     numeric_tolerance : float
@@ -125,7 +125,7 @@ class ALPVerifier:
     def _check_ic1(self, chain: EvidenceChain) -> List[str]:
         """IC1: первопричина аномальна (NLL > δ)."""
         if not chain.path_nodes:
-            return ["IC1: цепочка пуста — невозможно проверить аномальность первопричины."]
+            return ["IC1: цепочка пуста – невозможно проверить аномальность первопричины."]
         root_nll = chain.path_nodes[0].nll
         if root_nll < self.anomaly_threshold:
             return [
@@ -217,7 +217,7 @@ class ALPVerifier:
         """Строит альтернативную гипотезу, если достоверность низкая.
 
         Стратегия: ищет узел с высокой NLL, который НЕ является первопричиной.
-        Если он аномальнее первопричины — предлагает его как альтернативу.
+        Если он аномальнее первопричины – предлагает его как альтернативу.
         """
         if len(chain.path_nodes) < 2:
             return None
@@ -234,7 +234,7 @@ class ALPVerifier:
         best_alt = candidates[0]
         root_nll = chain.path_nodes[0].nll
 
-        # Если альтернатива аномальнее первопричины — это сигнал
+        # Если альтернатива аномальнее первопричины – это сигнал
         if best_alt.nll > root_nll * 1.2:
             return (
                 f"Альтернативная гипотеза: '{best_alt.node_name}' "
@@ -242,7 +242,7 @@ class ALPVerifier:
                 f"(NLL={root_nll:.2f}). Рекомендуется дополнительная проверка обоих узлов."
             )
 
-        # Если достоверность низкая — указываем на неопределённость
+        # Если достоверность низкая – указываем на неопределённость
         if chain.confidence < 0.6:
             return (
                 f"Достоверность вывода низкая ({chain.confidence:.0%}). "

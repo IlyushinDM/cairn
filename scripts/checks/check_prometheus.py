@@ -1,4 +1,4 @@
-"""Диагностика cAdvisor — без фильтров."""
+"""Диагностика cAdvisor – без фильтров."""
 import requests
 
 URL = "http://localhost:9090"
