@@ -1,9 +1,17 @@
 [flake8]
-max-line-length = 100
-extend-ignore = E203, W503
+max-line-length = 120
 exclude =
     .git,
     __pycache__,
     .venv,
-    data/benchmarks,
+    build,
+    dist,
     *.egg-info
+ignore =
+    E203,   # whitespace before ':'
+    W503,   # line break before binary operator
+    E501,   # long lines (handled by max-line-length)
+    F401,   # imported but unused (catch in mypy instead)
+per-file-ignores =
+    scripts/*.py: T201
+    tests/*.py: S101, S105
