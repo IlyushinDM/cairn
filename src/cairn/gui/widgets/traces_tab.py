@@ -75,7 +75,7 @@ class TracesTab(QWidget):
         n_total = trace_data.n_services
         self._status_label.setText(
             f"Сервисов: {n_total} | "
-            f"Slow: {n_slow} | "
+            f"Медленных: {n_slow} | "
             f"Источник: {trace_data.source}"
         )
         color = "#f44747" if n_slow > 0 else "#4ec9b0"
@@ -120,7 +120,7 @@ class TracesTab(QWidget):
 
             # Аномалия
             anom_text = (
-                f"SLOW  ×{1+sl.anomaly_score:.1f}"
+                f"МЕДЛЕННО  ×{1+sl.anomaly_score:.1f}"
                 if sl.is_slow else "норма"
             )
             anom_item = _ro(anom_text, Qt.AlignmentFlag.AlignCenter)

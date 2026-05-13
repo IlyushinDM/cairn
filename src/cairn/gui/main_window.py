@@ -362,6 +362,7 @@ class CAIRNMainWindow(QMainWindow):
                 return
 
         self._update_status("Загрузка данных…")
+        self._ctrl._last_scenario_dir = str(sample_dir)
         self._ctrl.load_demo_data(sample_dir)
 
     @Slot()
@@ -378,9 +379,75 @@ class CAIRNMainWindow(QMainWindow):
         if topo:
             self.data_tab.load_topology(topo)
 
-        self.sidebar.set_source_status("Метрики",     ok=True)
-        self.sidebar.set_source_status("Журналы",     ok=True)
-        self.sidebar.set_source_status("Трассировки", ok=True)
+        # ── Журналы и Трассировки ─────────────────────────────────────────
+        # Пробуем взять реальные данные из контроллера,
+        # если их нет — генерируем синтетические из metric_data
+        log_data   = getattr(self._ctrl, "_log_data",   None)
+        trace_data = getattr(self._ctrl, "_trace_data", None)
+
+        # Конвертируем старый формат (FileLogConnector → DockerLogConnector)
+        # FileLogConnector возвращает LogData(entries=[...])
+        # DockerLogConnector возвращает LogData(series={...})
+        if log_data is not None and not hasattr(log_data, "series"):
+            log_data = self._convert_file_log_data(log_data, md)
+
+        # Конвертируем старый формат (JSONTraceConnector → LatencyTraceConnector)
+        # JSONTraceConnector возвращает list[TraceData(spans=[...])]
+        # LatencyTraceConnector возвращает TraceData(services={...})
+        if trace_data is not None and isinstance(trace_data, list):
+            trace_data = self._convert_json_trace_data(trace_data)
+
+        if (log_data is None or trace_data is None) and md is not None:
+            try:
+                from cairn.connectors.demo_log_trace_generator import (
+                    generate_demo_log_data, generate_demo_trace_data,
+                )
+                import json as _json
+                from pathlib import Path as _Path
+
+                # Пытаемся узнать root_cause из labels.json
+                root_cause: str | None = None
+                sc_dir = getattr(self._ctrl, "_last_scenario_dir", None)
+                if sc_dir:
+                    lbl_path = _Path(sc_dir) / "labels.json"
+                    if lbl_path.exists():
+                        lbl = _json.loads(lbl_path.read_text(encoding="utf-8"))
+                        root_cause = lbl.get("root_cause_instance")
+
+                names = md.instance_names
+                ts    = md.timestamps
+                anom_idx = int(len(ts) * 0.6)
+
+                if log_data is None:
+                    log_data = generate_demo_log_data(
+                        names, ts,
+                        root_cause=root_cause,
+                        anomaly_start_idx=anom_idx,
+                    )
+                if trace_data is None:
+                    trace_data = generate_demo_trace_data(
+                        names, ts,
+                        root_cause=root_cause,
+                        anomaly_start_idx=anom_idx,
+                    )
+            except Exception as e:
+                self._logger.debug(f"Demo log/trace generation: {e}")
+
+        if log_data is not None and hasattr(self, "logs_tab"):
+            try:
+                self.logs_tab.load_log_data(log_data)
+                self.sidebar.set_source_status("Журналы", ok=True)
+            except Exception as e:
+                self._logger.debug(f"logs_tab.load_log_data: {e}")
+
+        if trace_data is not None and hasattr(self, "traces_tab"):
+            try:
+                self.traces_tab.load_trace_data(trace_data)
+                self.sidebar.set_source_status("Трассировки", ok=True)
+            except Exception as e:
+                self._logger.debug(f"traces_tab.load_trace_data: {e}")
+
+        self.sidebar.set_source_status("Метрики", ok=True)
 
         self._act_train.setEnabled(True)
         if hasattr(self, "_activity_bar"):
@@ -551,6 +618,112 @@ class CAIRNMainWindow(QMainWindow):
             style.set_theme(new_theme)
         label = "Светлая тема" if new_theme == "light" else "Тёмная тема"
         self._update_status(f"Тема изменена: {label}")
+
+    def _convert_file_log_data(self, old_log_data, metric_data):
+        """Конвертирует LogData(entries) → LogData(series) для LogsTab."""
+        try:
+            from cairn.connectors.docker_log_connector import (
+                LogData, LogTimeSeries,
+            )
+            import numpy as np
+            from collections import defaultdict
+
+            # Группируем entries по instance_name
+            by_instance: dict = defaultdict(list)
+            for entry in old_log_data.entries:
+                name = getattr(entry, "instance_name", getattr(entry, "instance", "unknown"))
+                by_instance[name].append(entry)
+
+            series = {}
+            for name, entries in by_instance.items():
+                timestamps  = sorted({e.timestamp for e in entries})
+                error_rate  = []
+                warn_rate   = []
+                total_rate  = []
+                top_errors  = []
+
+                for t in timestamps:
+                    window = [e for e in entries
+                              if abs(e.timestamp - t) < 5]
+                    errors = [e for e in window
+                              if getattr(e, "level", "") in ("ERROR", "CRITICAL")]
+                    warns  = [e for e in window
+                              if getattr(e, "level", "") == "WARN"]
+                    error_rate.append(len(errors) / max(len(window), 1) * 10)
+                    warn_rate.append(len(warns)  / max(len(window), 1) * 10)
+                    total_rate.append(float(len(window)))
+
+                # Топ ошибок
+                error_msgs = [e.message for e in entries
+                              if getattr(e, "level", "") in ("ERROR", "CRITICAL")]
+                top_errors = list(dict.fromkeys(error_msgs))[:3]
+
+                avg_err     = float(np.mean(error_rate)) if error_rate else 0.0
+                is_anomalous = avg_err > 0.5
+
+                series[name] = LogTimeSeries(
+                    container=name,
+                    timestamps=timestamps,
+                    error_rate=error_rate,
+                    warn_rate=warn_rate,
+                    total_rate=total_rate,
+                    top_errors=top_errors,
+                    anomaly_score=avg_err,
+                    is_anomalous=is_anomalous,
+                )
+
+            collect_time = getattr(old_log_data, "collect_time", 60.0)
+            return LogData(series=series, collect_time=collect_time)
+        except Exception as e:
+            self._logger.debug(f"_convert_file_log_data: {e}")
+            return None
+
+    def _convert_json_trace_data(self, trace_list: list):
+        """Конвертирует list[TraceData(spans)] → TraceData(services) для TracesTab."""
+        try:
+            from cairn.connectors.latency_trace_connector import (
+                TraceData, ServiceLatency,
+            )
+            import numpy as np
+            from collections import defaultdict
+
+            # Группируем spans по instance
+            by_instance: dict = defaultdict(list)
+            for trace in trace_list:
+                for span in getattr(trace, "spans", []):
+                    inst = getattr(span, "instance", None) or getattr(span, "service", "unknown")
+                    by_instance[inst].append(span)
+
+            services = {}
+            all_durations = [s.duration_ms for spans in by_instance.values()
+                             for s in spans]
+            baseline = float(np.median(all_durations)) if all_durations else 100.0
+
+            for inst, spans in by_instance.items():
+                durations  = [s.duration_ms for s in spans]
+                timestamps = [s.start_time  for s in spans]
+                endpoints  = list(dict.fromkeys(
+                    getattr(s, "operation", "/") for s in spans
+                ))[:5]
+                avg_p50    = float(np.mean(durations)) if durations else 0.0
+                is_slow    = avg_p50 > baseline * 2.0
+                anom_score = avg_p50 / max(baseline, 1.0) if is_slow else 0.0
+
+                services[inst] = ServiceLatency(
+                    service=inst,
+                    endpoints=endpoints,
+                    p50_ms=durations,
+                    timestamps=timestamps,
+                    request_count=len(spans),
+                    avg_p50_ms=avg_p50,
+                    is_slow=is_slow,
+                    anomaly_score=anom_score,
+                )
+
+            return TraceData(services=services, source="json_traces")
+        except Exception as e:
+            self._logger.debug(f"_convert_json_trace_data: {e}")
+            return None
 
     def _on_disconnect(self) -> None:
         """Безопасно отключается от живой системы."""
@@ -782,6 +955,7 @@ class CAIRNMainWindow(QMainWindow):
             self._ctrl._hypergraph = hg
 
             # Загружаем данные сценария в GUI
+            self._ctrl._last_scenario_dir = str(sc_dir)
             self._ctrl.load_demo_data(sc_dir)
 
             # Добавляем метаданные первопричины в контроллер
@@ -822,6 +996,7 @@ class CAIRNMainWindow(QMainWindow):
         sc_info = dlg.scenario_info
         if sc_dir:
             self._update_status(f"Загрузка демо: {sc_info['name'] if sc_info else sc_dir.name}…")
+            self._ctrl._last_scenario_dir = str(sc_dir)
             self._ctrl.load_demo_data(sc_dir)
 
     def _on_analyze_confirmed(self) -> None:

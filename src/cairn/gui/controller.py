@@ -1,14 +1,14 @@
-"""Контроллер CAIRN – связывает GUI-события с вычислительным ядром.
+"""Контроллер CAIRN — связывает GUI-события с вычислительным ядром.
 
 Паттерн: CAIRNMainWindow владеет CAIRNController.
 Контроллер держит всё состояние модели/данных и эмитирует Qt-сигналы.
 Main window только подключает сигналы к слотам виджетов.
 
 Сигналы:
-    data_loaded()                      – данные успешно загружены
+    data_loaded()                      — данные успешно загружены
     training_progress(ep, total, stage, losses)
     training_finished(history)
-    analysis_complete(results)         – список dict с результатами
+    analysis_complete(results)         — список dict с результатами
     error(title, message)
 """
 
@@ -48,25 +48,19 @@ class AnalysisWorker(QThread):
 
 
 # ---------------------------------------------------------------------------
-# ModuleConfig – конфигурация включённых модулей
+# ModuleConfig — конфигурация включённых модулей
 # ---------------------------------------------------------------------------
 
 class ModuleConfig:
-    """Отслеживает состояние модулей CAIRN.
+    """Отслеживает состояние чекбоксов модулей и их влияние на модель.
 
-    Активные модули: реально влияют на анализ.
-    Опциональные: включаются для расширенного режима.
+    Ключи совпадают с ключами в Sidebar.
     """
 
     def __init__(self):
-        # ── Активные (включены по умолчанию) ──────────────────────────
-        self.graph_verifier = True    # топологическая корректировка скоров
-        self.cf_module      = True    # контрфактический модуль VGAE
-        self.alp_verifier   = True    # логическая верификация цепочки
-
-        # ── Опциональные ───────────────────────────────────────────────
-        self.ssm_branch    = False   # спектральная ветвь SSM (эксп.)
-        self.drift_detect  = False   # обнаружение дрейфа распределения
+        # Опциональные переключаемые модули
+        self.ssm_branch    = False   # спектральная ветвь SSM
+        self.drift_detect  = False   # обнаружение дрейфа
         self.indep_loss    = False   # ограничение независимости L_нез
 
     def apply(self, key: str, enabled: bool) -> None:
@@ -75,10 +69,6 @@ class ModuleConfig:
 
     def to_dict(self) -> dict:
         return {k: getattr(self, k) for k in vars(self) if not k.startswith("_")}
-
-    def summary(self) -> str:
-        active = [k for k, v in self.to_dict().items() if v]
-        return f"Активных модулей: {len(active)}: {', '.join(active)}"
 
 
 # ---------------------------------------------------------------------------
@@ -107,8 +97,6 @@ class CAIRNController(QObject):
         self._config_path   = config_path or Path("configs/demo.yaml")
         self._config        = None
         self._hypergraph    = None
-        self._metric_data   = None
-        self._is_live_mode  = False
         self._dataset       = None
         self._model         = None
         self._trainer       = None
@@ -144,7 +132,7 @@ class CAIRNController(QObject):
 
     @Slot(str, bool)
     def on_module_toggled(self, key: str, enabled: bool) -> None:
-        """Реакция на чекбокс модуля – обновляет ModuleConfig и применяет к модели."""
+        """Реакция на чекбокс модуля — обновляет ModuleConfig и применяет к модели."""
         self._modules.apply(key, enabled)
 
         model = self._model
@@ -165,74 +153,9 @@ class CAIRNController(QObject):
             gmm = model.gmm
             object.__setattr__(gmm, "_drift_enabled", enabled)
 
-        elif key == "graph_verifier":
-            # Флаг читается в _run_analysis_core напрямую
-            pass
-
-        elif key == "cf_module":
-            # Флаг читается в _run_analysis_core напрямую
-            pass
-
-        elif key == "alp_verifier":
-            # Флаг читается в _run_analysis_core напрямую
-            pass
-
     # ------------------------------------------------------------------
     # Загрузка данных
     # ------------------------------------------------------------------
-
-    def load_live_data(self, metric_data, topo_data, hypergraph) -> None:
-        """Загружает живые данные от LiveSystemConnector."""
-        self._metric_data = metric_data
-        self._topo_data   = topo_data
-        self._hypergraph  = hypergraph
-        self._is_live_mode = True
-
-        # Авто-загрузка pre-trained модели если ещё не загружена
-        if self._model is None:
-            import torch
-            from pathlib import Path as _Path
-            model_path = _Path("data/sample/demo_model.pt")
-            if model_path.exists():
-                try:
-                    self._load_checkpoint_silent(str(model_path))
-                    self._log(f"Модель авто-загружена: {model_path}")
-                except Exception as e:
-                    self._log(f"Авто-загрузка модели не удалась: {e}")
-
-        self.data_loaded.emit()
-
-    def _load_checkpoint_silent(self, path: str) -> None:
-        """Загружает чекпоинт без диалогов."""
-        import torch
-        from cairn.perception import StateBuilder
-        from cairn.reasoning import ConditionalGMM, ConfoundedVGAE, CounterfactualModule
-        from cairn.training import CAIRNModel
-
-        ckpt = torch.load(path, map_location="cpu", weights_only=True)
-        A    = ckpt.get("arch_config", {})
-        D    = A.get("state_dim", 32);  CTX = A.get("context_dim", 8)
-        F    = A.get("n_metrics", 4)
-
-        model = CAIRNModel(
-            state_builder=StateBuilder(
-                n_metrics=F, log_vocab_size=300,
-                state_dim=D, context_dim=CTX,
-                d_met=A.get("d_met",16), d_log=A.get("d_log",8),
-                d_tr=A.get("d_tr",8),   d_ssm=A.get("d_ssm",8),
-                d_brk=A.get("d_brk",8), ssm_state_dim=A.get("ssm_state_dim",16),
-                window=A.get("window",15),
-            ),
-            gmm=ConditionalGMM(D, CTX, A.get("n_components",7)),
-            vgae=ConfoundedVGAE(D, A.get("n_confounders",2), A.get("confounder_dim",8)),
-            cf_module=CounterfactualModule(D, A.get("n_conv_layers",1)),
-        )
-        state = ckpt.get("model_state_dict", ckpt.get("model_state", {}))
-        model.load_state_dict(state, strict=False)
-        model.eval()
-        self._model = model
-        # Обновляем статус в GUI
-        self.model_status_changed.emit(True) if hasattr(self, "model_status_changed") else None
 
     @Slot()
     def load_demo_data(self, sample_dir: Path = Path("data/sample")) -> None:
@@ -254,10 +177,20 @@ class CAIRNController(QObject):
                 BASE_TS, END_TS = 1_700_000_000.0, 1_700_000_299.0
 
             self._metric_data = CSVMetricConnector(sample_dir / "metrics.csv").fetch(BASE_TS, END_TS)
-            self._log_data    = FileLogConnector(sample_dir / "logs.txt").fetch(BASE_TS, END_TS)
-            self._trace_data  = JSONTraceConnector(sample_dir / "traces.json").fetch(BASE_TS, END_TS)
             self._topo_data   = YAMLTopologyConnector(sample_dir / "topology.yaml").fetch()
             self._hypergraph  = HypergraphBuilder.from_topology_data(self._topo_data)
+
+            # Журналы и трассировки опциональны — не падаем если файлов нет
+            self._log_data   = None
+            self._trace_data = None
+            try:
+                self._log_data = FileLogConnector(sample_dir / "logs.txt").fetch(BASE_TS, END_TS)
+            except Exception:
+                pass
+            try:
+                self._trace_data = JSONTraceConnector(sample_dir / "traces.json").fetch(BASE_TS, END_TS)
+            except Exception:
+                pass
 
             self.data_loaded.emit()
         except Exception as e:
@@ -374,14 +307,14 @@ class CAIRNController(QObject):
                             "Сначала обучите модель или загрузите чекпоинт.")
             return
 
-        # Если старый воркер ещё жив – ждём завершения (макс 3 сек)
+        # Если старый воркер ещё жив — ждём завершения (макс 3 сек)
         if self._analysis_worker is not None:
             if self._analysis_worker.isRunning():
                 self._analysis_worker.quit()
                 self._analysis_worker.wait(3000)
             self._analysis_worker = None
 
-        # parent=None – управляем временем жизни вручную
+        # parent=None — управляем временем жизни вручную
         worker = AnalysisWorker(self, parent=None)
         worker.finished.connect(self._on_analysis_finished)
         worker.finished.connect(self._cleanup_analysis_worker)
@@ -397,123 +330,37 @@ class CAIRNController(QObject):
             self._analysis_worker = None
 
     def _run_analysis_core(self) -> list[dict]:
-        """Ядро анализа – работает на живых данных или демо."""
-        import torch
-        import numpy as np
-        from cairn.reasoning import CascadeFunnel
-
-        model     = self._model
+        """Ядро анализа (выполняется в AnalysisWorker)."""
+        model = self._model
         hypergraph = self._hypergraph
         if model is None or hypergraph is None:
             raise RuntimeError("Модель или гиперграф не инициализированы.")
 
-        is_live = getattr(self, "_is_live_mode", False)
-        md      = getattr(self, "_metric_data", None)
+        from cairn.training.data_loader import create_demo_dataset
+        from cairn.reasoning import CascadeFunnel
 
-        if is_live and md is not None and md.n_instances > 0:
-            # ── Живые данные ─────────────────────────────────────────────
-            W = 30
-            T = len(md.timestamps)
-            window = min(W, T)
-            vals   = md.values[-window:, :, :]
-            vals   = np.nan_to_num(vals, nan=0.0)
+        sc_dir = getattr(self, "_demo_sc_dir", None) or "data/sample"
+        dataset = create_demo_dataset(sc_dir, window_size=30, stride=10)
+        anom = dataset.anomaly_subset()
+        if len(anom) == 0:
+            raise RuntimeError("Нет аномальных инцидентов в датасете.")
 
-            # Дополняем до 4 метрик
-            expected_F = getattr(model.state_builder, "n_metrics", 4)
-            F_cur = vals.shape[2]
-            if F_cur < expected_F:
-                pad  = np.zeros((vals.shape[0], vals.shape[1], expected_F - F_cur))
-                vals = np.concatenate([vals, pad], axis=2)
-            elif F_cur > expected_F:
-                vals = vals[:, :, :expected_F]
+        incident = anom[0]
+        outputs  = model(incident, hypergraph)
+        H, C     = outputs["H"], outputs["C"]
+        # Используем нулевой контекст для оценки аномальности:
+        # это исключает влияние аномального контекста на NLL
+        nll      = model.gmm.nll(H, C)
 
-            # Нормализуем
-            for fi in range(vals.shape[2]):
-                col_max = vals[:, :, fi].max()
-                if col_max > 1e-6:
-                    vals[:, :, fi] /= col_max
-
-            F = vals.shape[2]
-            H_list, C_list = [], []
-            with torch.no_grad():
-                for ni in range(vals.shape[1]):
-                    chunk = vals[:, ni, :]
-                    if chunk.shape[0] < W:
-                        pad   = np.zeros((W - chunk.shape[0], F))
-                        chunk = np.vstack([pad, chunk])
-                    m_t     = torch.tensor(chunk, dtype=torch.float32).unsqueeze(0)
-                    log_ids = torch.zeros(1, 1, dtype=torch.long)
-                    log_len = torch.ones(1, dtype=torch.long)
-                    dummy_d = torch.zeros(1, 16, dtype=torch.float32)
-                    H_i, C_i = model.state_builder(m_t, log_ids, log_len, dummy_d)
-                    H_list.append(H_i)
-                    C_list.append(C_i)
-
-            H   = torch.cat(H_list, dim=0)
-            C   = torch.cat(C_list, dim=0)
-            nll = model.gmm.nll(H, C)
-
-        else:
-            # ── Демо-данные ───────────────────────────────────────────────
-            from cairn.training.data_loader import create_demo_dataset
-            sc_dir  = getattr(self, "_demo_sc_dir", None) or "data/sample"
-            dataset = create_demo_dataset(sc_dir, window_size=30, stride=10)
-            anom    = dataset.anomaly_subset()
-            if len(anom) == 0:
-                raise RuntimeError("Нет аномальных инцидентов в датасете.")
-            incident = anom[0]
-            with torch.no_grad():
-                outputs = model(incident, hypergraph)
-            H, C = outputs["H"], outputs["C"]
-            nll  = model.gmm.nll(H, C)
-
-        # ── Общий путь: ранжирование ──────────────────────────────────────
-        N_inst = len(hypergraph.instance_names)
-        funnel = CascadeFunnel(
-            l0_top_k=N_inst, l1_top_k=N_inst, l2_top_k=N_inst
-        )
+        N_inst   = len(hypergraph.instance_names)
+        funnel   = CascadeFunnel(l0_top_k=N_inst, l1_top_k=N_inst, l2_top_k=N_inst)
         adj      = hypergraph.adjacency_matrix()
         adj_norm = adj / adj.sum(1, keepdim=True).clamp(min=1)
 
-        # Модуль: cf_module – использовать CounterfactualModule или нет
-        use_cf = self._modules.cf_module
-
         # NLL-ранжирование: GMM корректно оценивает аномальность каждого узла
-        # Передаём cf_module только если он активен
-        ranked = funnel.run(
-            nll, H, adj_norm,
-            model.cf_module if use_cf else None,
-            model.gmm, C, hypergraph,
-        )
-
-        # Модуль: graph_verifier – топологическая корректировка скоров
-        if self._modules.graph_verifier:
-            try:
-                import numpy as _np
-                names     = hypergraph.instance_names
-                ce_scores = dict(ranked)
-                # Строим граф вызовов
-                called_by:  dict[int, int]       = {}
-                callee_map: dict[int, list[int]]  = {}
-                for edge in hypergraph.edges:
-                    if edge.edge_type == "call" and len(edge.members) >= 2:
-                        src, dst = edge.members[0], edge.members[1]
-                        callee_map.setdefault(src, []).append(dst)
-                        called_by[dst] = called_by.get(dst, 0) + 1
-
-                adjusted = {}
-                for idx, score in ce_scores.items():
-                    callees     = callee_map.get(idx, [])
-                    cs          = [ce_scores.get(c, 0.0) for c in callees
-                                   if c in ce_scores]
-                    cascade_avg = float(_np.mean(cs)) if cs else 0.0
-                    n_callers   = called_by.get(idx, 0)
-                    adjusted[idx] = score / (1.0 + cascade_avg) / (
-                        1.0 + n_callers * 0.5)
-
-                ranked = sorted(adjusted.items(), key=lambda x: x[1], reverse=True)
-            except Exception:
-                pass  # если топология недоступна – используем исходный ранг
+        ranked = funnel.run(nll, H, adj_norm,
+                            model.cf_module, model.gmm,
+                            C, hypergraph)
 
         # Строим объяснение
         from cairn.explanation import EvidenceChainBuilder, TemplateTextGenerator, ALPVerifier
@@ -523,14 +370,9 @@ class CAIRNController(QObject):
         root_idx   = ranked[0][0] if ranked else 0
 
         # 1.2: Вычисляем доминантную метрику для каждого узла
-        _incident_for_metrics = locals().get("incident", None)
-        dominant_metrics = (
-            self._compute_dominant_metrics(_incident_for_metrics, names)
-            if _incident_for_metrics is not None
-            else {}
-        )
+        dominant_metrics = self._compute_dominant_metrics(incident, names)
 
-        # Передаём все оценки – builder строит путь через граф по убыванию NLL
+        # Передаём все оценки — builder строит путь через граф по убыванию NLL
         chain = EvidenceChainBuilder().build(
             root_cause=root_idx,
             causal_graph=self._hypergraph,
@@ -545,24 +387,6 @@ class CAIRNController(QObject):
             chain.path_nodes[0].failure_type = getattr(self, "_demo_fault_hint", None)
 
         text = TemplateTextGenerator().generate(chain)
-        # Улучшаем рекомендации если они generic
-        if "Проверьте метрики и журналы" in text and chain.path_nodes:
-            root = chain.path_nodes[0]
-            ft   = getattr(root, "failure_type", "resource_anomaly") or "resource_anomaly"
-            dm   = getattr(root, "dominant_metric", None)
-            recs = {
-                "cpu_exhaustion":    "Ограничьте CPU (cgroups/limits), проверьте CPU-интенсивные операции, рассмотрите горизонтальное масштабирование.",
-                "memory_leak":       "Проверьте утечки памяти, перезапустите сервис, увеличьте memory limit или оптимизируйте кэш.",
-                "latency_spike":     "Проверьте сетевые задержки, время ответа зависимостей, наличие long GC паузы.",
-                "traffic_surge":     "Проверьте количество входящих запросов, рассмотрите rate limiting или auto-scaling.",
-                "network_saturation":"Проверьте пропускную способность сети, наличие packet loss, DNS-резолюцию.",
-                "resource_anomaly":  f"Доминирующая метрика: {dm or 'неизвестна'}. Проверьте нагрузку на сервис и его зависимости.",
-            }
-            rec = recs.get(ft, recs["resource_anomaly"])
-            text = text.replace(
-                "Рекомендация: Проверьте метрики и журналы сервиса для определения причины.",
-                f"Рекомендация: {rec}"
-            )
 
         # Относительные пороги: root должен быть выше медианы, а не абсолютного нуля
         # Это корректно для отрицательных NLL (GMM после обучения)
@@ -570,14 +394,10 @@ class CAIRNController(QObject):
         ce_sorted  = sorted(ce_scores.values())
         nll_median = nll_sorted[len(nll_sorted) // 2]   # медиана NLL
         ce_median  = ce_sorted[len(ce_sorted) // 2]     # медиана CE
-        # Модуль: alp_verifier – логическая верификация
-        if self._modules.alp_verifier:
-            result = ALPVerifier(
-                anomaly_threshold=nll_median,
-                ce_threshold=ce_median,
-            ).verify(chain, text)
-        else:
-            result = None
+        result = ALPVerifier(
+            anomaly_threshold=nll_median,
+            ce_threshold=ce_median,
+        ).verify(chain, text)
 
         self._last_chain  = chain
         self._last_alp    = result
@@ -589,33 +409,11 @@ class CAIRNController(QObject):
                 "name":       names[idx] if idx < len(names) else f"node-{idx}",
                 "ce":         round(ce, 4),
                 "nll":        round(nll[idx].item(), 4),
-                "fault_type": self._infer_fault_type(
-                    getattr(self, "_demo_fault_hint", None),
-                    dominant_metrics.get(idx)
-                ) if i == 0 else "–",
+                "fault_type": getattr(self, "_demo_fault_hint", "unknown") if i == 0 else "—",
                 "confidence": max(0.0, 0.8 - i * 0.15),
             }
             for i, (idx, ce) in enumerate(ranked)
         ]
-
-    def _infer_fault_type(self, hint: str | None, dominant_metric: str | None) -> str:
-        """Определяет тип сбоя по подсказке и доминантной метрике."""
-        if hint and hint != "unknown":
-            return hint
-        if dominant_metric:
-            mapping = {
-                "cpu":         "cpu_exhaustion",
-                "cpu_pct":     "cpu_exhaustion",
-                "memory":      "memory_leak",
-                "memory_mb":   "memory_leak",
-                "latency_ms":  "latency_spike",
-                "rps":         "traffic_surge",
-                "net_rx_kbps": "network_saturation",
-                "net_tx_kbps": "network_saturation",
-            }
-            return mapping.get(dominant_metric, "resource_anomaly")
-        return "resource_anomaly"
-
 
     def _compute_dominant_metrics(self, incident, instance_names: list[str]) -> dict[int, str]:
         """1.2: Вычисляет наиболее отклонившуюся метрику для каждого узла.
@@ -632,9 +430,9 @@ class CAIRNController(QObject):
             N, T, F = m.shape
             third = max(1, T // 3)
 
-            # Базовый период – первая треть окна
+            # Базовый период — первая треть окна
             base = m[:, :third, :].mean(dim=1)          # (N, F)
-            # Аномальный период – последняя треть
+            # Аномальный период — последняя треть
             anom = m[:, -third:, :].mean(dim=1)         # (N, F)
 
             # Относительное отклонение |Δ| / (|base| + ε)
@@ -647,7 +445,7 @@ class CAIRNController(QObject):
                 if best_delta > 0.20 and best_f < len(METRIC_NAMES):
                     result[i] = METRIC_NAMES[best_f]
         except Exception:
-            pass  # не критично – dominant_metric остаётся null
+            pass  # не критично — dominant_metric остаётся null
 
         return result
 
