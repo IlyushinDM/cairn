@@ -1,4 +1,4 @@
-"""Вкладка 'Трассировки' – latency per service из loadgenerator."""
+"""Вкладка 'Трассировки' — latency per service из loadgenerator."""
 from __future__ import annotations
 
 from PySide6.QtCore import Qt
@@ -36,7 +36,7 @@ class TracesTab(QWidget):
         layout.addLayout(hdr)
 
         # Таблица latency
-        lbl = QLabel("LATENCY PER SERVICE (p50, мс)")
+        lbl = QLabel("ЗАДЕРЖКА ПО СЕРВИСАМ (p50, мс)")
         lbl.setObjectName("sectionTitle")
         layout.addWidget(lbl)
 

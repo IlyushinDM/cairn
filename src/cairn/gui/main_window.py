@@ -1,8 +1,8 @@
-"""Главное окно CAIRN – точка входа графического интерфейса.
+"""Главное окно CAIRN — точка входа графического интерфейса.
 
 Архитектура: CAIRNMainWindow (View) ↔ CAIRNController (Presenter/ViewModel).
 Окно только маршрутизирует события и обновляет виджеты;
-вся бизнес-логика – в контроллере.
+вся бизнес-логика — в контроллере.
 
 Совместимость: PySide6 >= 6.0 (используются новые enum-пространства имён).
 """
@@ -18,7 +18,7 @@ from PySide6.QtGui import (
     QAction, QColor, QFont, QIcon, QKeySequence, QPainter, QPixmap,
 )
 from PySide6.QtWidgets import (
-    QApplication, QFileDialog, QHBoxLayout, QLabel, QMainWindow,
+    QApplication, QFileDialog, QFrame, QHBoxLayout, QLabel, QMainWindow,
     QMessageBox, QSplitter, QTabWidget, QToolBar, QVBoxLayout, QWidget,
 )
 
@@ -31,7 +31,7 @@ from cairn.gui.widgets.explanation_tab import ExplanationTab
 
 
 # ---------------------------------------------------------------------------
-# Иконка-пирамида (рисуется программно – без внешних ресурсов)
+# Иконка-пирамида (рисуется программно — без внешних ресурсов)
 # ---------------------------------------------------------------------------
 
 def _make_cairn_icon(size: int = 64, color: str = "#4a9eff") -> QIcon:
@@ -75,6 +75,14 @@ class CAIRNMainWindow(QMainWindow):
 
     def __init__(self, config_path: Optional[str | Path] = None, parent=None):
         super().__init__(parent)
+        # Инициализируем _logger до любых вызовов
+        import logging as _logging
+        self._logger = _logging.getLogger("cairn.gui")
+        # Инициализируем тему до _setup_style
+        self._current_theme = "dark"
+        # Live-состояние
+        self._live_connector = None
+
         self._ctrl = CAIRNController(
             config_path=Path(config_path) if config_path else None,
             parent=self,
@@ -88,7 +96,7 @@ class CAIRNMainWindow(QMainWindow):
     # ── Инициализация ─────────────────────────────────────────────────
 
     def _setup_window(self) -> None:
-        self.setWindowTitle("CAIRN – Система анализа первопричин сбоев")
+        self.setWindowTitle("CAIRN — Система анализа первопричин сбоев")
         self.setWindowIcon(_make_cairn_icon())
         self.setMinimumSize(1000, 700)
         self.resize(1400, 900)
@@ -96,21 +104,17 @@ class CAIRNMainWindow(QMainWindow):
     def _setup_style(self) -> None:
         styles_dir = Path(__file__).parent / "styles"
         qss_path = styles_dir / "dark_theme.qss"
-        # Set matplotlib dark defaults
-        try:
-            import matplotlib
-            matplotlib.rcParams.update({
-                "axes.facecolor":   "#161922",
-                "figure.facecolor": "#161922",
-                "axes.edgecolor":   "#2d3348",
-                "text.color":       "#a0a8bc",
-                "axes.labelcolor":  "#6c7a9c",
-                "xtick.color":      "#6c7a9c",
-                "ytick.color":      "#6c7a9c",
-            })
-        except Exception:
-            pass
-        if qss_path.exists():
+        # matplotlib цвета задаём в _build_canvas каждого виджета напрямую,
+        # а не через rcParams — rcParams.update триггерит QFont::setPointSize <= 0
+        # через FigureCanvasQTAgg при инициализации
+        # Явно задаём шрифт приложения ДО загрузки QSS.
+        from PySide6.QtGui import QFont as _QFont
+        app_font = _QFont("Segoe UI", 10) if sys.platform == "win32" else _QFont("SF Pro Text", 10)
+        if app_font.pointSize() > 0:
+            _get_app().setFont(app_font)
+
+        # Загружаем QSS только если ещё не загружен (run_gui.py мог загрузить раньше)
+        if not _get_app().styleSheet() and qss_path.exists():
             _get_app().setStyleSheet(qss_path.read_text(encoding="utf-8"))
 
     def _build_ui(self) -> None:
@@ -168,7 +172,7 @@ class CAIRNMainWindow(QMainWindow):
         help_m.addAction(act)
 
     def _build_toolbar(self) -> None:
-        """Toolbar убран – все действия перенесены в Activity Bar."""
+        """Toolbar убран — все действия перенесены в Activity Bar."""
         # Сохраняем заглушки для совместимости с другими методами
         from PySide6.QtWidgets import QToolBar
         from PySide6.QtGui import QAction
@@ -200,8 +204,17 @@ class CAIRNMainWindow(QMainWindow):
         self._activity_bar = ActivityBar()
         root_layout.addWidget(self._activity_bar)
 
+        # п.2: явный разделитель для гарантированной видимости границы
+        _sep = QFrame()
+        _sep.setFrameShape(QFrame.Shape.VLine)
+        _sep.setFixedWidth(1)
+        _sep.setStyleSheet("background: #474747; border: none;")
+        root_layout.addWidget(_sep)
+
         # Подключаем действия
         self._activity_bar.load_requested.connect(self._on_load_data_confirmed)
+        if hasattr(self._activity_bar, "disconnect_requested"):
+            self._activity_bar.disconnect_requested.connect(self._on_disconnect)
         self._activity_bar.analyze_requested.connect(self._on_analyze_confirmed)
         self._activity_bar.train_requested.connect(self._on_train_confirmed)
         self._activity_bar.panel_requested.connect(self._on_panel_requested)
@@ -225,6 +238,8 @@ class CAIRNMainWindow(QMainWindow):
 
         # ── Вкладки ───────────────────────────────────────────────────────
         self.tabs         = QTabWidget()
+        self.tabs.setObjectName("mainTabs")
+        # Стиль вкладок управляется через QSS темы
         self.data_tab        = DataTab()
         self.training_tab    = TrainingTab()
         self.results_tab     = ResultsTab()
@@ -249,7 +264,7 @@ class CAIRNMainWindow(QMainWindow):
         self.TAB_EXPLAIN = 4
         self.TAB_TRAIN   = 5
 
-        # Журнал событий – отдельная боковая панель
+        # Журнал событий — отдельная боковая панель
         from cairn.gui.widgets.event_log import EventLogWidget
         self._event_log = EventLogWidget()
         self._event_log.setFixedWidth(320)
@@ -286,7 +301,7 @@ class CAIRNMainWindow(QMainWindow):
                 self._gpu_label.setText("GPU: ✗ CPU-режим")
                 self._gpu_label.setObjectName("statusWarn")
         except ImportError:
-            self._gpu_label.setText("GPU: –")
+            self._gpu_label.setText("GPU: —")
 
         self._model_label = QLabel("Модель: не загружена")
         self._model_label.setObjectName("statusBad")
@@ -323,6 +338,7 @@ class CAIRNMainWindow(QMainWindow):
         self.training_tab.start_requested.connect(self._on_train)
         self.training_tab.stop_requested.connect(self._ctrl.stop_training)
         self.results_tab.show_explanation.connect(self._on_show_explanation)
+        self.results_tab.counterfactual_requested.connect(self._on_counterfactual)
 
     # ── Слоты ─────────────────────────────────────────────────────────
 
@@ -330,13 +346,8 @@ class CAIRNMainWindow(QMainWindow):
     def _on_load_data(self) -> None:
         sample_dir = Path("data/sample")
         if not (sample_dir / "metrics.csv").exists():
-            reply = QMessageBox.question(
-                self,
-                "Данные не найдены",
-                "Демо-данные не найдены. Сгенерировать автоматически?",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            )
-            if reply == QMessageBox.StandardButton.Yes:
+            reply = self._ask_yes_no("Данные не найдены", "Демо-данные не найдены. Сгенерировать автоматически?")
+            if reply:
                 import subprocess
                 try:
                     self._update_status("Генерация демо-данных…")
@@ -381,13 +392,8 @@ class CAIRNMainWindow(QMainWindow):
     @Slot()
     def _on_train(self) -> None:
         if not self._ctrl.has_data:
-            reply = QMessageBox.question(
-                self,
-                "Нет данных",
-                "Данные не загружены. Загрузить демо-данные и начать обучение?",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            )
-            if reply == QMessageBox.StandardButton.Yes:
+            reply = self._ask_yes_no("Нет данных", "Данные не загружены. Загрузить демо-данные и начать обучение?")
+            if reply:
                 self._on_load_data()
             return
 
@@ -435,7 +441,7 @@ class CAIRNMainWindow(QMainWindow):
         names      = hg.instance_names if hg else []
         ranked     = [(r["idx"], r["ce"]) for r in results]
         nll_scores = {r["idx"]: r["nll"] for r in results}
-        fault_type = results[0].get("fault_type", "–")
+        fault_type = results[0].get("fault_type", "—")
         confidence = results[0].get("confidence", 0.8)
 
         self.results_tab.show_results(ranked, names, nll_scores, confidence, fault_type)
@@ -452,10 +458,162 @@ class CAIRNMainWindow(QMainWindow):
 
         self._act_export.setEnabled(True)
         self.tabs.setCurrentIndex(self.TAB_RESULTS)
-        root_name = results[0]["name"] if results else "–"
+        root_name = results[0]["name"] if results else "—"
         self._update_status(f"Анализ завершён. Первопричина: {root_name}")
 
     @Slot(int)
+    def _ask_yes_no(self, title: str, text: str) -> bool:
+        """QMessageBox с русскими кнопками Да/Нет."""
+        from PySide6.QtWidgets import QMessageBox
+        box = QMessageBox(self)
+        box.setWindowTitle(title)
+        box.setText(text)
+        box.setIcon(QMessageBox.Icon.Question)
+        yes = box.addButton("Да",     QMessageBox.ButtonRole.YesRole)
+        box.addButton("Нет", QMessageBox.ButtonRole.NoRole)
+        box.exec()
+        return box.clickedButton() is yes
+
+    def _show_info(self, title: str, text: str) -> None:
+        """QMessageBox информация с русской кнопкой OK."""
+        from PySide6.QtWidgets import QMessageBox
+        box = QMessageBox(self)
+        box.setWindowTitle(title)
+        box.setText(text)
+        box.setIcon(QMessageBox.Icon.Information)
+        box.addButton("ОК", QMessageBox.ButtonRole.AcceptRole)
+        box.exec()
+
+    def _apply_theme(self, theme: str) -> None:
+        """Загружает и применяет тему через QApplication (единственный правильный способ).
+
+        self.setStyleSheet() не достигает виджетов с собственным inline-стилем.
+        QApplication.setStyleSheet() — единый каскад для всего приложения.
+        """
+        filename = "dark_theme.qss" if theme == "dark" else "light_theme.qss"
+        theme_path = Path(__file__).parent / "styles" / filename
+        if not theme_path.exists():
+            return
+        qss = theme_path.read_text(encoding="utf-8")
+        # Применяем ко всему приложению
+        _get_app().setStyleSheet(qss)
+        self._current_theme = theme
+        # Сбрасываем inline-стили вкладок (они hardcoded и перекрывают QSS)
+        self.tabs.setStyleSheet("")
+        # Перекрашиваем matplotlib
+        self._repaint_plots(theme)
+
+    def _repaint_plots(self, theme: str) -> None:
+        """Перекрашивает matplotlib-графики при смене темы (п.6)."""
+        if theme == "light":
+            bg, fg, grid = "#f5f5f5", "#333333", "#cccccc"
+        else:
+            bg, fg, grid = "#161922", "#6c7a9c", "#2d3348"
+        # data_tab
+        if hasattr(self, "data_tab") and hasattr(self.data_tab, "_ax"):
+            ax = self.data_tab._ax
+            if ax is not None:
+                ax.set_facecolor(bg)
+                ax.tick_params(colors=fg)
+                for s in ax.spines.values():
+                    s.set_color(grid)
+                ax.set_xlabel(ax.get_xlabel(), color=fg)
+                ax.set_ylabel(ax.get_ylabel(), color=fg)
+                if self.data_tab._fig is not None:
+                    self.data_tab._fig.patch.set_facecolor(bg)
+                    try:
+                        self.data_tab._fig.canvas.draw()
+                    except Exception:
+                        pass
+        # training_tab loss_chart
+        if hasattr(self, "training_tab"):
+            lc = getattr(self.training_tab, "loss_chart", None)
+            if lc and hasattr(lc, "_ax") and lc._ax is not None:
+                lc._ax.set_facecolor(bg)
+                lc._ax.tick_params(colors=fg)
+                for s in lc._ax.spines.values():
+                    s.set_color(grid)
+                if lc._fig is not None:
+                    lc._fig.patch.set_facecolor(bg)
+                    try:
+                        lc._fig.canvas.draw()
+                    except Exception:
+                        pass
+
+    def _toggle_theme(self) -> None:
+        """Переключает между тёмной и светлой темой."""
+        new_theme = "light" if self._current_theme == "dark" else "dark"
+        self._apply_theme(new_theme)
+        # Обновляем цвет стрелок в QProxyStyle
+        from PySide6.QtWidgets import QApplication as _QApp
+        style = _QApp.instance().style()
+        if hasattr(style, "set_theme"):
+            style.set_theme(new_theme)
+        label = "Светлая тема" if new_theme == "light" else "Тёмная тема"
+        self._update_status(f"Тема изменена: {label}")
+
+    def _on_disconnect(self) -> None:
+        """Безопасно отключается от живой системы."""
+        if not hasattr(self, "_live_connector") or self._live_connector is None:
+            return
+
+        name = getattr(self._live_connector, "system_name", "система")
+        r = self._ask_yes_no(
+            "Отключение",
+            f"Отключиться от «{name}»?\n\nСбор метрик будет остановлен."
+        )
+        if not r:
+            return
+
+        # Останавливаем мониторинг
+        if hasattr(self, "_anomaly_monitor") and self._anomaly_monitor:
+            try:
+                self._anomaly_monitor.stop()
+            except Exception:
+                pass
+
+        # Останавливаем live workers
+        for attr in ("_live_worker", "_log_worker", "_trace_worker"):
+            w = getattr(self, attr, None)
+            if w is not None:
+                try:
+                    w.stop()
+                    w.wait(2000)
+                except Exception:
+                    pass
+            setattr(self, attr, None)
+
+        self._live_connector = None
+        setattr(self._ctrl, "_is_live_mode", False)
+
+        # Очищаем данные в GUI
+        try:
+            if hasattr(self, "data_tab"):
+                self.data_tab.metrics_table.setRowCount(0)
+                self.data_tab.instances_table.setRowCount(0)
+                self.data_tab._metric_combo.clear()
+                self.data_tab._legend.set_services([])
+                if self.data_tab._ax is not None:
+                    self.data_tab._ax.clear()
+                    self.data_tab._ax.set_title(
+                        "Данные очищены — переподключитесь",
+                        color="#6c7a9c", fontsize=10
+                    )
+                    if hasattr(self.data_tab._canvas_widget, "draw"):
+                        self.data_tab._canvas_widget.draw()
+            if hasattr(self, "results_tab"):
+                self.results_tab.root_label.setText("Первопричина не определена")
+                self.results_tab.ce_label.setText("ПЭ: —")
+                self.results_tab.conf_label.setText("Достоверность: —")
+        except Exception:
+            pass
+
+        if hasattr(self, "_activity_bar"):
+            self._activity_bar.set_connect_status(False)
+            self._activity_bar.set_disconnect_visible(False)
+
+        self._update_status(f"Отключено от {name}")
+
     def _on_compare_modes(self) -> None:
         """B2: Открывает диалог сравнения режимов анализа."""
         if self._ctrl._model is None:
@@ -517,14 +675,8 @@ class CAIRNMainWindow(QMainWindow):
 
     @Slot()
     def _on_toggle_theme(self) -> None:
-        styles_dir = Path(__file__).parent / "styles"
-        app = _get_app()
-        current = app.styleSheet()
-        name = "light" if "dark" in current else "dark"
-        qss_path = styles_dir / f"{name}_theme.qss"
-        if qss_path.exists():
-            app.setStyleSheet(qss_path.read_text(encoding="utf-8"))
-        self._update_status(f"Тема: {name}")
+        """Переключатель темы — делегирует в _toggle_theme."""
+        self._toggle_theme()
 
     @Slot(str)
     def _on_configure_source(self, source_name: str) -> None:
@@ -615,7 +767,7 @@ class CAIRNMainWindow(QMainWindow):
                     model.load_state_dict(state["model_state"], strict=False)
                 self._update_status("Демо: модель загружена из чекпоинта")
             else:
-                self._update_status("Демо: чекпоинт не найден – быстрое обучение 1 эп.")
+                self._update_status("Демо: чекпоинт не найден — быстрое обучение 1 эп.")
                 from cairn.training import create_demo_dataset, TrainerConfig
                 ds  = create_demo_dataset(sc_dir, window_size=30, stride=15)
                 cfg = TrainerConfig(
@@ -660,27 +812,28 @@ class CAIRNMainWindow(QMainWindow):
 # ---------------------------------------------------------------------------
 
     def _on_load_data_confirmed(self) -> None:
-        from PySide6.QtWidgets import QMessageBox
-        r = QMessageBox.question(self, "Загрузить данные",
-            "Выберите директорию с данными (metrics.csv + topology.yaml)?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel)
-        if r == QMessageBox.StandardButton.Yes:
-            self._on_load_data()
+        """Открывает ScenarioDialog для выбора демо-сценария."""
+        from cairn.gui.widgets.demo_dialog import ScenarioDialog
+        data_dir = Path("data/sample")
+        dlg = ScenarioDialog(data_dir, parent=self)
+        if dlg.exec() != dlg.DialogCode.Accepted or dlg.selected_scenario is None:
+            return
+        sc_dir  = dlg.scenario_dir
+        sc_info = dlg.scenario_info
+        if sc_dir:
+            self._update_status(f"Загрузка демо: {sc_info['name'] if sc_info else sc_dir.name}…")
+            self._ctrl.load_demo_data(sc_dir)
 
     def _on_analyze_confirmed(self) -> None:
         from PySide6.QtWidgets import QMessageBox
-        r = QMessageBox.question(self, "Запустить анализ",
-            "Запустить анализ первопричин на загруженных данных?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel)
-        if r == QMessageBox.StandardButton.Yes:
+        r = self._ask_yes_no("Запустить анализ", "Запустить анализ первопричин на загруженных данных?")
+        if r:
             self._ctrl.start_analysis()
 
     def _on_train_confirmed(self) -> None:
         from PySide6.QtWidgets import QMessageBox
-        r = QMessageBox.question(self, "Обучить модель",
-            "Начать обучение модели CAIRN? Это может занять несколько минут.",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel)
-        if r == QMessageBox.StandardButton.Yes:
+        r = self._ask_yes_no("Обучить модель", "Начать обучение модели CAIRN? Это может занять несколько минут.")
+        if r:
             self._on_train()
 
     def _on_connect_live(self) -> None:
@@ -698,6 +851,7 @@ class CAIRNMainWindow(QMainWindow):
         self._live_connector = connector
         if hasattr(self, "_activity_bar"):
             self._activity_bar.set_connect_status(True)
+            self._activity_bar.set_disconnect_visible(True)
 
         # Явное уведомление
         window_sec = connector._cfg.get("metrics", {}).get("window_sec", 60)
@@ -709,10 +863,10 @@ class CAIRNMainWindow(QMainWindow):
             f"Прогресс отображается в строке статуса."
         )
         msg.setIcon(QMessageBox.Icon.Information)
-        msg.setStandardButtons(QMessageBox.StandardButton.Ok)
+        msg.addButton("ОК", QMessageBox.ButtonRole.AcceptRole)
         msg.exec()
 
-        # Шаг 1: Топология (быстро – сразу в DataTab)
+        # Шаг 1: Топология (быстро — сразу в DataTab)
         self._update_status(f"Загружаю топологию {connector.system_name}...")
         import traceback as _tb
         topo = None
@@ -724,18 +878,18 @@ class CAIRNMainWindow(QMainWindow):
             self.data_tab.load_topology(topo)
             n = len(topo.instances) if hasattr(topo, "instances") else "?"
             self._update_status(f"Топология загружена: {n} сервисов")
-            print(f"[DEBUG] Topology OK: {n} instances")
+            self._logger.debug(f"Topology OK: {n} instances")
         except Exception as e:
-            print(f"[DEBUG] Topology ERROR: {e}")
+            self._logger.debug(f"Topology ERROR: {e}")
             _tb.print_exc()
             self._update_status(f"Ошибка топологии: {e}")
 
         # Шаг 2: Авто-загрузка модели
         try:
             self._auto_load_model()
-            print("[DEBUG] Model: loaded OK")
+            self._logger.debug("Model: loaded OK")
         except Exception as e:
-            print(f"[DEBUG] Model load ERROR: {e}")
+            self._logger.debug(f"Model load ERROR: {e}")
             _tb.print_exc()
 
         # Шаг 3: Метрики в фоне с прогресс-таймером
@@ -796,7 +950,7 @@ class CAIRNMainWindow(QMainWindow):
 
             self._update_status(
                 f"{connector.system_name}: {md.n_instances} экз., "
-                f"{md.n_metrics} метрик, {len(md.timestamps)} точек – готово"
+                f"{md.n_metrics} метрик, {len(md.timestamps)} точек — готово"
             )
             self.tabs.setCurrentIndex(self.TAB_DATA)
             self._start_live_refresh(connector)
@@ -842,7 +996,7 @@ class CAIRNMainWindow(QMainWindow):
             pct = min(100, int(self._progress_elapsed / self._progress_total * 100))
             bar = "█" * (pct // 10) + "░" * (10 - pct // 10)
             self._update_status(
-                f"Сбор метрик [{bar}] {pct}% – осталось ~{remaining}с"
+                f"Сбор метрик [{bar}] {pct}% — осталось ~{remaining}с"
             )
             if self._progress_elapsed >= self._progress_total:
                 self._progress_timer.stop()
@@ -892,7 +1046,7 @@ class CAIRNMainWindow(QMainWindow):
                 except Exception:
                     pass
                 self._update_status(
-                    f"Live: {connector.system_name} – "
+                    f"Live: {connector.system_name} — "
                     f"{md.n_instances} экз., {len(md.timestamps)} точек"
                 )
 
@@ -911,7 +1065,7 @@ class CAIRNMainWindow(QMainWindow):
         self._live_timer.timeout.connect(_do_refresh)
         self._live_timer.start()
         self._update_status(
-            f"Live: {connector.system_name} – обновление каждые {window_sec}с"
+            f"Live: {connector.system_name} — обновление каждые {window_sec}с"
         )
 
     def _on_results_row_selected(self) -> None:
@@ -929,13 +1083,13 @@ class CAIRNMainWindow(QMainWindow):
         results = getattr(self._ctrl, "_last_results", None) or []
         node_entry = next((r for r in results if r.get("idx") == node_idx), None)
         if not node_entry:
-            self._update_status("Нет данных – сначала запустите анализ")
+            self._update_status("Нет данных — сначала запустите анализ")
             return
         node_name   = node_entry.get("name", f"node-{node_idx}")
         ce          = node_entry.get("ce", 0.0)
         nll         = node_entry.get("nll", 0.0)
         conf        = node_entry.get("confidence", 0.0)
-        dom         = node_entry.get("dominant_metric") or "–"
+        dom         = node_entry.get("dominant_metric") or "—"
         delta_nll   = abs(ce)
         improvement = min(99.0, delta_nll / (abs(nll) + 1e-6) * 100)
         lines = [
@@ -953,7 +1107,7 @@ class CAIRNMainWindow(QMainWindow):
         if improvement > 50:
             lines.append(f"Вывод: устранение {node_name} существенно улучшит систему.")
         elif improvement > 20:
-            lines.append(f"Вывод: {node_name} – значимая причина деградации.")
+            lines.append(f"Вывод: {node_name} — значимая причина деградации.")
         else:
             lines.append(f"Вывод: умеренное влияние. Проверьте соседние сервисы.")
         text = "\n".join(lines)
@@ -1049,7 +1203,7 @@ class CAIRNMainWindow(QMainWindow):
             def _on_log_done(log_data):
                 if hasattr(self, "logs_tab"):
                     self.logs_tab.load_log_data(log_data)
-                # Если есть лог-аномалии – добавляем в журнал событий
+                # Если есть лог-аномалии — добавляем в журнал событий
                 if hasattr(self, "_event_log"):
                     for name in log_data.anomalous_containers:
                         ts = log_data.series[name]
@@ -1119,7 +1273,7 @@ class CAIRNMainWindow(QMainWindow):
         )
 
     def _on_anomaly_detected(self, md, nll_score: float) -> None:
-        """Реагирует на обнаруженную аномалию – автозапуск анализа."""
+        """Реагирует на обнаруженную аномалию — автозапуск анализа."""
         from PySide6.QtWidgets import QMessageBox
 
         # Обновляем данные
@@ -1135,19 +1289,19 @@ class CAIRNMainWindow(QMainWindow):
             )
             # Показываем последнее событие в статусбаре
             self._update_status(
-                f"АНОМАЛИЯ: score={nll_score:.3f} – см. Журнал событий"
+                f"АНОМАЛИЯ: score={nll_score:.3f} — см. Журнал событий"
             )
 
         # Автоматически запускаем анализ если модель загружена
         if self._ctrl._model is not None:
             self._update_status(
-                f"АНОМАЛИЯ (score={nll_score:.3f}) – запускаю анализ..."
+                f"АНОМАЛИЯ (score={nll_score:.3f}) — запускаю анализ..."
             )
             self._ctrl.start_analysis()
             # Переключаемся на результаты
             self.tabs.setCurrentIndex(self.TAB_RESULTS)
         else:
-            # Модель не загружена – просто уведомляем
+            # Модель не загружена — просто уведомляем
             self.tabs.setCurrentIndex(self.TAB_DATA)
             msg = QMessageBox(self)
             msg.setWindowTitle("Аномалия обнаружена")

@@ -1,4 +1,4 @@
-/* CAIRN Dark Theme – VS Code style (flat, square, monochrome) */
+/* CAIRN Dark Theme — VS Code style (flat, square, monochrome) */
 /* Файл: src/cairn/gui/styles/dark_theme.qss */
 
 /* ── Базовые цвета ─────────────────────────────────────────────────────────
@@ -14,16 +14,22 @@
 */
 
 /* ── Global ────────────────────────────────────────────────────────────────*/
+/* п.2: НЕ задаём font-size в * — это вызывает QFont::setPointSize <= 0
+   на FigureCanvasQTAgg и других нетекстовых QWidget.
+   Задаём только font-family здесь, size — отдельно для текстовых виджетов. */
 * {
     font-family: "Segoe UI", "SF Pro Text", "Ubuntu", sans-serif;
-    font-size: 12px;
     color: #cccccc;
     border-radius: 0;
     outline: none;
 }
 
-/* Запрещаем наследование font-size для виджетов без текста */
-QGraphicsView, QGraphicsScene {
+/* Задаём font-size только там где нужно */
+QLabel, QPushButton, QLineEdit, QTextEdit, QPlainTextEdit,
+QComboBox, QSpinBox, QDoubleSpinBox, QCheckBox, QRadioButton,
+QGroupBox, QTabBar, QMenuBar, QMenu, QToolButton, QStatusBar,
+QHeaderView, QTableWidget, QTableView, QTreeWidget, QListWidget,
+QScrollBar, QProgressBar, QDialog, QMessageBox {
     font-size: 12px;
 }
 
@@ -71,41 +77,6 @@ QMenu::separator {
     height: 1px;
     background: #3f3f46;
     margin: 3px 0;
-}
-
-/* ── ToolBar ───────────────────────────────────────────────────────────────*/
-QToolBar {
-    background: #252526;
-    border: none;
-    border-bottom: 1px solid #333;
-    padding: 2px 4px;
-    spacing: 2px;
-}
-
-QToolBar::separator {
-    background: #444;
-    width: 1px;
-    margin: 4px 3px;
-}
-
-QToolButton {
-    background: transparent;
-    border: none;
-    padding: 4px 8px;
-    color: #cccccc;
-}
-
-QToolButton:hover {
-    background: rgba(255,255,255,0.07);
-}
-
-QToolButton:pressed {
-    background: rgba(255,255,255,0.12);
-}
-
-QToolButton:checked {
-    background: rgba(74,158,255,0.15);
-    border-bottom: 2px solid #4a9eff;
 }
 
 /* ── Tab Widget ────────────────────────────────────────────────────────────*/
@@ -390,6 +361,143 @@ QToolTip {
     padding: 4px 8px;
 }
 
-
 /* ── Light theme overrides ─────────────────────────────────────────────────*/
 /* Note: matplotlib chart backgrounds are controlled in Python, not QSS */
+
+/* ── Боковые панели (п.5) ────────────────────────────────────────────────────
+   Того же цвета что Activity Bar, граница 1px справа                        */
+QWidget#sidebarWidget,
+QWidget#sourcesPanel,
+QWidget#modulesPanel {
+    background: #252526;
+    border-right: 1px solid #474747;
+}
+
+/* Qt рисует нативные стрелки — задаём размер чтобы были видны */
+/* ═══════════════════════════════ CAIRN UI DARK ════════════════════════════*/
+
+/* ── Activity Bar ────────────────────────────────────────────────────────────*/
+QWidget#activityBarWidget {
+    background: #252526;
+    border-right: 2px solid #474747;
+}
+QWidget#activityBarWidget QToolButton {
+    background: transparent;
+    border: none;
+    border-left: 2px solid transparent;
+}
+QWidget#activityBarWidget QToolButton:checked {
+    border-left: 2px solid #cccccc;
+    background: rgba(255,255,255,0.05);
+}
+
+/* ── Боковые панели — весь фон светлее ──────────────────────────────────────*/
+QWidget#sourcesPanel,
+QWidget#modulesPanel,
+QWidget#sidePanel,
+QWidget#sidebar {
+    background: #252526;
+    border-right: 2px solid #474747;
+}
+/* Потомки боковых панелей тоже должны быть светлее */
+QWidget#sourcesPanel QWidget,
+QWidget#modulesPanel QWidget,
+QWidget#sidePanel QWidget,
+QWidget#sidebar QWidget {
+    background: #252526;
+}
+QWidget#sourcesPanel QLabel,
+QWidget#modulesPanel QLabel,
+QWidget#sidePanel QLabel,
+QWidget#sidebar QLabel {
+    background: transparent;
+}
+
+/* ── MenuBar / ToolBar ───────────────────────────────────────────────────────*/
+QMenuBar {
+    background: #252526;
+    border-bottom: 1px solid #474747;
+    padding: 0;
+    color: #cccccc;
+}
+QMenuBar::item               { padding: 4px 12px; background: transparent; }
+QMenuBar::item:selected      { background: #3a3a3a; }
+QMenu::item:selected         { background: #094771; color: #ffffff; }
+
+QToolBar {
+    background: #252526;
+    border: none;
+    border-bottom: 1px solid #474747;
+    padding: 0;
+    spacing: 0;
+}
+QToolBar::separator          { background: #474747; width: 1px; margin: 2px 0; }
+QToolBar QToolButton         { padding: 4px 10px; }
+QToolBar QToolButton:checked { background: #1e1e1e; border-bottom: 2px solid #007acc; }
+
+/* ── Вкладки ─────────────────────────────────────────────────────────────────*/
+QTabWidget::pane { border: none; background: #1e1e1e; }
+QTabBar           { background: #252526; }
+QTabBar::tab {
+    background: #252526;
+    color: #858585;
+    padding: 6px 16px;
+    border: none;
+    border-top: 2px solid transparent;
+    border-right: 1px solid #474747;
+    min-width: 80px;
+}
+QTabBar::tab:first           { border-left: none; }
+QTabBar::tab:last            { border-right: 1px solid #474747; }
+QTabBar::tab:selected        { color: #cccccc; border-top: 2px solid #007acc; background: #1e1e1e; }
+QTabBar::tab:hover:!selected { color: #cccccc; background: #2a2a2d; }
+
+/* ── Results summary ─────────────────────────────────────────────────────────*/
+QFrame#resultsSummary {
+    background: #252526 !important;
+    border-bottom: 1px solid #474747;
+}
+
+/* ── FigureCanvas — исключить из font-size каскада ───────────────────────────*/
+FigureCanvasQTAgg                   { font-size: 1px; }
+
+QLabel#metricMuted { font-size: 13px; color: #6c7a9c; }
+
+/* ── Кнопки в боковой панели (Настроить) ────────────────────────────────────*/
+QWidget#sourcesPanel QPushButton,
+QWidget#sidePanel QPushButton,
+QWidget#sidebar QPushButton {
+    border: 1px solid #555555;
+    border-bottom: 1px solid #777777;
+}
+QWidget#sourcesPanel QPushButton:hover,
+QWidget#sidePanel QPushButton:hover,
+QWidget#sidebar QPushButton:hover {
+    border-color: #7a7a7a;
+    border-bottom: 1px solid #999999;
+}
+/* ── SpinBox — стрелки через SVG-файл (путь подставляется при загрузке) ─────*/
+QSpinBox, QDoubleSpinBox {
+    background: #3c3c3c;
+    border: 1px solid #555555;
+    color: #cccccc;
+    padding: 1px 18px 1px 4px;
+    min-height: 22px;
+}
+QSpinBox:focus, QDoubleSpinBox:focus { border-color: #007acc; }
+
+QSpinBox::up-button, QDoubleSpinBox::up-button {
+    subcontrol-origin: border;
+    subcontrol-position: top right;
+    width: 16px;
+    height: 50%;
+    border-left: 1px solid #555555;
+}
+QSpinBox::down-button, QDoubleSpinBox::down-button {
+    subcontrol-origin: border;
+    subcontrol-position: bottom right;
+    width: 16px;
+    height: 50%;
+    border-left: 1px solid #555555;
+    border-top:  1px solid #555555;
+}

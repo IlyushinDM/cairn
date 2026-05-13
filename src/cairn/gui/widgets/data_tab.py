@@ -1,300 +1,404 @@
-"""Вкладка «Данные» – таблицы метрик, экземпляров, временной ряд."""
+"""Вкладка «Данные»: таблицы метрик/экземпляров + график временных рядов.
 
+Исправления:
+- п.2: селектор метрики (QComboBox), легенда слева с прокруткой,
+       постоянные цвета сервисов, автоотображение при загрузке
+- п.1 (предыдущей итерации): убраны флажки из таблиц
+- п.2 (предыдущей итерации): горизонтальный Splitter для таблиц
+"""
 from __future__ import annotations
 
-from PySide6.QtCore import Qt
+import numpy as np
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
-    QAbstractItemView, QCheckBox, QComboBox, QHBoxLayout, QHeaderView, QLabel,
-    QPushButton, QScrollBar, QSplitter, QTableWidget, QTableWidgetItem,
+    QAbstractItemView, QCheckBox, QComboBox, QFrame,
+    QHBoxLayout, QHeaderView, QLabel, QScrollArea,
+    QSplitter, QTableWidget, QTableWidgetItem,
     QVBoxLayout, QWidget,
 )
 
+# Фиксированная палитра — не зависит от видимости сервисов
+_PALETTE = [
+    "#4a9eff", "#3ecf8e", "#f6a623", "#ff5f5f",
+    "#a78bfa", "#f97316", "#06b6d4", "#ec4899",
+    "#84cc16", "#eab308",
+]
 
-class DataTab(QWidget):
-    """Вкладка с таблицами метрик и экземпляров + график временных рядов."""
+
+class LegendItem(QWidget):
+    """Одна строка в легенде: флажок + цветная полоска + название."""
+
+    visibility_changed = Signal(int, bool)   # service_idx, visible
+
+    def __init__(self, idx: int, name: str, color: str, parent=None):
+        super().__init__(parent)
+        self._idx = idx
+        row = QHBoxLayout(self)
+        row.setContentsMargins(4, 2, 4, 2)
+        row.setSpacing(6)
+
+        self._cb = QCheckBox()
+        self._cb.setChecked(True)
+        self._cb.toggled.connect(lambda v: self.visibility_changed.emit(idx, v))
+        row.addWidget(self._cb)
+
+        dot = QLabel()
+        dot.setFixedSize(12, 12)
+        dot.setStyleSheet(f"background:{color}; border-radius:2px;")
+        row.addWidget(dot)
+
+        lbl = QLabel(name)
+        lbl.setToolTip(name)
+        row.addWidget(lbl, stretch=1)
+
+
+class MetricLegend(QWidget):
+    """Прокручиваемая легенда сервисов слева от графика."""
+
+    visibility_changed = Signal(int, bool)
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.setFixedWidth(200)
+        self.setObjectName("metricLegend")
+
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.setSpacing(0)
+
+        hdr = QLabel("Сервисы")
+        hdr.setObjectName("sectionTitle")
+        hdr.setContentsMargins(6, 6, 6, 4)
+        outer.addWidget(hdr)
+
+        self._scroll = QScrollArea()
+        self._scroll.setWidgetResizable(True)
+        self._scroll.setFrameStyle(0)
+        self._scroll.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+
+        self._inner = QWidget()
+        self._inner_layout = QVBoxLayout(self._inner)
+        self._inner_layout.setContentsMargins(0, 0, 0, 0)
+        self._inner_layout.setSpacing(0)
+        self._inner_layout.addStretch()
+
+        self._scroll.setWidget(self._inner)
+        outer.addWidget(self._scroll)
+
+    def set_services(self, names: list[str]) -> None:
+        # Очищаем
+        while self._inner_layout.count() > 1:
+            item = self._inner_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+
+        for i, name in enumerate(names):
+            color = _PALETTE[i % len(_PALETTE)]
+            item = LegendItem(i, name, color)
+            item.visibility_changed.connect(self.visibility_changed)
+            self._inner_layout.insertWidget(self._inner_layout.count() - 1, item)
+
+
+class DataTab(QWidget):
+    """Вкладка «Данные»."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._metric_data = None
+        self._visible_services: set[int] | None = None
+        self._fig = None
+        self._ax  = None
+
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(12, 12, 12, 12)
-        layout.setSpacing(10)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(6)
 
+        # Главный сплиттер: таблицы сверху, график снизу
         splitter = QSplitter(Qt.Orientation.Vertical)
-        self._splitter = splitter
+        splitter.setObjectName("mainSplitter")
 
-        # ── Верхняя часть: таблицы ──────────────────────
-        tables_widget = QWidget()
-        tables_layout = QHBoxLayout(tables_widget)
+        # ── Верхняя часть: таблицы ───────────────────────────────────────
+        tables_widget  = QWidget()
+        tables_layout  = QVBoxLayout(tables_widget)
         tables_layout.setContentsMargins(0, 0, 0, 0)
-        tables_layout.setSpacing(10)
+        tables_layout.setSpacing(4)
+
+        # Горизонтальный сплиттер для двух таблиц (п.2 предыдущей итерации)
+        h_split = QSplitter(Qt.Orientation.Horizontal)
 
         # Таблица метрик
         metrics_frame = QWidget()
         mf_layout = QVBoxLayout(metrics_frame)
         mf_layout.setContentsMargins(0, 0, 0, 0)
-        mf_layout.setSpacing(6)
+        mf_layout.setSpacing(4)
         mf_layout.addWidget(self._section_label("МЕТРИКИ"))
 
-        self.metrics_table = QTableWidget(0, 7)
+        self.metrics_table = QTableWidget(0, 6)
         self.metrics_table.setHorizontalHeaderLabels(
-            ["", "Экземпляр", "Метрика", "Мин", "Макс", "Среднее", "σ"]
+            ["Экземпляр", "Метрика", "Мин", "Макс", "Среднее", "σ"]
         )
-        self.metrics_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
-        self.metrics_table.setColumnWidth(0, 32)
-        self.metrics_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
-        self.metrics_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
-        for c in range(3, 7):
-            self.metrics_table.horizontalHeader().setSectionResizeMode(c, QHeaderView.ResizeMode.ResizeToContents)
+        self.metrics_table.horizontalHeader().setSectionResizeMode(
+            0, QHeaderView.ResizeMode.Stretch)
+        self.metrics_table.horizontalHeader().setSectionResizeMode(
+            1, QHeaderView.ResizeMode.Stretch)
+        for c in range(2, 6):
+            self.metrics_table.horizontalHeader().setSectionResizeMode(
+                c, QHeaderView.ResizeMode.ResizeToContents)
         self.metrics_table.setAlternatingRowColors(True)
         self.metrics_table.verticalHeader().setVisible(False)
-        self.metrics_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
-        self.metrics_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        # Кнопка разворачивания
-        self._btn_expand = QPushButton("Развернуть")
-        self._btn_expand.setFixedHeight(28)
-        self._btn_expand.setCheckable(True)
-        self._btn_expand.toggled.connect(self._toggle_expand)
-        mf_layout.addWidget(self._btn_expand)
+        self.metrics_table.setSelectionBehavior(
+            QAbstractItemView.SelectionBehavior.SelectRows)
+        self.metrics_table.setEditTriggers(
+            QAbstractItemView.EditTrigger.NoEditTriggers)
         mf_layout.addWidget(self.metrics_table)
-        self._last_md = None
-        tables_layout.addWidget(metrics_frame)
+        h_split.addWidget(metrics_frame)
 
         # Таблица экземпляров
         instances_frame = QWidget()
         if_layout = QVBoxLayout(instances_frame)
         if_layout.setContentsMargins(0, 0, 0, 0)
-        if_layout.setSpacing(6)
+        if_layout.setSpacing(4)
         if_layout.addWidget(self._section_label("ЭКЗЕМПЛЯРЫ СЕРВИСОВ"))
 
-        self.instances_table = QTableWidget(0, 6)
+        self.instances_table = QTableWidget(0, 5)
         self.instances_table.setHorizontalHeaderLabels(
-            ["", "Имя", "Сервис", "Хост", "CPU", "Версия"]
+            ["Имя", "Сервис", "Хост", "CPU", "Версия"]
         )
-        self.instances_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
-        self.instances_table.setColumnWidth(0, 32)
-        self.instances_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
-        self.instances_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
-        for c in range(3, 6):
-            self.instances_table.horizontalHeader().setSectionResizeMode(c, QHeaderView.ResizeMode.ResizeToContents)
+        self.instances_table.horizontalHeader().setSectionResizeMode(
+            0, QHeaderView.ResizeMode.Stretch)
+        self.instances_table.horizontalHeader().setSectionResizeMode(
+            1, QHeaderView.ResizeMode.Stretch)
+        for c in range(2, 5):
+            self.instances_table.horizontalHeader().setSectionResizeMode(
+                c, QHeaderView.ResizeMode.ResizeToContents)
         self.instances_table.setAlternatingRowColors(True)
         self.instances_table.verticalHeader().setVisible(False)
-        self.instances_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
-        self.instances_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.instances_table.setSelectionBehavior(
+            QAbstractItemView.SelectionBehavior.SelectRows)
+        self.instances_table.setEditTriggers(
+            QAbstractItemView.EditTrigger.NoEditTriggers)
         if_layout.addWidget(self.instances_table)
-        tables_layout.addWidget(instances_frame, stretch=1)
+        h_split.addWidget(instances_frame)
 
+        h_split.setSizes([500, 300])
+        tables_layout.addWidget(h_split)
         splitter.addWidget(tables_widget)
 
-        # ── Нижняя часть: график ─────────────────────────
+        # ── Нижняя часть: селектор + легенда + график ────────────────────
         chart_widget = QWidget()
         chart_layout = QVBoxLayout(chart_widget)
-        chart_layout.setContentsMargins(0, 0, 0, 0)
+        chart_layout.setContentsMargins(0, 4, 0, 0)
         chart_layout.setSpacing(4)
 
-        # Заголовок + выбор метрики (2.3: рядом с графиком)
-        chart_hdr = QHBoxLayout()
-        chart_hdr.addWidget(self._section_label("ВРЕМЕННЫЕ РЯДЫ"))
-        chart_hdr.addStretch()
-        chart_hdr.addWidget(QLabel("Метрика:"))
+        # Строка: заголовок + комбобокс выбора метрики
+        ctrl_row = QHBoxLayout()
+        ctrl_row.addWidget(self._section_label("ВРЕМЕННЫЕ РЯДЫ"))
+        ctrl_row.addStretch()
+        ctrl_row.addWidget(QLabel("Метрика:"))
         self._metric_combo = QComboBox()
-        self._metric_combo.setFixedWidth(130)
+        self._metric_combo.setMinimumWidth(160)
         self._metric_combo.setFixedHeight(26)
         self._metric_combo.currentTextChanged.connect(self._on_metric_changed)
-        chart_hdr.addWidget(self._metric_combo)
-        chart_layout.addLayout(chart_hdr)
+        ctrl_row.addWidget(self._metric_combo)
+        chart_layout.addLayout(ctrl_row)
 
-        # Фильтр сервисов (2.1: включить/выключить видимость)
-        self._service_filter_row = QHBoxLayout()
-        self._service_filter_row.addWidget(QLabel("Сервисы:"))
-        self._service_checks: dict[str, QCheckBox] = {}
-        self._service_filter_row.addStretch()
-        chart_layout.addLayout(self._service_filter_row)
+        # Строка: легенда слева + canvas справа
+        chart_row = QHBoxLayout()
+        chart_row.setSpacing(0)
 
-        self._chart_area = self._build_chart_area()
-        chart_layout.addWidget(self._chart_area)
+        self._legend = MetricLegend()
+        self._legend.visibility_changed.connect(self._on_visibility_changed)
+        chart_row.addWidget(self._legend)
+
+        # Разделитель
+        sep = QFrame()
+        sep.setFrameShape(QFrame.Shape.VLine)
+        sep.setFixedWidth(1)
+        sep.setStyleSheet("background: #3f3f46;")
+        chart_row.addWidget(sep)
+
+        self._canvas_container = QWidget()
+        self._canvas_layout = QVBoxLayout(self._canvas_container)
+        self._canvas_layout.setContentsMargins(0, 0, 0, 0)
+        self._canvas_widget = self._build_canvas()
+        self._canvas_layout.addWidget(self._canvas_widget)
+        chart_row.addWidget(self._canvas_container, stretch=1)
+
+        chart_layout.addLayout(chart_row, stretch=1)
         splitter.addWidget(chart_widget)
+        splitter.setSizes([280, 300])
 
-        splitter.setSizes([400, 300])
         layout.addWidget(splitter)
 
-    def _toggle_expand(self, expanded: bool) -> None:
-        self._btn_expand.setText("Свернуть" if expanded else "Развернуть")
-        if hasattr(self, '_splitter'):
-            if expanded:
-                # Полностью разворачиваем – убираем нижний виджет
-                self._splitter.setSizes([10000, 0])
-                # 2.4: растягиваем колонки по содержимому
-                for c in range(self.metrics_table.columnCount()):
-                    self.metrics_table.resizeColumnToContents(c)
-                self.metrics_table.horizontalHeader().setSectionResizeMode(
-                    1, QHeaderView.ResizeMode.Stretch)
-                self.metrics_table.horizontalHeader().setSectionResizeMode(
-                    2, QHeaderView.ResizeMode.Stretch)
-            else:
-                self._splitter.setSizes([400, 300])
-
-    def _on_metric_changed(self, metric: str) -> None:
-        if getattr(self, '_last_md', None) is not None:
-            self._plot_filtered()
-
-    def _plot_filtered(self) -> None:
-        """Строит временной ряд с учётом выбранной метрики и фильтра сервисов."""
-        import numpy as np
-        md = getattr(self, '_last_md', None)
-        if md is None:
-            return
-        try:
-            metric = self._metric_combo.currentText()
-            mi = md.metric_names.index(metric) if metric in md.metric_names else 0
-            timestamps = md.timestamps
-            series, labels = [], []
-            for ni, inst in enumerate(md.instance_names):
-                # Проверяем чекбокс видимости
-                cb = self._service_checks.get(inst)
-                if cb is not None and not cb.isChecked():
-                    continue
-                vals = md.values[:, ni, mi]
-                nans = np.isnan(vals)
-                if nans.all():
-                    continue
-                idx_arr = np.arange(len(vals))
-                vals = np.interp(idx_arr, idx_arr[~nans], vals[~nans])
-                series.append(vals)
-                labels.append(inst)
-            if series:
-                self.plot_series(timestamps, series, labels)
-        except Exception:
-            pass
-
-    def _plot_from_md(self, md, metric: str = None) -> None:
-        """Точка входа для построения графика (вызывается из main_window)."""
-        self._last_md = md
-        if metric and hasattr(self, '_metric_combo'):
-            idx = self._metric_combo.findText(metric)
-            if idx >= 0:
-                self._metric_combo.blockSignals(True)
-                self._metric_combo.setCurrentIndex(idx)
-                self._metric_combo.blockSignals(False)
-        self._plot_filtered()
-
-    def load_metric_data(self, metric_data) -> None:
-        """Заполняет таблицу метрик + обновляет комбо метрик и фильтр сервисов."""
-        import numpy as np
-        self._last_md = metric_data
-
-        # ── Заполняем таблицу метрик ──────────────────────────────────────
-        self.metrics_table.setRowCount(0)
-        for ni, inst in enumerate(metric_data.instance_names):
-            for mi, metric in enumerate(metric_data.metric_names):
-                vals = metric_data.values[:, ni, mi]
-                vals = vals[~np.isnan(vals)]
-                row = self.metrics_table.rowCount()
-                self.metrics_table.insertRow(row)
-                cb_item = QTableWidgetItem()
-                cb_item.setFlags(Qt.ItemFlag.ItemIsUserCheckable | Qt.ItemFlag.ItemIsEnabled)
-                cb_item.setCheckState(Qt.CheckState.Checked)
-                self.metrics_table.setItem(row, 0, cb_item)
-                def _ro(t):
-                    it = QTableWidgetItem(t)
-                    it.setFlags(Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled)
-                    return it
-                self.metrics_table.setItem(row, 1, _ro(inst))
-                self.metrics_table.setItem(row, 2, _ro(metric))
-                self.metrics_table.setItem(row, 3, _ro(f"{vals.min():.3f}" if len(vals) else "–"))
-                self.metrics_table.setItem(row, 4, _ro(f"{vals.max():.3f}" if len(vals) else "–"))
-                self.metrics_table.setItem(row, 5, _ro(f"{vals.mean():.3f}" if len(vals) else "–"))
-                self.metrics_table.setItem(row, 6, _ro(f"{vals.std():.3f}" if len(vals) else "–"))
-
-        # ── Обновляем список метрик в комбо из реальных данных ────────────
-        if hasattr(self, '_metric_combo'):
-            self._metric_combo.blockSignals(True)
-            self._metric_combo.clear()
-            self._metric_combo.addItems(metric_data.metric_names)
-            self._metric_combo.blockSignals(False)
-
-        # ── Обновляем чекбоксы фильтра сервисов ──────────────────────────
-        if hasattr(self, '_service_filter_row') and hasattr(self, '_service_checks'):
-            for cb in self._service_checks.values():
-                self._service_filter_row.removeWidget(cb)
-                cb.deleteLater()
-            self._service_checks.clear()
-            for inst in metric_data.instance_names:
-                cb = QCheckBox(inst)
-                cb.setChecked(True)
-                cb.stateChanged.connect(lambda _: self._plot_filtered())
-                self._service_checks[inst] = cb
-                self._service_filter_row.insertWidget(
-                    self._service_filter_row.count() - 1, cb)
+    # ── Вспомогательные ──────────────────────────────────────────────────
 
     def _section_label(self, text: str) -> QLabel:
         lbl = QLabel(text)
         lbl.setObjectName("sectionTitle")
         return lbl
 
-    def _build_chart_area(self) -> QWidget:
-        """Строит canvas для matplotlib или заглушку."""
+    def _build_canvas(self) -> QWidget:
+        """Строит matplotlib canvas или заглушку."""
         try:
             from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
             from matplotlib.figure import Figure
-            import matplotlib.pyplot as plt
 
             fig = Figure(figsize=(10, 3), facecolor="#161922")
-            ax = fig.add_subplot(111)
+            ax  = fig.add_subplot(111)
             ax.set_facecolor("#161922")
             ax.tick_params(colors="#6c7a9c")
             ax.spines[:].set_color("#2d3348")
             ax.set_xlabel("Время (с)", color="#6c7a9c", fontsize=10)
-            ax.set_ylabel("Значение", color="#6c7a9c", fontsize=10)
-            ax.set_title("Загрузите данные для отображения", color="#6c7a9c", fontsize=10)
-            fig.tight_layout()
+            ax.set_ylabel("Значение",  color="#6c7a9c", fontsize=10)
+            ax.set_title("Загрузите данные для отображения",
+                         color="#6c7a9c", fontsize=10)
+            fig.tight_layout(pad=1.5)
 
             self._fig = fig
-            self._ax = ax
+            self._ax  = ax
             canvas = FigureCanvasQTAgg(fig)
-            canvas.setMinimumHeight(180)
+            canvas.setMinimumHeight(160)
             return canvas
         except ImportError:
-            placeholder = QLabel("График временных рядов\n(требуется matplotlib)")
-            placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            placeholder.setStyleSheet("color: #6c7a9c; font-size: 13px; border: 1px dashed #2d3348; border-radius: 6px;")
-            placeholder.setMinimumHeight(180)
             self._fig = None
-            self._ax = None
-            return placeholder
+            self._ax  = None
+            lbl = QLabel("График временных рядов\n(требуется matplotlib)")
+            lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            lbl.setStyleSheet(
+                "color:#6c7a9c; font-size:13px; border:1px dashed #2d3348;")
+            lbl.setMinimumHeight(160)
+            return lbl
 
+    # ── Загрузка данных ───────────────────────────────────────────────────
+
+    def load_metric_data(self, metric_data) -> None:
+        """Заполняет таблицу метрик и обновляет комбобокс."""
+        self._metric_data = metric_data
+        self._visible_services = set(range(metric_data.n_instances))
+
+        # Таблица
+        self.metrics_table.setRowCount(0)
+        for ni, inst in enumerate(metric_data.instance_names):
+            for mi, metric in enumerate(metric_data.metric_names):
+                vals = metric_data.values[:, ni, mi]
+                vals = vals[~np.isnan(vals)]
+                row  = self.metrics_table.rowCount()
+                self.metrics_table.insertRow(row)
+                self.metrics_table.setItem(row, 0, QTableWidgetItem(inst))
+                self.metrics_table.setItem(row, 1, QTableWidgetItem(metric))
+                self.metrics_table.setItem(row, 2, QTableWidgetItem(
+                    f"{vals.min():.3f}" if len(vals) else "—"))
+                self.metrics_table.setItem(row, 3, QTableWidgetItem(
+                    f"{vals.max():.3f}" if len(vals) else "—"))
+                self.metrics_table.setItem(row, 4, QTableWidgetItem(
+                    f"{vals.mean():.3f}" if len(vals) else "—"))
+                self.metrics_table.setItem(row, 5, QTableWidgetItem(
+                    f"{vals.std():.3f}" if len(vals) else "—"))
+
+        # Легенда
+        self._legend.set_services(metric_data.instance_names)
+        self._visible_services = set(range(metric_data.n_instances))
+
+        # Комбобокс метрик
+        self._metric_combo.blockSignals(True)
+        self._metric_combo.clear()
+        for m in metric_data.metric_names:
+            self._metric_combo.addItem(m)
+        self._metric_combo.blockSignals(False)
+
+        # Сразу строим график для первой метрики
+        self._draw_current_metric()
 
     def load_topology(self, topo) -> None:
-        """Заполняет таблицу экземпляров из TopologyData."""
+        """Заполняет таблицу экземпляров."""
         self.instances_table.setRowCount(0)
         for inst in topo.instances:
             row = self.instances_table.rowCount()
             self.instances_table.insertRow(row)
-            cb_item = QTableWidgetItem()
-            cb_item.setFlags(Qt.ItemFlag.ItemIsUserCheckable | Qt.ItemFlag.ItemIsEnabled)
-            cb_item.setCheckState(Qt.CheckState.Checked)
-            self.instances_table.setItem(row, 0, cb_item)
-            self.instances_table.setItem(row, 1, QTableWidgetItem(inst.name))
-            self.instances_table.setItem(row, 2, QTableWidgetItem(inst.service))
-            self.instances_table.setItem(row, 3, QTableWidgetItem(inst.host))
-            self.instances_table.setItem(row, 4, QTableWidgetItem(str(inst.cpu_limit)))
-            self.instances_table.setItem(row, 5, QTableWidgetItem(inst.version))
+            self.instances_table.setItem(row, 0, QTableWidgetItem(inst.name))
+            self.instances_table.setItem(row, 1, QTableWidgetItem(inst.service))
+            self.instances_table.setItem(row, 2, QTableWidgetItem(inst.host))
+            self.instances_table.setItem(row, 3, QTableWidgetItem(
+                str(getattr(inst, "cpu_limit", "—"))))
+            self.instances_table.setItem(row, 4, QTableWidgetItem(
+                getattr(inst, "version", "—")))
+
+    # ── Обработчики событий ───────────────────────────────────────────────
+
+    def _on_metric_changed(self, metric_name: str) -> None:
+        self._draw_current_metric()
+
+    def _on_visibility_changed(self, svc_idx: int, visible: bool) -> None:
+        if self._visible_services is None:
+            return
+        if visible:
+            self._visible_services.add(svc_idx)
+        else:
+            self._visible_services.discard(svc_idx)
+        self._draw_current_metric()
+
+    # ── Отрисовка ─────────────────────────────────────────────────────────
+
+    def _draw_current_metric(self) -> None:
+        """Перерисовывает график для текущей метрики и видимых сервисов."""
+        if self._metric_data is None or self._ax is None:
+            return
+        metric_name = self._metric_combo.currentText()
+        if not metric_name:
+            return
+
+        # Найти индекс метрики
+        names = list(self._metric_data.metric_names)
+        if metric_name not in names:
+            return
+        mi = names.index(metric_name)
+
+        timestamps = self._metric_data.timestamps
+        self._ax.clear()
+        self._ax.set_facecolor(self._ax.get_facecolor())  # сохраняем цвет
+
+        has_data = False
+        for ni, inst in enumerate(self._metric_data.instance_names):
+            if self._visible_services is not None and ni not in self._visible_services:
+                continue
+            vals  = self._metric_data.values[:, ni, mi]
+            color = _PALETTE[ni % len(_PALETTE)]
+            self._ax.plot(timestamps, vals, label=inst,
+                          color=color, linewidth=1.5)
+            has_data = True
+
+        if not has_data:
+            self._ax.set_title("Все сервисы скрыты",
+                               color="#6c7a9c", fontsize=10)
+        else:
+            self._ax.set_title(metric_name, color="#a0a8bc",
+                               fontsize=10, pad=4)
+
+        self._ax.tick_params(colors="#6c7a9c")
+        self._ax.spines[:].set_color("#2d3348")
+        self._ax.set_xlabel("Время (с)", color="#6c7a9c", fontsize=9)
+        self._ax.set_ylabel("Значение",  color="#6c7a9c", fontsize=9)
+
+        if self._fig is not None:
+            self._fig.tight_layout(pad=1.5)
+        if hasattr(self._canvas_widget, "draw"):
+            self._canvas_widget.draw()
 
     def plot_series(self, timestamps, values, labels: list[str]) -> None:
-        """Рисует временные ряды на canvas."""
+        """Внешний вызов отрисовки (для live-режима)."""
         if self._ax is None:
             return
         self._ax.clear()
         self._ax.set_facecolor("#161922")
-        colors = ["#4a9eff", "#3ecf8e", "#f6a623", "#ff5f5f", "#a78bfa"]
         for i, (vals, label) in enumerate(zip(values, labels)):
+            color = _PALETTE[i % len(_PALETTE)]
             self._ax.plot(timestamps, vals, label=label,
-                         color=colors[i % len(colors)], linewidth=1.5)
-        self._ax.legend(fontsize=9, labelcolor="#a0a8bc",
-                        facecolor="#1e2130", edgecolor="#2d3348")
+                          color=color, linewidth=1.5)
         self._ax.tick_params(colors="#6c7a9c")
         self._ax.spines[:].set_color("#2d3348")
         self._ax.set_xlabel("Время (с)", color="#6c7a9c", fontsize=9)
         if self._fig is not None:
-            self._fig.tight_layout()
-        if hasattr(self._chart_area, 'draw'):
-            self._chart_area.draw()  # type: ignore[union-attr]
+            self._fig.tight_layout(pad=1.5)
+        if hasattr(self._canvas_widget, "draw"):
+            self._canvas_widget.draw()

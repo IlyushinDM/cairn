@@ -66,20 +66,28 @@ class ConnectDialog(QDialog):
         cgl       = QVBoxLayout(cfg_group)
 
         combo_row = QHBoxLayout()
+        combo_row.setSpacing(6)
+
+        # п.9: одинаковая высота у всех элементов строки
+        ELEM_H = 28
+
         self._combo = QComboBox()
-        self._combo.setMinimumWidth(300)
+        self._combo.setMinimumWidth(280)
+        self._combo.setFixedHeight(ELEM_H)
         self._refresh_combo()
         self._combo.currentIndexChanged.connect(self._on_combo_changed)
-        combo_row.addWidget(self._combo)
+        combo_row.addWidget(self._combo, stretch=1)
 
         btn_browse = QPushButton("Обзор…")
-        btn_browse.setFixedWidth(80)
+        btn_browse.setFixedHeight(ELEM_H)
+        btn_browse.setFixedWidth(72)
         btn_browse.clicked.connect(self._browse)
         combo_row.addWidget(btn_browse)
 
-        btn_refresh = QPushButton("↻")
-        btn_refresh.setFixedWidth(32)
-        btn_refresh.setToolTip("Обновить список")
+        # п.9: понятный значок «обновить» вместо арабоподобного ↻
+        btn_refresh = QPushButton("⟳  Обновить список")
+        btn_refresh.setFixedHeight(ELEM_H)
+        btn_refresh.setToolTip("Обновить список конфигов")
         btn_refresh.clicked.connect(self._refresh_combo)
         combo_row.addWidget(btn_refresh)
         cgl.addLayout(combo_row)
@@ -113,12 +121,10 @@ class ConnectDialog(QDialog):
         layout.addWidget(status_group)
 
         # ── Кнопки ────────────────────────────────────────────────────────
-        self._btn_box = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok |
-            QDialogButtonBox.StandardButton.Cancel
-        )
-        self._btn_box.button(QDialogButtonBox.StandardButton.Ok).setText("Подключить")
-        self._btn_box.button(QDialogButtonBox.StandardButton.Ok).setEnabled(False)
+        self._btn_box = QDialogButtonBox()
+        self._ok_btn = self._btn_box.addButton("Подключить", QDialogButtonBox.ButtonRole.AcceptRole)
+        self._btn_box.addButton("Отмена",     QDialogButtonBox.ButtonRole.RejectRole)
+        self._ok_btn.setEnabled(False)
         self._btn_box.accepted.connect(self._on_connect)
         self._btn_box.rejected.connect(self.reject)
         layout.addWidget(self._btn_box)
@@ -136,7 +142,7 @@ class ConnectDialog(QDialog):
         for cfg_path in configs:
             self._combo.addItem(cfg_path.stem.replace("_", " ").title(), str(cfg_path))
         if not configs:
-            self._combo.addItem("(нет конфигов – нажмите Обзор…)", "")
+            self._combo.addItem("(нет конфигов — нажмите Обзор…)", "")
         self._combo.update()
 
     def _browse(self) -> None:
@@ -160,9 +166,9 @@ class ConnectDialog(QDialog):
             with open(path, encoding="utf-8") as f:
                 cfg = yaml.safe_load(f)
             sys_info = cfg.get("system", {})
-            name  = sys_info.get("name", "–")
+            name  = sys_info.get("name", "—")
             desc  = sys_info.get("description", "")
-            src   = cfg.get("metrics", {}).get("source", "–")
+            src   = cfg.get("metrics", {}).get("source", "—")
             self._desc_label.setText(
                 f"{name} | Источник: {src}\n{desc}"
             )
@@ -184,7 +190,7 @@ class ConnectDialog(QDialog):
         self._progress.setVisible(True)
         self._status_label.setText("Проверяю подключение…")
         self._status_label.setStyleSheet("color: #6c7a9c; font-size: 12px;")
-        self._btn_box.button(QDialogButtonBox.StandardButton.Ok).setEnabled(False)
+        self._ok_btn.setEnabled(False)
 
         self._worker = ConnectWorker(self._connector)
         self._worker.result.connect(self._on_check_result)
@@ -195,7 +201,7 @@ class ConnectDialog(QDialog):
         if ok:
             self._status_label.setText(f"✓ {msg}")
             self._status_label.setStyleSheet("color: #3ecf8e; font-size: 12px;")
-            self._btn_box.button(QDialogButtonBox.StandardButton.Ok).setEnabled(True)
+            self._ok_btn.setEnabled(True)
         else:
             self._status_label.setText(f"❌ {msg}")
             self._status_label.setStyleSheet("color: #ff5f5f; font-size: 12px;")

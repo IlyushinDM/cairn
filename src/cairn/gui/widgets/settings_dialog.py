@@ -13,21 +13,73 @@ from PySide6.QtWidgets import (
 )
 
 
+class _BoundedSpinBox(QSpinBox):
+    """QSpinBox с блёкнущими стрелками на границах диапазона.
+
+    п.8: стрелочки визуально неактивны когда значение на границе.
+    Нельзя выйти за range с клавиатуры или колесика.
+    """
+
+    def __init__(self, lo: int, hi: int, value: int, step: int = 1):
+        super().__init__()
+        self.setRange(lo, hi)
+        self.setSingleStep(step)
+        self.setValue(value)
+        self.setFixedHeight(26)
+        self.valueChanged.connect(self._update_arrow_style)
+        self._update_arrow_style(value)
+
+    def _update_arrow_style(self, v: int) -> None:
+        # Не используем inline setStyleSheet — он скрывает нативные стрелки Qt.
+        # Вместо этого меняем enabled-состояние кнопок через setProperty.
+        self.setProperty("atMin", v <= self.minimum())
+        self.setProperty("atMax", v >= self.maximum())
+        # Принудительно обновляем стиль (QSS может читать свойства)
+        self.style().unpolish(self)
+        self.style().polish(self)
+
+    def wheelEvent(self, event) -> None:
+        """Колесико не выходит за диапазон."""
+        delta = self.singleStep() if event.angleDelta().y() > 0 else -self.singleStep()
+        self.setValue(max(self.minimum(), min(self.maximum(), self.value() + delta)))
+        event.accept()
+
+
+class _BoundedDoubleSpinBox(QDoubleSpinBox):
+    """QDoubleSpinBox с блёкнущими стрелками на границах.
+
+    п.8: то же что _BoundedSpinBox, но для float.
+    """
+
+    def __init__(self, lo: float, hi: float, value: float,
+                 decimals: int = 3, step: float = 0.001):
+        super().__init__()
+        self.setRange(lo, hi)
+        self.setDecimals(decimals)
+        self.setSingleStep(step)
+        self.setValue(value)
+        self.setFixedHeight(26)
+        self.valueChanged.connect(self._update_arrow_style)
+        self._update_arrow_style(value)
+
+    def _update_arrow_style(self, v: float) -> None:
+        self.setProperty("atMin", v <= self.minimum() + 1e-12)
+        self.setProperty("atMax", v >= self.maximum() - 1e-12)
+        self.style().unpolish(self)
+        self.style().polish(self)
+
+    def wheelEvent(self, event) -> None:
+        delta = self.singleStep() if event.angleDelta().y() > 0 else -self.singleStep()
+        self.setValue(max(self.minimum(), min(self.maximum(), self.value() + delta)))
+        event.accept()
+
+
 def _spin(value: float, lo: float, hi: float, decimals: int = 0,
-          step: float = 1) -> QDoubleSpinBox | QSpinBox:
+          step: float = 1) -> _BoundedDoubleSpinBox | _BoundedSpinBox:
+    """Фабрика SpinBox с ограничениями диапазона (п.8)."""
     if decimals > 0:
-        w = QDoubleSpinBox()
-        w.setDecimals(decimals)
-        w.setSingleStep(step)
-        w.setRange(lo, hi)
-        w.setValue(value)
-    else:
-        ws = QSpinBox()
-        ws.setSingleStep(int(step))
-        ws.setRange(int(lo), int(hi))
-        ws.setValue(int(value))
-        return ws
-    return w
+        return _BoundedDoubleSpinBox(lo, hi, value, decimals, step)
+    return _BoundedSpinBox(int(lo), int(hi), int(value), int(step))
 
 
 class SettingsDialog(QDialog):
