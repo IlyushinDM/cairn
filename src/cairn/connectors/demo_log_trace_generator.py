@@ -178,7 +178,7 @@ def generate_demo_trace_data(
         is_slow    = is_anomalous and avg_p50 > base_latency_ms * 2.5
         anom_score = avg_p50 / base_latency_ms if is_slow else 0.0
 
-        # Эндпоинты — имитируем REST
+        # Эндпоинты – имитируем REST
         short = svc.replace("cairn-", "").replace("service", "")
         endpoints = [f"/{short}/", f"/{short}/health", f"/{short}/api"]
 

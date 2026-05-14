@@ -56,6 +56,22 @@ def _make_cairn_icon(size: int = 64, color: str = "#4a9eff") -> QIcon:
     return QIcon(px)
 
 
+def _apply_titlebar_theme_to(widget, theme: str) -> None:
+    """Применяет светлый/тёмный titlebar к любому окну через Windows DWM API."""
+    if sys.platform != "win32":
+        return
+    try:
+        import ctypes
+        hwnd = int(widget.winId())
+        dark = ctypes.c_int(1 if theme == "dark" else 0)
+        ctypes.windll.dwmapi.DwmSetWindowAttribute(
+            hwnd, 20, ctypes.byref(dark), ctypes.sizeof(dark)
+        )
+    except Exception:
+        pass
+
+
+
 def _get_app() -> QApplication:
     """Возвращает текущий QApplication с правильным типом для Pylance."""
     return cast(QApplication, QApplication.instance())
@@ -91,6 +107,7 @@ class CAIRNMainWindow(QMainWindow):
         self._setup_style()
         self._build_ui()
         self._connect_signals()
+        self._install_titlebar_filter()
         self._update_status()
 
     # ── Инициализация ─────────────────────────────────────────────────
@@ -223,12 +240,10 @@ class CAIRNMainWindow(QMainWindow):
         self._sources_panel = SourcesPanel()
         self._sources_panel.configure_source.connect(self._on_configure_source)
         self._sources_panel.setVisible(False)
-        root_layout.addWidget(self._sources_panel)
 
         self._modules_panel = ModulesPanel()
         self._modules_panel.module_toggled.connect(self._on_module_toggled)
         self._modules_panel.setVisible(False)
-        root_layout.addWidget(self._modules_panel)
 
         # Совместимость: sidebar для старого кода
         from cairn.gui.widgets.sidebar import Sidebar
@@ -236,12 +251,22 @@ class CAIRNMainWindow(QMainWindow):
         self.sidebar.setVisible(False)
         self.sidebar.configure_source.connect(self._on_configure_source)
 
+        # QSplitter для боковых панелей + основной контент
+        self._content_splitter = QSplitter(Qt.Orientation.Horizontal)
+        self._content_splitter.setHandleWidth(4)
+        self._content_splitter.addWidget(self._sources_panel)
+        self._content_splitter.addWidget(self._modules_panel)
+        self._content_splitter.addWidget(self.sidebar)
+
         # ── Вкладки ───────────────────────────────────────────────────────
         self.tabs         = QTabWidget()
         self.tabs.setObjectName("mainTabs")
         # Стиль вкладок управляется через QSS темы
         self.data_tab        = DataTab()
         self.training_tab    = TrainingTab()
+        # Загружаем config чтобы кнопка "Сбросить" знала defaults
+        if hasattr(self._ctrl, "_config") and self._ctrl._config is not None:
+            self.training_tab.load_config(self._ctrl._config)
         self.results_tab     = ResultsTab()
         self.explanation_tab = ExplanationTab()
 
@@ -267,11 +292,13 @@ class CAIRNMainWindow(QMainWindow):
         # Журнал событий — отдельная боковая панель
         from cairn.gui.widgets.event_log import EventLogWidget
         self._event_log = EventLogWidget()
-        self._event_log.setFixedWidth(320)
+        self._event_log.setMinimumWidth(240)
+        self._event_log.setMaximumWidth(500)
+        self._event_log.resize(320, self._event_log.height())
         self._event_log.setVisible(False)
-        root_layout.addWidget(self._event_log)
-
-        root_layout.addWidget(self.tabs, stretch=1)
+        self._content_splitter.addWidget(self._event_log)
+        self._content_splitter.addWidget(self.tabs)
+        root_layout.addWidget(self._content_splitter, stretch=1)
 
         # Инициализируем после создания
         self._event_log.add_info("CAIRN запущен.")
@@ -316,6 +343,33 @@ class CAIRNMainWindow(QMainWindow):
         sb.addWidget(self._data_label)
         sb.addPermanentWidget(QLabel("CAIRN v0.1  "))
 
+    def _install_titlebar_filter(self) -> None:
+        """Перехватывает показ любого QDialog и применяет тему titlebar."""
+        from PySide6.QtCore import QEvent, QObject
+
+        theme_ref = [self._current_theme]
+
+        class _TitlebarFilter(QObject):
+            def eventFilter(self, obj, event):
+                if event.type() == QEvent.Type.WinIdChange:
+                    from PySide6.QtWidgets import QDialog, QMainWindow
+                    from PySide6.QtWidgets import QDialog, QMainWindow
+                    # QDialog — всегда применяем (даже с parent)
+                    # QMainWindow — только главное окно
+                    # Исключаем внутренние Qt-виджеты (не Dialog/MainWindow)
+                    if isinstance(obj, (QDialog, QMainWindow)):
+                        _apply_titlebar_theme_to(obj, theme_ref[0])
+                return False
+
+        self._titlebar_filter = _TitlebarFilter(self)
+        _get_app().installEventFilter(self._titlebar_filter)
+        # Обновляем тему при переключении
+        orig_toggle = self._toggle_theme
+        def patched_toggle():
+            orig_toggle()
+            theme_ref[0] = self._current_theme
+        self._toggle_theme = patched_toggle
+
     def _connect_signals(self) -> None:
         # Контроллер → окно
         self._ctrl.data_loaded.connect(self._on_data_loaded)
@@ -339,6 +393,7 @@ class CAIRNMainWindow(QMainWindow):
         self.training_tab.stop_requested.connect(self._ctrl.stop_training)
         self.results_tab.show_explanation.connect(self._on_show_explanation)
         self.results_tab.counterfactual_requested.connect(self._on_counterfactual)
+        self.results_tab.compare_modes_requested.connect(self._on_compare_modes)
 
     # ── Слоты ─────────────────────────────────────────────────────────
 
@@ -552,23 +607,37 @@ class CAIRNMainWindow(QMainWindow):
         box.exec()
 
     def _apply_theme(self, theme: str) -> None:
-        """Загружает и применяет тему через QApplication (единственный правильный способ).
-
-        self.setStyleSheet() не достигает виджетов с собственным inline-стилем.
-        QApplication.setStyleSheet() — единый каскад для всего приложения.
-        """
+        """Загружает и применяет тему через QApplication."""
         filename = "dark_theme.qss" if theme == "dark" else "light_theme.qss"
         theme_path = Path(__file__).parent / "styles" / filename
         if not theme_path.exists():
             return
         qss = theme_path.read_text(encoding="utf-8")
-        # Применяем ко всему приложению
         _get_app().setStyleSheet(qss)
         self._current_theme = theme
-        # Сбрасываем inline-стили вкладок (они hardcoded и перекрывают QSS)
         self.tabs.setStyleSheet("")
-        # Перекрашиваем matplotlib
+        # Даём Qt время обновить QPalette перед перерисовкой графов
+        _get_app().processEvents()
         self._repaint_plots(theme)
+        # Принудительно обновляем QGraphicsScene фоны
+        self._refresh_graph_backgrounds()
+        # п.7: светлый/тёмный titlebar на Windows
+        self._set_titlebar_theme(theme)
+
+    def _set_titlebar_theme(self, theme: str) -> None:
+        """Устанавливает цвет заголовка окна через Windows API."""
+        if sys.platform != "win32":
+            return
+        try:
+            import ctypes
+            hwnd = int(self.winId())
+            # DWMWA_USE_IMMERSIVE_DARK_MODE = 20
+            dark = ctypes.c_int(1 if theme == "dark" else 0)
+            ctypes.windll.dwmapi.DwmSetWindowAttribute(
+                hwnd, 20, ctypes.byref(dark), ctypes.sizeof(dark)
+            )
+        except Exception:
+            pass
 
     def _repaint_plots(self, theme: str) -> None:
         """Перекрашивает matplotlib-графики при смене темы (п.6)."""
@@ -606,6 +675,31 @@ class CAIRNMainWindow(QMainWindow):
                         lc._fig.canvas.draw()
                     except Exception:
                         pass
+        # InteractiveGraphWidget — обновляем цвета подписей узлов
+        if hasattr(self, "results_tab"):
+            igw = getattr(self.results_tab, "_igraph", None)
+            if igw is not None:
+                try:
+                    for node in igw._nodes.values():
+                        node.refresh_label_color()
+                    igw._scene.update()
+                except Exception:
+                    pass
+        # ChainGraphWidget — обновляем фон и цвета узлов/рёбер
+        if hasattr(self, "explanation_tab"):
+            cw = getattr(self.explanation_tab, "_chain_widget", None)
+            if cw is not None:
+                try:
+                    cw.refresh_theme()
+                except Exception:
+                    pass
+
+    def _refresh_graph_backgrounds(self) -> None:
+        """Принудительно обновляет фон всех QGraphicsView после смены темы."""
+        from PySide6.QtWidgets import QGraphicsView
+        for view in self.findChildren(QGraphicsView):
+            view.viewport().update()
+            view.update()
 
     def _toggle_theme(self) -> None:
         """Переключает между тёмной и светлой темой."""
@@ -788,17 +882,28 @@ class CAIRNMainWindow(QMainWindow):
         self._update_status(f"Отключено от {name}")
 
     def _on_compare_modes(self) -> None:
-        """B2: Открывает диалог сравнения режимов анализа."""
-        if self._ctrl._model is None:
-            from PySide6.QtWidgets import QMessageBox
-            QMessageBox.information(
-                self, "Сравнение режимов",
-                "Загрузите модель и выполните анализ перед сравнением режимов."
-            )
-            return
+        """B2: Открывает диалог ablation-сравнения режимов.
+
+        Требует: загруженная модель (_model) и гиперграф (_hypergraph).
+        В демо-режиме они доступны после запуска анализа.
+        """
         from cairn.gui.widgets.comparison_dialog import ComparisonDialog
-        dlg = ComparisonDialog(self._ctrl, parent=self)
-        dlg.exec()
+        try:
+            # Если диалог уже открыт — поднимаем его
+            if hasattr(self, "_comparison_dlg") and self._comparison_dlg is not None:
+                self._comparison_dlg.show()
+                self._comparison_dlg.raise_()
+                return
+            self._comparison_dlg = ComparisonDialog(self._ctrl, parent=self)
+            self._comparison_dlg.finished.connect(
+                lambda: setattr(self, "_comparison_dlg", None))
+            self._comparison_dlg.show()
+            self._comparison_dlg.raise_()
+        except Exception as e:
+            self._logger.debug(f"ComparisonDialog error: {e}")
+            import traceback; traceback.print_exc()
+            self._show_info("Сравнение режимов",
+                f"Ошибка: {e}. Убедитесь что анализ был выполнен.")
 
     def _on_module_toggled(self, key: str, enabled: bool) -> None:
         """Переключает модуль и обновляет статус в журнале."""
@@ -977,7 +1082,10 @@ class CAIRNMainWindow(QMainWindow):
             self._update_status("Ошибка демо")
 
     def closeEvent(self, event) -> None:
-        self._ctrl.stop_training()
+        try:
+            self._ctrl.stop_training()
+        except RuntimeError:
+            pass
         event.accept()
 
 

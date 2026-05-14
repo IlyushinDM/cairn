@@ -1,4 +1,4 @@
-"""Вкладка 'Журналы' – отображение лог-аномалий по контейнерам.
+"""Вкладка 'Журналы' — отображение лог-аномалий по контейнерам.
 
 Показывает:
   - Таблицу контейнеров с частотой ERROR/WARN и статусом аномалии
@@ -10,7 +10,7 @@ from __future__ import annotations
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
-    QAbstractItemView, QHBoxLayout, QHeaderView, QLabel,
+    QAbstractItemView, QPushButton, QHBoxLayout, QHeaderView, QLabel,
     QListWidget, QListWidgetItem, QSplitter, QTableWidget,
     QTableWidgetItem, QVBoxLayout, QWidget,
 )
@@ -44,9 +44,17 @@ class LogsTab(QWidget):
         tl.setContentsMargins(0, 0, 0, 0)
         tl.setSpacing(4)
 
+        lhdr = QHBoxLayout()
         lbl = QLabel("СТАТУС ЖУРНАЛОВ")
         lbl.setObjectName("sectionTitle")
-        tl.addWidget(lbl)
+        lhdr.addWidget(lbl)
+        lhdr.addStretch()
+        btn_lpop = QPushButton("⬡ В окне")
+        btn_lpop.setFixedHeight(22)
+        btn_lpop.setStyleSheet("font-size: 11px; padding: 0 6px;")
+        btn_lpop.clicked.connect(lambda: self._open_table_in_window())
+        lhdr.addWidget(btn_lpop)
+        tl.addLayout(lhdr)
 
         self._table = QTableWidget(0, 5)
         self._table.setHorizontalHeaderLabels([
@@ -81,15 +89,7 @@ class LogsTab(QWidget):
         self._error_list = QListWidget()
         self._error_list.setEditTriggers(
             QAbstractItemView.EditTrigger.NoEditTriggers)
-        self._error_list.setStyleSheet("""
-            QListWidget {
-                background: #1e1e1e;
-                border: 1px solid #3f3f46;
-                font-family: "Consolas", monospace;
-                font-size: 11px;
-            }
-            QListWidget::item { padding: 3px 6px; }
-        """)
+        self._error_list.setObjectName("eventLogList")
         bl.addWidget(self._error_list)
         splitter.addWidget(bottom)
 
@@ -99,6 +99,35 @@ class LogsTab(QWidget):
         self._log_data = None
 
     # ── Публичный API ─────────────────────────────────────────────────────
+
+    def _open_table_in_window(self) -> None:
+        """Открывает таблицу контейнеров в отдельном окне."""
+        from PySide6.QtWidgets import QDialog, QVBoxLayout, QTableWidget, QTableWidgetItem
+        from PySide6.QtCore import Qt
+        dlg = QDialog(self)
+        dlg.setWindowTitle("Журналы — таблица контейнеров")
+        dlg.resize(700, 400)
+        layout = QVBoxLayout(dlg)
+        tbl = QTableWidget(self._table.rowCount(), self._table.columnCount())
+        headers = [self._table.horizontalHeaderItem(c).text()
+                   if self._table.horizontalHeaderItem(c) else ""
+                   for c in range(self._table.columnCount())]
+        tbl.setHorizontalHeaderLabels(headers)
+        tbl.verticalHeader().setVisible(False)
+        tbl.horizontalHeader().setStretchLastSection(True)
+        tbl.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        tbl.setAlternatingRowColors(True)
+        for r in range(self._table.rowCount()):
+            for c in range(self._table.columnCount()):
+                it = self._table.item(r, c)
+                if it:
+                    tbl.setItem(r, c, QTableWidgetItem(it.text()))
+        layout.addWidget(tbl)
+        # show() вместо exec() — не блокирует основное окно
+        dlg.setAttribute(__import__("PySide6.QtCore", fromlist=["Qt"]).Qt.WidgetAttribute.WA_DeleteOnClose)
+        dlg.setModal(False)
+        dlg.show()
+        dlg.raise_()
 
     def load_log_data(self, log_data) -> None:
         """Отображает данные от DockerLogConnector."""
@@ -159,7 +188,7 @@ class LogsTab(QWidget):
             self._table.setItem(row, 3, item_anom)
 
             # Последние ошибки (превью)
-            preview = ts.top_errors[0][:60] if ts.top_errors else "–"
+            preview = ts.top_errors[0][:60] if ts.top_errors else "—"
             item_err_prev = QTableWidgetItem(preview)
             item_err_prev.setFlags(Qt.ItemFlag.ItemIsSelectable |
                                    Qt.ItemFlag.ItemIsEnabled)

@@ -1,4 +1,4 @@
-"""Иконки CAIRN GUI — SVG файлы в стиле VS Code.
+"""Иконки CAIRN GUI – SVG файлы в стиле VS Code.
 
 Использование:
     from cairn.gui.icons import icon
@@ -17,7 +17,7 @@ ICONS_DIR = Path(__file__).parent
 def icon(name: str, color: str = "#c8ccd4", size: int = 20) -> QIcon:
     """Возвращает QIcon из SVG-файла с заданным цветом.
 
-    Если SVG не найден или рендер не работает — возвращает пустую иконку
+    Если SVG не найден или рендер не работает – возвращает пустую иконку
     (кнопка покажет текст из setText).
     """
     svg_path = ICONS_DIR / f"{name}.svg"

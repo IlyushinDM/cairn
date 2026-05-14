@@ -23,14 +23,7 @@
 }
 
 QLabel, QPushButton, QLineEdit, QTextEdit, QPlainTextEdit,
-QComboBox, QSpinBox, QDoubleSpinBox, QCheckBox, QRadioButton,
-QGroupBox, QTabBar, QMenuBar, QMenu, QToolButton, QStatusBar,
-QHeaderView, QTableWidget, QTableView, QTreeWidget, QListWidget,
-QScrollBar, QProgressBar, QDialog, QMessageBox {
-    font-size: 12px;
-}
-
-QGraphicsView, QGraphicsScene { font-size: 12px; }
+QComboBox, QGraphicsView, QGraphicsScene { font-size: 12px; }
 
 QMainWindow, QDialog { background: #f0f0f0; }
 QWidget             { background: #f0f0f0; color: #1e1e1e; }
@@ -59,11 +52,11 @@ QStatusBar::item            { border: none; }
 
 /* ── GroupBox ──────────────────────────────────────────────────────────────*/
 QGroupBox {
-    border: 1px solid #c0c0c0;
-    margin-top: 20px;
-    padding-top: 8px;
-    font-weight: 600;
-    color: #1e1e1e;
+    
+    border: 1px solid #b8b8b8;
+    border-radius: 4px;
+    margin-top: 18px;
+    padding: 8px 6px 6px 6px;
 }
 QGroupBox::title            { subcontrol-origin: margin; left: 10px; padding: 0 4px; }
 
@@ -126,6 +119,7 @@ QTableWidget, QTableView {
     alternate-background-color: #f0f0f0;
 }
 QTableWidget::item:selected, QTableView::item:selected { background: #cce4f7; color: #000000; }
+QTableWidget::item:hover,    QTableView::item:hover    { background: #daeeff; color: #000000; }
 QHeaderView::section {
     background: #e8e8e8;
     color: #444444;
@@ -308,30 +302,51 @@ QFrame#resultsSummary {
 FigureCanvasQTAgg                   { font-size: 1px; }
 
 QLabel#metricMuted { font-size: 13px; color: #666666; }
-/* ── SpinBox — стрелки через SVG-файл (путь подставляется при загрузке) ─────*/
-QSpinBox, QDoubleSpinBox {
-    background: #ffffff;
-    border: 1px solid #c0c0c0;
-    color: #1e1e1e;
-    padding: 1px 18px 1px 4px;
-    min-height: 22px;
-}
-QSpinBox:focus, QDoubleSpinBox:focus { border-color: #0078d4; }
 
-QSpinBox::up-button, QDoubleSpinBox::up-button {
-    subcontrol-origin: border;
-    subcontrol-position: top right;
-    width: 16px;
-    height: 50%;
-    border-left: 1px solid #c0c0c0;
+/* ── Дополнительные объекты (светлая тема) ───────────────────────────────────*/
+QListWidget#eventLogList {
+    background: #f5f5f5;
+    border: 1px solid #c8c8c8;
+    font-family: "Consolas", "Courier New", monospace;
+    font-size: 11px;
 }
-QSpinBox::down-button, QDoubleSpinBox::down-button {
-    subcontrol-origin: border;
-    subcontrol-position: bottom right;
-    width: 16px;
-    height: 50%;
-    border-left: 1px solid #c0c0c0;
-    border-top:  1px solid #c0c0c0;
+QListWidget#eventLogList::item { padding: 2px 6px; border-bottom: 1px solid #e0e0e0; }
+QListWidget#eventLogList::item:hover { background: #e8e8e8; }
+
+QLabel#sidebarHeader {
+    color: #1e1e1e; font-size: 11px; font-weight: 600;
+    letter-spacing: 1px;
+    padding: 10px 12px 6px 16px;
+    background: #e8e8e8;
+    border-bottom: 1px solid #b8b8b8;
 }
-QSpinBox::up-arrow,   QDoubleSpinBox::up-arrow   { image: url("__ARROW_UP_LIGHT__");   width: 10px; height: 10px; }
-QSpinBox::down-arrow, QDoubleSpinBox::down-arrow { image: url("__ARROW_DOWN_LIGHT__"); width: 10px; height: 10px; }
+QGroupBox#sideGroupBox {
+    color: #555555; font-size: 10px; font-weight: 700; letter-spacing: 1px;
+}
+QLabel#explanationLabel  { color: #333333; }
+QLabel#sourceLabel       { color: #333333; font-size: 12px; }
+
+/* Радиокнопки демо-диалога */
+QRadioButton#scenarioRadio { spacing: 8px; }
+QRadioButton#scenarioRadio::indicator {
+    width: 16px; height: 16px; border-radius: 8px;
+    background: #ffffff; border: 2px solid #888888;
+}
+QRadioButton#scenarioRadio::indicator:checked {
+    background: #0078d4; border: 2px solid #0078d4;
+}
+
+/* Панели (светлые дочерние виджеты) */
+QWidget#sidePanel QLabel    { background: transparent; color: #1e1e1e; }
+QWidget#sourcesPanel QLabel { background: transparent; color: #1e1e1e; }
+QWidget#modulesPanel QLabel { background: transparent; color: #1e1e1e; }
+QWidget#sidePanel QWidget    { background: #e8e8e8; }
+QWidget#sourcesPanel QWidget { background: #e8e8e8; }
+QWidget#modulesPanel QWidget { background: #e8e8e8; }
+QToolTip {
+    background: #ffffff;
+    color: #1e1e1e;
+    border: 1px solid #0078d4;
+    padding: 6px 10px;
+    font-size: 12px;
+}

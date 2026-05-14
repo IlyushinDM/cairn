@@ -12,8 +12,9 @@ import numpy as np
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QAbstractItemView, QCheckBox, QComboBox, QFrame,
-    QHBoxLayout, QHeaderView, QLabel, QScrollArea,
-    QSplitter, QTableWidget, QTableWidgetItem,
+    QHBoxLayout, QHeaderView, QLabel,
+    QPushButton, QScrollArea, QSplitter,
+    QTableWidget, QTableWidgetItem,
     QVBoxLayout, QWidget,
 )
 
@@ -100,6 +101,46 @@ class MetricLegend(QWidget):
             self._inner_layout.insertWidget(self._inner_layout.count() - 1, item)
 
 
+class DetachedTableWindow(QWidget):
+    """Таблица в отдельном окне — п.4."""
+
+    def __init__(self, title: str, source_table: QTableWidget, parent=None):
+        super().__init__(parent, Qt.WindowType.Window)
+        self.setWindowTitle(title)
+        self.resize(600, 400)
+        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, False)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(8, 8, 8, 8)
+
+        # Клонируем таблицу (копируем данные)
+        tbl = QTableWidget(source_table.rowCount(),
+                           source_table.columnCount())
+
+        # Заголовки
+        headers = [source_table.horizontalHeaderItem(c).text()
+                   if source_table.horizontalHeaderItem(c) else ""
+                   for c in range(source_table.columnCount())]
+        tbl.setHorizontalHeaderLabels(headers)
+        tbl.verticalHeader().setVisible(False)
+        tbl.setAlternatingRowColors(True)
+        tbl.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        tbl.horizontalHeader().setStretchLastSection(True)
+
+        # Копируем данные
+        for r in range(source_table.rowCount()):
+            for c in range(source_table.columnCount()):
+                item = source_table.item(r, c)
+                if item:
+                    new_item = QTableWidgetItem(item.text())
+                    new_item.setForeground(item.foreground())
+                    tbl.setItem(r, c, new_item)
+
+        layout.addWidget(tbl)
+
+
+
+
 class DataTab(QWidget):
     """Вкладка «Данные»."""
 
@@ -126,13 +167,25 @@ class DataTab(QWidget):
 
         # Горизонтальный сплиттер для двух таблиц (п.2 предыдущей итерации)
         h_split = QSplitter(Qt.Orientation.Horizontal)
+        h_split.setHandleWidth(8)  # шире разделитель между таблицами
 
         # Таблица метрик
         metrics_frame = QWidget()
         mf_layout = QVBoxLayout(metrics_frame)
         mf_layout.setContentsMargins(0, 0, 0, 0)
         mf_layout.setSpacing(4)
-        mf_layout.addWidget(self._section_label("МЕТРИКИ"))
+        # п.4: строка с заголовком и кнопкой «В окне»
+        mf_hdr = QHBoxLayout()
+        mf_hdr.addWidget(self._section_label("МЕТРИКИ"))
+        mf_hdr.addStretch()
+        btn_metrics_pop = QPushButton("⬡ В окне")
+        btn_metrics_pop.setFixedHeight(22)
+        btn_metrics_pop.setToolTip("Открыть таблицу метрик в отдельном окне")
+        btn_metrics_pop.setStyleSheet("font-size: 11px; padding: 0 6px;")
+        btn_metrics_pop.clicked.connect(
+            lambda: self._open_in_window("Метрики", self.metrics_table))
+        mf_hdr.addWidget(btn_metrics_pop)
+        mf_layout.addLayout(mf_hdr)
 
         self.metrics_table = QTableWidget(0, 6)
         self.metrics_table.setHorizontalHeaderLabels(
@@ -159,7 +212,18 @@ class DataTab(QWidget):
         if_layout = QVBoxLayout(instances_frame)
         if_layout.setContentsMargins(0, 0, 0, 0)
         if_layout.setSpacing(4)
-        if_layout.addWidget(self._section_label("ЭКЗЕМПЛЯРЫ СЕРВИСОВ"))
+        # п.4: строка с заголовком и кнопкой «В окне»
+        if_hdr = QHBoxLayout()
+        if_hdr.addWidget(self._section_label("ЭКЗЕМПЛЯРЫ СЕРВИСОВ"))
+        if_hdr.addStretch()
+        btn_inst_pop = QPushButton("⬡ В окне")
+        btn_inst_pop.setFixedHeight(22)
+        btn_inst_pop.setToolTip("Открыть таблицу экземпляров в отдельном окне")
+        btn_inst_pop.setStyleSheet("font-size: 11px; padding: 0 6px;")
+        btn_inst_pop.clicked.connect(
+            lambda: self._open_in_window("Экземпляры сервисов", self.instances_table))
+        if_hdr.addWidget(btn_inst_pop)
+        if_layout.addLayout(if_hdr)
 
         self.instances_table = QTableWidget(0, 5)
         self.instances_table.setHorizontalHeaderLabels(
@@ -244,9 +308,9 @@ class DataTab(QWidget):
             from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
             from matplotlib.figure import Figure
 
-            fig = Figure(figsize=(10, 3), facecolor="#161922")
+            fig = Figure(figsize=(10, 3), facecolor="none")
             ax  = fig.add_subplot(111)
-            ax.set_facecolor("#161922")
+            ax.set_facecolor("none")
             ax.tick_params(colors="#6c7a9c")
             ax.spines[:].set_color("#2d3348")
             ax.set_xlabel("Время (с)", color="#6c7a9c", fontsize=10)
@@ -385,12 +449,20 @@ class DataTab(QWidget):
         if hasattr(self._canvas_widget, "draw"):
             self._canvas_widget.draw()
 
+    def _open_in_window(self, title: str, table: QTableWidget) -> None:
+        """Открывает таблицу в отдельном плавающем окне."""
+        win = DetachedTableWindow(title, table, parent=self)
+        win.show()
+        win.raise_()
+        self._detached_windows = getattr(self, "_detached_windows", [])
+        self._detached_windows.append(win)
+
     def plot_series(self, timestamps, values, labels: list[str]) -> None:
         """Внешний вызов отрисовки (для live-режима)."""
         if self._ax is None:
             return
         self._ax.clear()
-        self._ax.set_facecolor("#161922")
+        self._ax.set_facecolor("none")
         for i, (vals, label) in enumerate(zip(values, labels)):
             color = _PALETTE[i % len(_PALETTE)]
             self._ax.plot(timestamps, vals, label=label,

@@ -15,7 +15,33 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 
+class _StderrFilter:
+    """Фильтрует информационные сообщения Qt (пишутся в fd=2 напрямую)."""
+    _IGNORE = ("External WM_DESTROY",)
+
+    @staticmethod
+    def install():
+        """Перехватывает запись в stderr на уровне файлового дескриптора."""
+        import os, io, threading
+        r_fd, w_fd = os.pipe()
+        orig_fd2 = os.dup(2)
+
+        os.dup2(w_fd, 2)
+        os.close(w_fd)
+
+        def _reader():
+            buf = ""
+            with os.fdopen(r_fd, "r", errors="replace") as f:
+                for line in f:
+                    if not any(p in line for p in _StderrFilter._IGNORE):
+                        os.write(orig_fd2, line.encode("utf-8", errors="replace"))
+        t = threading.Thread(target=_reader, daemon=True)
+        t.start()
+
+
 def main() -> None:
+    import sys as _sys
+    _StderrFilter.install()
     parser = argparse.ArgumentParser(description="CAIRN GUI")
     parser.add_argument("--config", default="configs/default.yaml")
     parser.add_argument("--theme",  default="dark", choices=["dark", "light"])
@@ -48,12 +74,7 @@ def main() -> None:
 
     from cairn.gui.main_window import CAIRNMainWindow
     from cairn.gui.styles import load_theme
-    from cairn.gui.cairn_style import CAIRNStyle
 
-    # Применяем кастомный стиль (рисует стрелки SpinBox в нужном цвете)
-    cairn_proxy = CAIRNStyle("Fusion")
-    cairn_proxy.set_theme(args.theme)
-    app.setStyle(cairn_proxy)
     app.setStyleSheet(load_theme(args.theme))
 
     window = CAIRNMainWindow(config_path=args.config)

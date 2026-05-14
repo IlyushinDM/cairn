@@ -1,14 +1,14 @@
-"""Контроллер CAIRN — связывает GUI-события с вычислительным ядром.
+"""Контроллер CAIRN – связывает GUI-события с вычислительным ядром.
 
 Паттерн: CAIRNMainWindow владеет CAIRNController.
 Контроллер держит всё состояние модели/данных и эмитирует Qt-сигналы.
 Main window только подключает сигналы к слотам виджетов.
 
 Сигналы:
-    data_loaded()                      — данные успешно загружены
+    data_loaded()                      – данные успешно загружены
     training_progress(ep, total, stage, losses)
     training_finished(history)
-    analysis_complete(results)         — список dict с результатами
+    analysis_complete(results)         – список dict с результатами
     error(title, message)
 """
 
@@ -48,7 +48,7 @@ class AnalysisWorker(QThread):
 
 
 # ---------------------------------------------------------------------------
-# ModuleConfig — конфигурация включённых модулей
+# ModuleConfig – конфигурация включённых модулей
 # ---------------------------------------------------------------------------
 
 class ModuleConfig:
@@ -132,7 +132,7 @@ class CAIRNController(QObject):
 
     @Slot(str, bool)
     def on_module_toggled(self, key: str, enabled: bool) -> None:
-        """Реакция на чекбокс модуля — обновляет ModuleConfig и применяет к модели."""
+        """Реакция на чекбокс модуля – обновляет ModuleConfig и применяет к модели."""
         self._modules.apply(key, enabled)
 
         model = self._model
@@ -180,7 +180,7 @@ class CAIRNController(QObject):
             self._topo_data   = YAMLTopologyConnector(sample_dir / "topology.yaml").fetch()
             self._hypergraph  = HypergraphBuilder.from_topology_data(self._topo_data)
 
-            # Журналы и трассировки опциональны — не падаем если файлов нет
+            # Журналы и трассировки опциональны – не падаем если файлов нет
             self._log_data   = None
             self._trace_data = None
             try:
@@ -307,14 +307,14 @@ class CAIRNController(QObject):
                             "Сначала обучите модель или загрузите чекпоинт.")
             return
 
-        # Если старый воркер ещё жив — ждём завершения (макс 3 сек)
+        # Если старый воркер ещё жив – ждём завершения (макс 3 сек)
         if self._analysis_worker is not None:
             if self._analysis_worker.isRunning():
                 self._analysis_worker.quit()
                 self._analysis_worker.wait(3000)
             self._analysis_worker = None
 
-        # parent=None — управляем временем жизни вручную
+        # parent=None – управляем временем жизни вручную
         worker = AnalysisWorker(self, parent=None)
         worker.finished.connect(self._on_analysis_finished)
         worker.finished.connect(self._cleanup_analysis_worker)
@@ -372,7 +372,7 @@ class CAIRNController(QObject):
         # 1.2: Вычисляем доминантную метрику для каждого узла
         dominant_metrics = self._compute_dominant_metrics(incident, names)
 
-        # Передаём все оценки — builder строит путь через граф по убыванию NLL
+        # Передаём все оценки – builder строит путь через граф по убыванию NLL
         chain = EvidenceChainBuilder().build(
             root_cause=root_idx,
             causal_graph=self._hypergraph,
@@ -409,7 +409,7 @@ class CAIRNController(QObject):
                 "name":       names[idx] if idx < len(names) else f"node-{idx}",
                 "ce":         round(ce, 4),
                 "nll":        round(nll[idx].item(), 4),
-                "fault_type": getattr(self, "_demo_fault_hint", "unknown") if i == 0 else "—",
+                "fault_type": getattr(self, "_demo_fault_hint", "unknown") if i == 0 else "–",
                 "confidence": max(0.0, 0.8 - i * 0.15),
             }
             for i, (idx, ce) in enumerate(ranked)
@@ -430,9 +430,9 @@ class CAIRNController(QObject):
             N, T, F = m.shape
             third = max(1, T // 3)
 
-            # Базовый период — первая треть окна
+            # Базовый период – первая треть окна
             base = m[:, :third, :].mean(dim=1)          # (N, F)
-            # Аномальный период — последняя треть
+            # Аномальный период – последняя треть
             anom = m[:, -third:, :].mean(dim=1)         # (N, F)
 
             # Относительное отклонение |Δ| / (|base| + ε)
@@ -445,7 +445,7 @@ class CAIRNController(QObject):
                 if best_delta > 0.20 and best_f < len(METRIC_NAMES):
                     result[i] = METRIC_NAMES[best_f]
         except Exception:
-            pass  # не критично — dominant_metric остаётся null
+            pass  # не критично – dominant_metric остаётся null
 
         return result
 

@@ -78,14 +78,14 @@ class ConnectDialog(QDialog):
         self._combo.currentIndexChanged.connect(self._on_combo_changed)
         combo_row.addWidget(self._combo, stretch=1)
 
-        btn_browse = QPushButton("Обзор…")
+        btn_browse = QPushButton("Обзор")
         btn_browse.setFixedHeight(ELEM_H)
         btn_browse.setFixedWidth(72)
         btn_browse.clicked.connect(self._browse)
         combo_row.addWidget(btn_browse)
 
         # п.9: понятный значок «обновить» вместо арабоподобного ↻
-        btn_refresh = QPushButton("⟳  Обновить список")
+        btn_refresh = QPushButton("Обновить список")
         btn_refresh.setFixedHeight(ELEM_H)
         btn_refresh.setToolTip("Обновить список конфигов")
         btn_refresh.clicked.connect(self._refresh_combo)
@@ -142,7 +142,7 @@ class ConnectDialog(QDialog):
         for cfg_path in configs:
             self._combo.addItem(cfg_path.stem.replace("_", " ").title(), str(cfg_path))
         if not configs:
-            self._combo.addItem("(нет конфигов — нажмите Обзор…)", "")
+            self._combo.addItem("(нет конфигов – нажмите Обзор…)", "")
         self._combo.update()
 
     def _browse(self) -> None:
@@ -166,9 +166,9 @@ class ConnectDialog(QDialog):
             with open(path, encoding="utf-8") as f:
                 cfg = yaml.safe_load(f)
             sys_info = cfg.get("system", {})
-            name  = sys_info.get("name", "—")
+            name  = sys_info.get("name", "–")
             desc  = sys_info.get("description", "")
-            src   = cfg.get("metrics", {}).get("source", "—")
+            src   = cfg.get("metrics", {}).get("source", "–")
             self._desc_label.setText(
                 f"{name} | Источник: {src}\n{desc}"
             )

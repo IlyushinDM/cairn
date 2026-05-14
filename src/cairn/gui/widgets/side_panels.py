@@ -1,4 +1,4 @@
-"""Боковые панели CAIRN – Sources и Modules как отдельные виджеты.
+"""Боковые панели CAIRN — Sources и Modules как отдельные виджеты.
 
 Каждая панель показывается независимо при нажатии на иконку в ActivityBar.
 """
@@ -18,15 +18,12 @@ class SidePanelBase(QWidget):
     def __init__(self, title: str, parent=None):
         super().__init__(parent)
         self.setObjectName("sidePanel")
-        self.setFixedWidth(240)
-        self.setSizePolicy(QSizePolicy.Policy.Fixed,
+        self.setMinimumWidth(200)
+        self.setMaximumWidth(500)
+        self.resize(240, self.height())
+        self.setSizePolicy(QSizePolicy.Policy.Preferred,
                            QSizePolicy.Policy.Expanding)
-        self.setStyleSheet("""
-            QWidget#sidePanel {
-                background: #252526;
-                border-right: 1px solid #3f3f46;
-            }
-        """)
+        self.setObjectName("sidePanel")
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
@@ -34,17 +31,7 @@ class SidePanelBase(QWidget):
         # Заголовок панели
         hdr = QLabel(title.upper())
         hdr.setObjectName("sidebarHeader")
-        hdr.setStyleSheet("""
-            QLabel {
-                color: #cccccc;
-                font-size: 11px;
-                font-weight: 600;
-                letter-spacing: 1px;
-                padding: 10px 12px 6px 16px;
-                background: #252526;
-                border-bottom: 1px solid #3f3f46;
-            }
-        """)
+        hdr.setObjectName("sidebarHeader")
         layout.addWidget(hdr)
 
         # Scrollable content
@@ -62,21 +49,7 @@ class SidePanelBase(QWidget):
 
     def _add_section(self, title: str) -> QGroupBox:
         grp = QGroupBox(title)
-        grp.setStyleSheet("""
-            QGroupBox {
-                color: #858585;
-                font-size: 10px;
-                font-weight: 700;
-                letter-spacing: 1px;
-                border: none;
-                margin-top: 12px;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                left: 0;
-                top: 0;
-            }
-        """)
+        grp.setObjectName("sideGroupBox")
         return grp
 
 
@@ -93,9 +66,9 @@ class SourcesPanel(SidePanelBase):
         cl = self._content_layout
 
         for src_title, options in [
-            ("Метрики",     ["CSV-файл", "Prometheus", "docker_stats", "–"]),
-            ("Журналы",     ["Текстовый файл", "Elasticsearch", "–"]),
-            ("Трассировки", ["JSON-файл", "Jaeger", "–"]),
+            ("Метрики",     ["CSV-файл", "Prometheus", "docker_stats", "—"]),
+            ("Журналы",     ["Текстовый файл", "Elasticsearch", "—"]),
+            ("Трассировки", ["JSON-файл", "Jaeger", "—"]),
         ]:
             grp = QGroupBox(src_title)
             gl  = QVBoxLayout(grp)

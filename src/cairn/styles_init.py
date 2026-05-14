@@ -25,8 +25,8 @@ def load_theme(theme: str = "dark") -> str:
     arrows_dir = _STYLES_DIR / "arrows"
 
     # Qt требует forward slash даже на Windows, без пробелов
-    # Если в пути есть пробелы/спецсимволы — экранируем через repr не нужно,
-    # Qt сам обрабатывает путь. Главное — forward slash.
+    # Если в пути есть пробелы/спецсимволы – экранируем через repr не нужно,
+    # Qt сам обрабатывает путь. Главное – forward slash.
     def arrow_url(name: str) -> str:
         p = (arrows_dir / name).resolve()
         # Конвертируем в строку с forward slash

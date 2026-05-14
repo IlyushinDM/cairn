@@ -158,12 +158,12 @@ class ComparisonDialog(QDialog):
         layout.setSpacing(8)
 
         # Заголовок
-        hdr = QLabel("Ablation Study – влияние модулей на результат анализа")
+        hdr = QLabel("Ablation Study — влияние модулей на результат анализа")
         hdr.setStyleSheet("font-size:13px; font-weight:600; color:#4a9eff;")
         layout.addWidget(hdr)
 
         hint = QLabel(
-            "Каждый столбец – отдельный прогон с отключённым модулем. "
+            "Каждый столбец — отдельный прогон с отключённым модулем. "
             "Выделены позиции где ранг изменился."
         )
         hint.setStyleSheet("color:#858585; font-size:11px;")
@@ -188,18 +188,23 @@ class ComparisonDialog(QDialog):
 
         # Легенда
         legend_row = QHBoxLayout()
-        for color, text in [
-            ("#3ecf8e", "Ранг улучшился"),
-            ("#f44747", "Ранг ухудшился"),
-            ("#2d3348", "Без изменений"),
+        for bg, fg, text in [
+            ("#1a2a3e", "#7ab3d8", "Базовый CAIRN"),
+            ("#1a3323", "#6fcf97", "Ранг улучшился ↑"),
+            ("#3a1a1e", "#e57373", "Ранг ухудшился ↓"),
+            ("#252833", "#6c7a9c", "Без изменений"),
         ]:
             lbl = QLabel(f"■ {text}")
-            lbl.setStyleSheet(f"color:{color}; font-size:10px;")
+            lbl.setStyleSheet(
+                f"background:{bg}; color:{fg}; "
+                f"font-size:10px; padding:2px 6px; border-radius:3px;"
+            )
             legend_row.addWidget(lbl)
         legend_row.addStretch()
         layout.addLayout(legend_row)
 
-        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        buttons = QDialogButtonBox()
+        buttons.addButton("Закрыть", QDialogButtonBox.ButtonRole.RejectRole)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
 
@@ -266,7 +271,7 @@ class ComparisonDialog(QDialog):
                     None
                 )
                 if rank is None:
-                    item = QTableWidgetItem("–")
+                    item = QTableWidgetItem("—")
                     item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                     self._table.setItem(row, col, item)
                     continue
@@ -279,17 +284,53 @@ class ComparisonDialog(QDialog):
                 item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 item.setFlags(Qt.ItemFlag.ItemIsEnabled)
 
-                # Цвет по изменению ранга
+                # Цвет по изменению ранга — пастельные фоны
+                # Определяем тему через контроллер
+                from PySide6.QtWidgets import QApplication as _QApp
+                _app = _QApp.instance()
+                _light = False
+                if _app:
+                    _bg = _app.palette().color(_app.palette().ColorRole.Window)
+                    _light = _bg.lightness() > 160
+                    if not _light:
+                        for _w in _app.topLevelWidgets():
+                            if getattr(_w, "_current_theme", "dark") == "light":
+                                _light = True; break
+
                 if col == 1:
-                    # Базовая конфигурация
+                    # Базовый CAIRN — синевато-серый (отличается от зелёного)
                     if rank == 1:
-                        item.setForeground(QColor("#4a9eff"))
                         font = QFont(); font.setBold(True)
                         item.setFont(font)
+                    if _light:
+                        item.setBackground(QColor("#dce8f5"))  # пастельно-голубой
+                        item.setForeground(QColor("#1a3a5c"))
+                    else:
+                        item.setBackground(QColor("#1a2a3e"))
+                        item.setForeground(QColor("#7ab3d8"))
                 elif rank < base:
-                    item.setForeground(QColor("#3ecf8e"))  # лучше
+                    # Ранг улучшился — пастельно-зелёный
+                    if _light:
+                        item.setBackground(QColor("#d4edda"))
+                        item.setForeground(QColor("#155724"))
+                    else:
+                        item.setBackground(QColor("#1a3323"))
+                        item.setForeground(QColor("#6fcf97"))
                 elif rank > base:
-                    item.setForeground(QColor("#f44747"))  # хуже
-                    item.setBackground(QColor("#2d1a1a"))
+                    # Ранг ухудшился — пастельно-красный
+                    if _light:
+                        item.setBackground(QColor("#f8d7da"))
+                        item.setForeground(QColor("#721c24"))
+                    else:
+                        item.setBackground(QColor("#3a1a1e"))
+                        item.setForeground(QColor("#e57373"))
+                else:
+                    # Без изменений
+                    if _light:
+                        item.setBackground(QColor("#f0f0f0"))
+                        item.setForeground(QColor("#666666"))
+                    else:
+                        item.setBackground(QColor("#252833"))
+                        item.setForeground(QColor("#6c7a9c"))
 
                 self._table.setItem(row, col, item)

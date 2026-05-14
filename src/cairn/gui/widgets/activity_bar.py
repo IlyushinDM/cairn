@@ -1,4 +1,4 @@
-"""Activity Bar — вертикальная панель иконок в стиле VS Code.
+"""Activity Bar – вертикальная панель иконок в стиле VS Code.
 
 Верхняя группа: действия (Load, Analyze, Train)
 Средняя группа: панели (Sources, Modules, Connect, Log)
@@ -6,7 +6,7 @@
 
 Исправления:
 - п.5: hover подсвечивает иконку (opacity), а не фон квадратиком
-- п.6: правая граница — тонкая линия по всей высоте
+- п.6: правая граница – тонкая линия по всей высоте
 """
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ from PySide6.QtWidgets import (
 
 def _make_icon(name: str, color: str = "#858585", size: int = 22):
     """Загружает иконку из SVG с заменой цвета.
-    Если SVG-рендеринг не работает — возвращает None (кнопка покажет текст).
+    Если SVG-рендеринг не работает – возвращает None (кнопка покажет текст).
     """
     try:
         from cairn.gui.icons import icon as _icon
@@ -30,7 +30,7 @@ def _make_icon(name: str, color: str = "#858585", size: int = 22):
 
 
 class ActivityButton(QToolButton):
-    """Кнопка activity bar — иконка с tooltip.
+    """Кнопка activity bar – иконка с tooltip.
 
     п.5: hover меняет яркость самой иконки, не рисует квадрат вокруг.
     При подключении (set_color) сохраняет акцентный цвет и при hover делает его ярче.
@@ -91,7 +91,7 @@ class ActivityButton(QToolButton):
 class ActivityBar(QWidget):
     """VS Code-style activity bar.
 
-    п.6: правая граница — тонкая линия 1px по всей высоте.
+    п.6: правая граница – тонкая линия 1px по всей высоте.
     п.5: кнопки без квадратного hover-фона.
     """
 
@@ -110,7 +110,7 @@ class ActivityBar(QWidget):
         self.setObjectName("activityBarWidget")
 
         # Стиль управляется через QSS-файл темы (dark_theme.qss / light_theme.qss)
-        # НЕ используем inline setStyleSheet — он перекрывает глобальный QSS
+        # НЕ используем inline setStyleSheet – он перекрывает глобальный QSS
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -174,7 +174,7 @@ class ActivityBar(QWidget):
             lambda: self.panel_requested.emit("settings"))
 
     def _toggle(self, panel: str, on: bool) -> None:
-        """Переключает боковую панель — только одна активна."""
+        """Переключает боковую панель – только одна активна."""
         panel_btns = {
             "sources": self.btn_sources,
             "modules": self.btn_modules,

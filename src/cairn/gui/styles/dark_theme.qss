@@ -26,14 +26,7 @@
 
 /* Задаём font-size только там где нужно */
 QLabel, QPushButton, QLineEdit, QTextEdit, QPlainTextEdit,
-QComboBox, QSpinBox, QDoubleSpinBox, QCheckBox, QRadioButton,
-QGroupBox, QTabBar, QMenuBar, QMenu, QToolButton, QStatusBar,
-QHeaderView, QTableWidget, QTableView, QTreeWidget, QListWidget,
-QScrollBar, QProgressBar, QDialog, QMessageBox {
-    font-size: 12px;
-}
-
-QMainWindow, QDialog {
+QComboBox, QMainWindow, QDialog {
     background: #1e1e1e;
 }
 
@@ -167,14 +160,6 @@ QLineEdit:focus, QTextEdit:focus {
     border-color: #007acc;
 }
 
-QSpinBox, QDoubleSpinBox, QComboBox {
-    background: #3c3c3c;
-    border: 1px solid #555;
-    color: #cccccc;
-    padding: 2px 4px;
-    min-height: 22px;
-}
-
 QComboBox::drop-down {
     border: none;
     width: 20px;
@@ -245,10 +230,11 @@ QSplitter::handle:vertical   { height: 1px; }
 
 /* ── GroupBox ──────────────────────────────────────────────────────────────*/
 QGroupBox {
-    border: 1px solid #3f3f46;
+    
+    border: 1px solid #474747;
+    border-radius: 4px;
     margin-top: 18px;
-    padding-top: 4px;
-    color: #cccccc;
+    padding: 8px 6px 6px 6px;
 }
 
 QGroupBox::title {
@@ -355,10 +341,11 @@ QFrame#card {
 
 /* ── Tooltip ───────────────────────────────────────────────────────────────*/
 QToolTip {
-    background: #252526;
-    color: #cccccc;
-    border: 1px solid #454545;
-    padding: 4px 8px;
+    background: #2d2d30;
+    color: #e8e8e8;
+    border: 1px solid #007acc;
+    padding: 6px 10px;
+    font-size: 12px;
 }
 
 /* ── Light theme overrides ─────────────────────────────────────────────────*/
@@ -476,28 +463,43 @@ QWidget#sidebar QPushButton:hover {
     border-color: #7a7a7a;
     border-bottom: 1px solid #999999;
 }
-/* ── SpinBox — стрелки через SVG-файл (путь подставляется при загрузке) ─────*/
-QSpinBox, QDoubleSpinBox {
+
+/* ── Дополнительные объекты ──────────────────────────────────────────────────*/
+QListWidget#eventLogList {
+    background: #1e1e1e;
+    border: 1px solid #3f3f46;
+    font-family: "Consolas", "Courier New", monospace;
+    font-size: 11px;
+}
+QListWidget#eventLogList::item { padding: 2px 6px; border-bottom: 1px solid #2d2d30; }
+QListWidget#eventLogList::item:hover { background: #2a2a2d; }
+
+QLabel#sidebarHeader {
+    color: #cccccc; font-size: 11px; font-weight: 600;
+    letter-spacing: 1px;
+    padding: 10px 12px 6px 16px;
+    background: #252526;
+    border-bottom: 1px solid #474747;
+}
+QGroupBox#sideGroupBox {
+    color: #858585; font-size: 10px; font-weight: 700; letter-spacing: 1px;
+}
+QLabel#explanationLabel  { color: #c8ccd4; }
+QLabel#sourceLabel       { color: #c8ccd4; font-size: 12px; }
+
+/* Радиокнопки демо-диалога */
+QRadioButton#scenarioRadio { spacing: 8px; }
+QRadioButton#scenarioRadio::indicator {
+    width: 16px; height: 16px; border-radius: 8px;
+    background: #2d3348; border: 2px solid #6c7a9c;
+}
+QRadioButton#scenarioRadio::indicator:checked {
+    background: #4a9eff; border: 2px solid #4a9eff;
+}
+QComboBox {
     background: #3c3c3c;
     border: 1px solid #555555;
-    color: #cccccc;
-    padding: 1px 18px 1px 4px;
-    min-height: 22px;
+    padding: 3px 8px;
+    min-height: 24px;
 }
-QSpinBox:focus, QDoubleSpinBox:focus { border-color: #007acc; }
-
-QSpinBox::up-button, QDoubleSpinBox::up-button {
-    subcontrol-origin: border;
-    subcontrol-position: top right;
-    width: 16px;
-    height: 50%;
-    border-left: 1px solid #555555;
-}
-QSpinBox::down-button, QDoubleSpinBox::down-button {
-    subcontrol-origin: border;
-    subcontrol-position: bottom right;
-    width: 16px;
-    height: 50%;
-    border-left: 1px solid #555555;
-    border-top:  1px solid #555555;
-}
+QComboBox::drop-down { border: none; width: 20px; }

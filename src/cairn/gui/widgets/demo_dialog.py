@@ -99,15 +99,10 @@ class ScenarioDialog(QDialog):
             self._btn_group.addButton(radio)
             gl.addWidget(radio)
 
-            radio.setStyleSheet(
-                "QRadioButton{spacing:8px;}"
-                "QRadioButton::indicator{width:16px;height:16px;border-radius:8px;}"
-                "QRadioButton::indicator:unchecked{background:#2d3348;border:2px solid #6c7a9c;}"
-                "QRadioButton::indicator:checked{background:#4a9eff;border:2px solid #4a9eff;}"
-            )
+            radio.setObjectName("scenarioRadio")
             desc = QLabel(info["description"])
             desc.setWordWrap(True)
-            desc.setStyleSheet("color: #8892a4; font-size: 11px; margin-left: 22px;")
+            desc.setStyleSheet("font-size: 11px; margin-left: 22px;")
             gl.addWidget(desc)
 
             if not has_data:

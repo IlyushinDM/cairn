@@ -69,21 +69,9 @@ class EventLogWidget(QWidget):
         self._list = QListWidget()
         self._list.setAlternatingRowColors(False)
         self._list.setSelectionMode(QListWidget.SelectionMode.NoSelection)
-        self._list.setStyleSheet("""
-            QListWidget {
-                background: #1e1e1e;
-                border: 1px solid #3f3f46;
-                font-family: "Consolas", "Courier New", monospace;
-                font-size: 11px;
-            }
-            QListWidget::item {
-                padding: 2px 6px;
-                border-bottom: 1px solid #2d2d30;
-            }
-            QListWidget::item:hover {
-                background: #2a2a2a;
-            }
-        """)
+        self._list.setObjectName("eventLogList")
+        self._list.setFont(__import__("PySide6.QtGui", fromlist=["QFont"]).QFont(
+            "Consolas", 10))
         layout.addWidget(self._list)
 
     def add_event(

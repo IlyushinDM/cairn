@@ -9,7 +9,7 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QDialog, QDialogButtonBox, QDoubleSpinBox, QFormLayout,
     QGroupBox, QHBoxLayout, QLabel, QMessageBox, QPushButton,
-    QScrollArea, QSpinBox, QTabWidget, QVBoxLayout, QWidget,
+    QScrollArea, QSizePolicy, QSpinBox, QTabWidget, QVBoxLayout, QWidget,
 )
 
 
@@ -75,11 +75,56 @@ class _BoundedDoubleSpinBox(QDoubleSpinBox):
 
 
 def _spin(value: float, lo: float, hi: float, decimals: int = 0,
-          step: float = 1) -> _BoundedDoubleSpinBox | _BoundedSpinBox:
-    """Фабрика SpinBox с ограничениями диапазона (п.8)."""
+          step: float = 1) -> QWidget:
+    """Возвращает QWidget с SpinBox и кнопками +/− (обходит баг Qt с up-button)."""
+    container = QWidget()
+    container.setFixedHeight(26)
+    row = QHBoxLayout(container)
+    row.setContentsMargins(0, 0, 0, 0)
+    row.setSpacing(1)
+
     if decimals > 0:
-        return _BoundedDoubleSpinBox(lo, hi, value, decimals, step)
-    return _BoundedSpinBox(int(lo), int(hi), int(value), int(step))
+        spin: QDoubleSpinBox | QSpinBox = _BoundedDoubleSpinBox(
+            lo, hi, value, decimals, step)
+    else:
+        spin = _BoundedSpinBox(int(lo), int(hi), int(value), int(step))
+
+    spin.setButtonSymbols(
+        __import__("PySide6.QtWidgets", fromlist=["QAbstractSpinBox"])
+        .QAbstractSpinBox.ButtonSymbols.NoButtons
+    )
+    spin.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+    row.addWidget(spin)
+
+    btn_dn = QPushButton("−")
+    btn_up = QPushButton("+")
+    for btn in (btn_dn, btn_up):
+        btn.setFixedSize(22, 24)
+        btn.setAutoRepeat(True)
+        btn.setAutoRepeatDelay(400)
+        btn.setAutoRepeatInterval(80)
+        btn.setStyleSheet("font-size: 14px; font-weight: 600; padding: 0;")
+
+    def _step_up():
+        if isinstance(spin, QDoubleSpinBox):
+            spin.setValue(min(spin.maximum(), spin.value() + spin.singleStep()))
+        else:
+            spin.setValue(min(spin.maximum(), spin.value() + spin.singleStep()))
+
+    def _step_dn():
+        if isinstance(spin, QDoubleSpinBox):
+            spin.setValue(max(spin.minimum(), spin.value() - spin.singleStep()))
+        else:
+            spin.setValue(max(spin.minimum(), spin.value() - spin.singleStep()))
+
+    btn_dn.clicked.connect(_step_dn)
+    btn_up.clicked.connect(_step_up)
+    row.addWidget(btn_dn)
+    row.addWidget(btn_up)
+
+    # Экспонируем spin как атрибут контейнера для доступа к value()
+    container._spin = spin  # type: ignore[attr-defined]
+    return container
 
 
 class SettingsDialog(QDialog):
@@ -298,8 +343,10 @@ class SettingsDialog(QDialog):
             try:
                 for p in parts:
                     val = getattr(val, p)
-                if hasattr(widget, 'setValue'):
-                    widget.setValue(val)
+                # widget может быть контейнером с _spin (кнопки +/-)
+                spin_w = getattr(widget, "_spin", widget)
+                if hasattr(spin_w, 'setValue'):
+                    spin_w.setValue(val)
             except AttributeError:
                 pass
 
@@ -317,7 +364,9 @@ class SettingsDialog(QDialog):
             if obj is None:
                 continue
             try:
-                val = widget.value()
+                # widget — контейнер с _spin, или сам SpinBox
+                spin_w = getattr(widget, "_spin", widget)
+                val = spin_w.value()
                 setattr(obj, attr, val)
             except Exception:
                 pass

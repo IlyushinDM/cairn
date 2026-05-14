@@ -5,8 +5,8 @@ from __future__ import annotations
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QFrame, QGroupBox, QHBoxLayout, QLabel,
-    QScrollArea, QSplitter, QTextEdit,
-    QVBoxLayout, QWidget,
+    QPushButton, QScrollArea, QSplitter, QTabWidget,
+    QTextEdit, QVBoxLayout, QWidget,
 )
 
 
@@ -28,7 +28,7 @@ class AxiomRow(QWidget):
         icon_lbl.setStyleSheet(f"color: {color}; font-size: 14px; font-weight: bold;")
 
         name_lbl = QLabel(name)
-        name_lbl.setStyleSheet("color: #d1d5e0; font-size: 12px;")
+        name_lbl.setObjectName("explanationLabel")
 
         layout.addWidget(icon_lbl)
         layout.addWidget(name_lbl)
@@ -52,10 +52,11 @@ class ExplanationTab(QWidget):
         ll.setContentsMargins(0, 0, 0, 0)
         ll.setSpacing(10)
 
-        # Граф цепочки
-        ll.addWidget(self._section_label("ЦЕПОЧКА ДОКАЗАТЕЛЬСТВ"))
-        self._chain_area = self._build_chain_area()
-        ll.addWidget(self._chain_area)
+        # Граф цепочки – интерактивный (ChainGraphWidget)
+        from cairn.gui.widgets.chain_graph_widget import ChainGraphWidget
+        self._chain_widget = ChainGraphWidget()
+        self._chain_widget.setMinimumHeight(200)
+        ll.addWidget(self._chain_widget)
 
         # Верификация (разделена на два блока)
         verif_splitter = QSplitter(Qt.Orientation.Horizontal)
@@ -67,7 +68,7 @@ class ExplanationTab(QWidget):
         ag_layout.setContentsMargins(8, 12, 8, 8)
 
         self.axiom_summary = QLabel("5 / 5 аксиом ✓")
-        self.axiom_summary.setStyleSheet("font-size: 13px; font-weight: 600; color: #3ecf8e; margin-bottom: 6px;")
+        self.axiom_summary.setStyleSheet("font-size: 13px; font-weight: 600; margin-bottom: 6px;")
         ag_layout.addWidget(self.axiom_summary)
 
         self.axiom_rows: list[AxiomRow] = []
@@ -88,7 +89,7 @@ class ExplanationTab(QWidget):
         alp_layout.setContentsMargins(8, 12, 8, 8)
 
         self.alp_summary = QLabel("5 / 5 правил ✓")
-        self.alp_summary.setStyleSheet("font-size: 13px; font-weight: 600; color: #3ecf8e; margin-bottom: 6px;")
+        self.alp_summary.setStyleSheet("font-size: 13px; font-weight: 600; margin-bottom: 6px;")
         alp_layout.addWidget(self.alp_summary)
 
         self.alp_rows: list[AxiomRow] = []
@@ -105,42 +106,36 @@ class ExplanationTab(QWidget):
         ll.addWidget(verif_splitter)
         splitter.addWidget(left)
 
-        # ── Правая: вкладки объяснения ─────────────────
-        right = QWidget()
-        rl = QVBoxLayout(right)
-        rl.setContentsMargins(0, 0, 0, 0)
-        rl.setSpacing(0)
+        # ── Правая: вкладки (Объяснение / Воздействие) ─────
+        self._right_tabs = QTabWidget()
 
-        from PySide6.QtWidgets import QTabWidget as _QTW
-        self._right_tabs = _QTW()
-        self._right_tabs.setDocumentMode(True)
-
-        tab1 = QWidget()
-        t1l  = QVBoxLayout(tab1)
-        t1l.setContentsMargins(0, 6, 0, 0)
+        # Вкладка 1: Объяснение
+        tab_explain = QWidget()
+        tel = QVBoxLayout(tab_explain)
+        tel.setContentsMargins(4, 4, 4, 4)
+        tel.setSpacing(6)
         self.explanation_text = QTextEdit()
         self.explanation_text.setReadOnly(True)
         self.explanation_text.setPlaceholderText(
             "Объяснение появится после завершения анализа...\n\n"
             "Запустите анализ: Панель инструментов → [Анализ]"
         )
-        t1l.addWidget(self.explanation_text)
-        self._right_tabs.addTab(tab1, "Объяснение")
+        tel.addWidget(self.explanation_text)
+        self._right_tabs.addTab(tab_explain, "Объяснение")
 
-        tab2 = QWidget()
-        t2l  = QVBoxLayout(tab2)
-        t2l.setContentsMargins(0, 6, 0, 0)
+        # Вкладка 2: Анализ воздействия
+        tab_counter = QWidget()
+        tcl = QVBoxLayout(tab_counter)
+        tcl.setContentsMargins(4, 4, 4, 4)
+        tcl.setSpacing(6)
+        tcl.addWidget(self._section_label("КОНТР-АБДУКТИВНАЯ ГИПОТЕЗА"))
         self.counter_text = QTextEdit()
         self.counter_text.setReadOnly(True)
-        self.counter_text.setPlaceholderText(
-            "Контрфактический анализ.\n"
-            "Нажмите 'Что если?' в разделе Результаты."
-        )
-        t2l.addWidget(self.counter_text)
-        self._right_tabs.addTab(tab2, "Анализ воздействия")
+        self.counter_text.setPlaceholderText("Альтернативная гипотеза...")
+        tcl.addWidget(self.counter_text)
+        self._right_tabs.addTab(tab_counter, "Анализ воздействия")
 
-        rl.addWidget(self._right_tabs)
-        splitter.addWidget(right)
+        splitter.addWidget(self._right_tabs)
         splitter.setSizes([550, 450])
         layout.addWidget(splitter)
 
@@ -149,22 +144,18 @@ class ExplanationTab(QWidget):
         lbl.setObjectName("sectionTitle")
         return lbl
 
-    def _build_chain_area(self) -> QWidget:
-        from cairn.gui.widgets.interactive_graph import InteractiveGraphWidget
-        import matplotlib
-        matplotlib.rcParams["font.family"] = "DejaVu Sans"
-        self._chain_igraph = InteractiveGraphWidget()
-        self._chain_igraph.setMinimumHeight(220)
-        return self._chain_igraph
-
     def show_chain(self, chain) -> None:
-        """Отображает цепочку доказательств."""
-        self._draw_chain_graph(chain)
+        """Отображает цепочку доказательств и генерирует текстовое объяснение."""
+        # Интерактивный граф
+        self._chain_widget.show_chain(chain)
+
         # Текстовое объяснение
-        from cairn.explanation import TemplateTextGenerator
-        gen = TemplateTextGenerator()
-        text = gen.generate(chain)
-        self.explanation_text.setPlainText(text)
+        try:
+            from cairn.explanation import TemplateTextGenerator
+            text = TemplateTextGenerator().generate(chain)
+            self.explanation_text.setPlainText(text)
+        except Exception as e:
+            self.explanation_text.setPlainText(f"Анализ завершён. Детали: {e}")
 
     def show_alp_result(self, result) -> None:
         """Обновляет строки ALP-верификатора."""
@@ -205,22 +196,3 @@ class ExplanationTab(QWidget):
             row_widget.deleteLater()
             parent_layout.insertWidget(idx, new_row)
             self.axiom_rows[i] = new_row
-
-    def _draw_chain_graph(self, chain) -> None:
-        if not hasattr(self, "_chain_igraph"):
-            return
-        nodes = []
-        node_map = {}
-        root_idx = None
-        for i, node in enumerate(chain.path_nodes):
-            nodes.append({"idx": node.node_idx, "name": node.node_name,
-                           "score": getattr(node, "causal_effect", 0.0) or 0.0})
-            node_map[node.node_idx] = node.node_name
-            if i == 0:
-                root_idx = node.node_idx
-        edges = []
-        for edge in chain.path_edges:
-            if edge.src in node_map and edge.dst in node_map:
-                edges.append({"src": edge.src, "dst": edge.dst,
-                               "type": getattr(edge, "edge_type", "call")})
-        self._chain_igraph.set_graph(nodes, edges, root_idx=root_idx)

@@ -1,4 +1,4 @@
-"""Вкладка «Обучение» — п.11.
+"""Вкладка «Обучение» – п.11.
 
 Изменения:
 - Убраны иконки ▶ и ⏹ у кнопок (только текст)
@@ -10,9 +10,9 @@ from __future__ import annotations
 
 from PySide6.QtCore import QThread, Qt, Signal, Slot
 from PySide6.QtWidgets import (
-    QDoubleSpinBox, QFormLayout, QFrame, QGroupBox,
+    QAbstractSpinBox, QDoubleSpinBox, QFormLayout, QFrame, QGroupBox,
     QHBoxLayout, QLabel, QProgressBar, QPushButton,
-    QSpinBox, QTableWidget, QTableWidgetItem,
+    QSizePolicy, QSpinBox, QTableWidget, QTableWidgetItem,
     QVBoxLayout, QWidget,
 )
 
@@ -92,9 +92,9 @@ class LossChart(QWidget):
         try:
             from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
             from matplotlib.figure import Figure
-            fig = Figure(figsize=(8, 3), facecolor="#161922")
+            fig = Figure(figsize=(8, 3), facecolor="none")
             self._ax = fig.add_subplot(111)
-            self._ax.set_facecolor("#161922")
+            self._ax.set_facecolor("none")
             self._ax.tick_params(colors="#6c7a9c")
             self._ax.spines[:].set_color("#2d3348")
             self._ax.set_xlabel("Эпоха",  color="#6c7a9c", fontsize=9)
@@ -122,7 +122,7 @@ class LossChart(QWidget):
         if self._ax is None:
             return
         self._ax.clear()
-        self._ax.set_facecolor("#161922")
+        self._ax.set_facecolor("none")
         colors = {"pretrain": "#4a9eff", "main": "#3ecf8e", "finetune": "#f6a623"}
         labels = {"pretrain": "Претрейн", "main": "Основное", "finetune": "Файнтюн"}
         for key, vals in self._history.items():
@@ -194,23 +194,69 @@ class TrainingSettingsPanel(QGroupBox):
     # ── Вспомогательные ──────────────────────────────────────────────────
 
     @staticmethod
-    def _spin(val: int, lo: int, hi: int) -> QSpinBox:
+    def _make_spin_widget(spin: QSpinBox | QDoubleSpinBox) -> QWidget:
+        """Оборачивает SpinBox в контейнер с кнопками + и −."""
+        spin.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.NoButtons)
+        spin.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        container = QWidget()
+        container.setFixedHeight(26)
+        row = QHBoxLayout(container)
+        row.setContentsMargins(0, 0, 0, 0)
+        row.setSpacing(1)
+        row.addWidget(spin)
+
+        btn_dn = QPushButton("−")
+        btn_up = QPushButton("+")
+        for btn in (btn_dn, btn_up):
+            btn.setFixedSize(22, 24)
+            btn.setAutoRepeat(True)
+            btn.setAutoRepeatDelay(400)
+            btn.setAutoRepeatInterval(80)
+            btn.setStyleSheet("font-size: 14px; font-weight: 600; padding: 0;")
+
+        btn_dn.clicked.connect(
+            lambda: spin.setValue(max(spin.minimum(),
+                                      spin.value() - spin.singleStep())))
+        btn_up.clicked.connect(
+            lambda: spin.setValue(min(spin.maximum(),
+                                      spin.value() + spin.singleStep())))
+        row.addWidget(btn_dn)
+        row.addWidget(btn_up)
+        container._spin = spin   # type: ignore[attr-defined]
+        return container
+
+    @staticmethod
+    def _spin(val: int, lo: int, hi: int) -> QWidget:
+        """SpinBox с кнопками +/− и ограничением диапазона."""
         w = QSpinBox()
         w.setRange(lo, hi)
         w.setValue(val)
-        w.setFixedHeight(26)
-        return w
+        w.setFixedHeight(24)
+        # wheelEvent ограничен диапазоном
+        original_wheel = w.wheelEvent
+        def bounded_wheel(event, _w=w):
+            delta = _w.singleStep() if event.angleDelta().y() > 0 else -_w.singleStep()
+            _w.setValue(max(_w.minimum(), min(_w.maximum(), _w.value() + delta)))
+            event.accept()
+        w.wheelEvent = bounded_wheel  # type: ignore[method-assign]
+        return TrainingSettingsPanel._make_spin_widget(w)
 
     @staticmethod
     def _dspin(val: float, lo: float, hi: float,
-               decimals: int, step: float) -> QDoubleSpinBox:
+               decimals: int, step: float) -> QWidget:
+        """DoubleSpinBox с кнопками +/− и ограничением диапазона."""
         w = QDoubleSpinBox()
         w.setRange(lo, hi)
         w.setDecimals(decimals)
         w.setSingleStep(step)
         w.setValue(val)
-        w.setFixedHeight(26)
-        return w
+        w.setFixedHeight(24)
+        def bounded_wheel(event, _w=w):
+            delta = _w.singleStep() if event.angleDelta().y() > 0 else -_w.singleStep()
+            _w.setValue(max(_w.minimum(), min(_w.maximum(), _w.value() + delta)))
+            event.accept()
+        w.wheelEvent = bounded_wheel  # type: ignore[method-assign]
+        return TrainingSettingsPanel._make_spin_widget(w)
 
     def load_from_config(self, config) -> None:
         """Загружает значения из объекта конфига и запоминает как defaults."""
@@ -228,33 +274,51 @@ class TrainingSettingsPanel(QGroupBox):
         self._defaults = vals
         self._apply(vals)
 
+    @staticmethod
+    def _sv(container: QWidget, value) -> None:
+        """Устанавливает значение в контейнер с _spin."""
+        spin = getattr(container, "_spin", container)
+        spin.setValue(value)
+
     def _apply(self, vals: dict) -> None:
-        self._pretrain_epochs.setValue(int(vals.get("pretrain", 50)))
-        self._main_epochs.setValue(int(vals.get("main",     100)))
-        self._finetune_epochs.setValue(int(vals.get("finetune", 30)))
-        self._lr.setValue(float(vals.get("lr",      1e-3)))
-        self._batch_size.setValue(int(vals.get("batch",   32)))
-        self._patience.setValue(int(vals.get("patience", 10)))
+        self._sv(self._pretrain_epochs, int(vals.get("pretrain", 50)))
+        self._sv(self._main_epochs,     int(vals.get("main",     100)))
+        self._sv(self._finetune_epochs, int(vals.get("finetune", 30)))
+        self._sv(self._lr,              float(vals.get("lr",      1e-3)))
+        self._sv(self._batch_size,      int(vals.get("batch",   32)))
+        self._sv(self._patience,        int(vals.get("patience", 10)))
+
+    # Абсолютные дефолты – используются если config не загружен
+    _HARDCODED_DEFAULTS = {
+        "pretrain": 50, "main": 100, "finetune": 30,
+        "lr": 1e-3, "batch": 32, "patience": 10,
+    }
 
     def _reset(self) -> None:
-        """Сбрасывает настройки к значениям из config."""
-        if self._defaults:
-            self._apply(self._defaults)
+        """Сбрасывает настройки к значениям по умолчанию."""
+        # Используем defaults из config если есть, иначе встроенные
+        vals = self._defaults if self._defaults else self._HARDCODED_DEFAULTS
+        self._apply(vals)
+
+    @staticmethod
+    def _gv(container: QWidget):
+        """Читает значение из контейнера с _spin."""
+        return getattr(container, "_spin", container).value()
 
     def get_overrides(self) -> dict:
         """Возвращает текущие значения для передачи в trainer."""
         return {
-            "pretrain_epochs":  self._pretrain_epochs.value(),
-            "main_epochs":      self._main_epochs.value(),
-            "finetune_epochs":  self._finetune_epochs.value(),
-            "lr":               self._lr.value(),
-            "batch_size":       self._batch_size.value(),
-            "patience":         self._patience.value(),
+            "pretrain_epochs":  self._gv(self._pretrain_epochs),
+            "main_epochs":      self._gv(self._main_epochs),
+            "finetune_epochs":  self._gv(self._finetune_epochs),
+            "lr":               self._gv(self._lr),
+            "batch_size":       self._gv(self._batch_size),
+            "patience":         self._gv(self._patience),
         }
 
 
 class TrainingTab(QWidget):
-    """Вкладка «Обучение» — п.11."""
+    """Вкладка «Обучение» – п.11."""
 
     start_requested = Signal()
     stop_requested  = Signal()
@@ -279,7 +343,7 @@ class TrainingTab(QWidget):
         self.btn_stop.setEnabled(False)
         self.btn_stop.clicked.connect(self.stop_requested)
 
-        self.stage_label = QLabel("Этап: —")
+        self.stage_label = QLabel("Этап: –")
         self.stage_label.setStyleSheet("color: #6c7a9c; font-size: 12px;")
 
         ctrl.addWidget(self.btn_start)
@@ -305,11 +369,11 @@ class TrainingTab(QWidget):
         from PySide6.QtWidgets import QSplitter
         h_split = QSplitter(Qt.Orientation.Horizontal)
 
-        # Левая часть — настройки обучения (п.11)
+        # Левая часть – настройки обучения (п.11)
         self.settings_panel = TrainingSettingsPanel()
         h_split.addWidget(self.settings_panel)
 
-        # Правая часть — график + таблица в вертикальном сплиттере (п.5)
+        # Правая часть – график + таблица в вертикальном сплиттере (п.5)
         right_vsplit = QSplitter(Qt.Orientation.Vertical)
 
         chart_w = QWidget()
@@ -339,12 +403,12 @@ class TrainingTab(QWidget):
         self.loss_table.setAlternatingRowColors(True)
 
         components = [
-            ("L_ПЭ",  "—", "Ранжирование причинных эффектов"),
-            ("L_УМ",  "—", "Условная модель нормального состояния"),
-            ("L_ВАК", "—", "Вариационный автокодировщик"),
-            ("L_нез", "—", "Ограничение независимости"),
-            ("L_КР",  "—", "Контрастное разделение"),
-            ("L_реб", "—", "Штраф за необоснованные рёбра"),
+            ("L_ПЭ",  "–", "Ранжирование причинных эффектов"),
+            ("L_УМ",  "–", "Условная модель нормального состояния"),
+            ("L_ВАК", "–", "Вариационный автокодировщик"),
+            ("L_нез", "–", "Ограничение независимости"),
+            ("L_КР",  "–", "Контрастное разделение"),
+            ("L_реб", "–", "Штраф за необоснованные рёбра"),
         ]
         for row, (name, val, desc) in enumerate(components):
             self.loss_table.setItem(row, 0, QTableWidgetItem(name))
@@ -370,7 +434,7 @@ class TrainingTab(QWidget):
         self.epoch_label.setText(f"Эпоха {epoch} / {total}")
         pct = int(epoch / max(total, 1) * 100)
         self.progress_bar.setValue(pct)
-        self.stage_label.setText(f"Этап {stage}/3 — {stage_name}")
+        self.stage_label.setText(f"Этап {stage}/3 – {stage_name}")
 
     @Slot(dict)
     def on_loss_updated(self, losses: dict):

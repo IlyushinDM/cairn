@@ -36,18 +36,48 @@ from PySide6.QtWidgets import (
 
 # ── Цветовая схема ─────────────────────────────────────────────────────────────
 COLORS = {
-    "root":      QColor("#ff4444"),   # красный – первопричина
-    "high":      QColor("#ff8c00"),   # оранжевый – высокий ПЭ
-    "medium":    QColor("#f0c040"),   # жёлтый – средний ПЭ
-    "low":       QColor("#4a9eff"),   # синий – низкий ПЭ
-    "normal":    QColor("#2d3d5a"),   # тёмно-синий – нормальный
-    "selected":  QColor("#ffffff"),   # белый – выделен
-    "edge_call": QColor("#3ecf8e"),   # зелёный – вызов
-    "edge_colo": QColor("#f6a623"),   # оранжевый – совместное размещение
+    "root":      QColor("#ff4444"),   # красный — первопричина
+    "high":      QColor("#ff8c00"),   # оранжевый — высокий ПЭ
+    "medium":    QColor("#f0c040"),   # жёлтый — средний ПЭ
+    "low":       QColor("#4a9eff"),   # синий — низкий ПЭ
+    "normal":    QColor("#4a6fa5"),   # синий — нормальный (читается на обеих темах)
+    "selected":  QColor("#ffffff"),   # белый — выделен
+    "edge_call": QColor("#3ecf8e"),   # зелёный — вызов
+    "edge_colo": QColor("#f6a623"),   # оранжевый — совместное размещение
     "bg":        QColor("#161922"),   # фон
     "text_light":QColor("#ffffff"),
     "text_dark": QColor("#111111"),
 }
+
+def _current_app_theme() -> str:
+    """Возвращает текущую тему приложения через главное окно."""
+    from PySide6.QtWidgets import QApplication
+    app = QApplication.instance()
+    if app:
+        for w in app.topLevelWidgets():
+            if hasattr(w, "_current_theme"):
+                return w._current_theme
+    return "dark"
+
+
+def _theme_bg() -> QColor:
+    return QColor("#f2f2f2") if _current_app_theme() == "light" else QColor("#161922")
+
+
+def _is_light_theme() -> bool:
+    """Определяет тему: сначала через _current_theme, fallback через palette."""
+    theme = _current_app_theme()
+    if theme != "dark":
+        return True
+    # Fallback: проверяем palette напрямую
+    from PySide6.QtWidgets import QApplication
+    app = QApplication.instance()
+    if app:
+        bg = app.palette().color(app.palette().ColorRole.Window)
+        if bg.lightness() > 180:   # явно светлый фон
+            return True
+    return False
+
 
 NODE_RADIUS = 28
 
@@ -79,7 +109,9 @@ class GraphNode(QGraphicsEllipseItem):
 
         # Подпись
         self._label = QGraphicsTextItem(name, self)
-        self._label.setDefaultTextColor(COLORS["text_light"])
+        # Цвет текста зависит от темы
+        txt_color = COLORS["text_dark"] if _is_light_theme() else COLORS["text_light"]
+        self._label.setDefaultTextColor(txt_color)
         font = QFont()
         font.setPointSize(8)
         font.setWeight(QFont.Weight.Bold)
@@ -89,6 +121,25 @@ class GraphNode(QGraphicsEllipseItem):
     def _center_label(self) -> None:
         br = self._label.boundingRect()
         self._label.setPos(-br.width()/2, -br.height()/2)
+
+    def refresh_label_color(self) -> None:
+        """Обновляет цвет подписи — использует palette как основной источник."""
+        from PySide6.QtWidgets import QApplication
+        from PySide6.QtGui import QColor as _QColor
+        app = QApplication.instance()
+        is_light = False
+        if app:
+            # Проверяем оба источника
+            bg = app.palette().color(app.palette().ColorRole.Window)
+            is_light = bg.lightness() > 160
+            if not is_light:
+                # Доп. проверка через _current_theme
+                for w in app.topLevelWidgets():
+                    if getattr(w, "_current_theme", "dark") == "light":
+                        is_light = True
+                        break
+        txt_color = COLORS["text_dark"] if is_light else COLORS["text_light"]
+        self._label.setDefaultTextColor(txt_color)
 
     def _apply_color(self, color: QColor) -> None:
         grad = QRadialGradient(0, -NODE_RADIUS*0.3, NODE_RADIUS*1.2)
@@ -174,7 +225,16 @@ class GraphScene(QGraphicsScene):
     def __init__(self, graph_widget, parent=None):
         super().__init__(parent)
         self._graph_widget = graph_widget
-        self.setBackgroundBrush(QBrush(COLORS["bg"]))
+        self.setBackgroundBrush(QBrush(_theme_bg()))
+
+    def drawBackground(self, painter, rect) -> None:
+        """Перерисовываем фон с актуальным цветом темы."""
+        self.setBackgroundBrush(QBrush(_theme_bg()))
+        super().drawBackground(painter, rect)
+        # Обновляем цвет подписей при каждом рендере (учитывает смену темы)
+        if hasattr(self, '_graph_widget') and hasattr(self._graph_widget, '_nodes'):
+            for node in self._graph_widget._nodes.values():
+                node.refresh_label_color()
 
 
 class InteractiveGraphView(QGraphicsView):
@@ -184,12 +244,17 @@ class InteractiveGraphView(QGraphicsView):
         super().__init__(scene, parent)
         self.setRenderHint(QPainter.RenderHint.Antialiasing)
         self.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
+
+    def drawBackground(self, painter, rect) -> None:
+        """Фон обновляется при каждом рендере — учитывает смену темы."""
+        self.setBackgroundBrush(QBrush(_theme_bg()))
+        super().drawBackground(painter, rect)
         self.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
         self.setTransformationAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
         self.setResizeAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.setBackgroundBrush(QBrush(COLORS["bg"]))
+        self.setBackgroundBrush(QBrush(_theme_bg()))
         self._zoom = 1.0
 
     def wheelEvent(self, event: QWheelEvent) -> None:
@@ -242,7 +307,7 @@ class InteractiveGraphWidget(QWidget):
             "<span style='color:#ff8c00'>●</span> высокий &nbsp;"
             "<span style='color:#f0c040'>●</span> средний &nbsp;"
             "<span style='color:#4a9eff'>●</span> низкий &nbsp;"
-            "– вызов &nbsp;"
+            "— вызов &nbsp;"
             "<span style='color:#f6a623'>- -</span> совм.размещение"
         )
         legend.setStyleSheet("color:#6c7a9c; font-size:9px;")
@@ -269,6 +334,7 @@ class InteractiveGraphWidget(QWidget):
 
     def set_graph(self, nodes: list[dict], edges: list[dict],
                   root_idx: Optional[int] = None) -> None:
+        self._root_idx = root_idx
         """Строит граф из данных.
 
         nodes: [{"idx": int, "name": str, "score": float}, ...]
@@ -331,7 +397,12 @@ class InteractiveGraphWidget(QWidget):
                 self._scene.addItem(edge)
                 self._edges.append(edge)
 
-        self._view.reset_zoom()
+        # Авто-подгонка (с задержкой — ждём рендера)
+        from PySide6.QtCore import QTimer
+        QTimer.singleShot(50, self._fit_view)
+        # Обновляем цвет подписей дважды: сразу и после fit
+        self._refresh_labels()
+        QTimer.singleShot(150, self._refresh_labels)
 
     def _layout(self, nodes: list[dict], edges: list[dict]) -> dict[int, tuple]:
         """Простой круговой layout с попыткой spring-layout через networkx."""
@@ -372,24 +443,49 @@ class InteractiveGraphWidget(QWidget):
             "Показать подписи" if not self._labels_visible else "Скрыть подписи"
         )
 
+    def _refresh_labels(self) -> None:
+        """Обновляет цвет подписей всех узлов."""
+        for node in self._nodes.values():
+            node.refresh_label_color()
+        self._scene.update()
+
     def _fit_view(self) -> None:
+        """Подгоняет граф по размеру вида."""
         self._view.reset_zoom()
+        self._view.fitInView(
+            self._scene.itemsBoundingRect().adjusted(-20, -20, 20, 20),
+            Qt.AspectRatioMode.KeepAspectRatio
+        )
 
     def _open_in_window(self) -> None:
-        """Открывает граф в отдельном окне."""
+        """Открывает полноценный граф в отдельном окне (с кнопками и легендой)."""
+        if not self._nodes:
+            return
         dlg = QDialog(self)
         dlg.setWindowTitle("Граф причинного распространения")
-        dlg.resize(900, 650)
-        dlg_layout = QVBoxLayout(dlg)
-        dlg_layout.setContentsMargins(8, 8, 8, 8)
+        dlg.resize(950, 680)
+        layout = QVBoxLayout(dlg)
+        layout.setContentsMargins(4, 4, 4, 4)
 
-        # Создаём второй вид на ту же сцену
-        view2 = InteractiveGraphView(self._scene)
-        view2.fitInView(self._scene.sceneRect().adjusted(-20,-20,20,20),
-                        Qt.AspectRatioMode.KeepAspectRatio)
+        # Новый полноценный виджет — копируем данные
+        sub = InteractiveGraphWidget()
+        # Передаём те же данные что в основном виджете
+        nodes_data = [
+            {"idx": idx, "name": node.node_name, "score": node.score}
+            for idx, node in self._nodes.items()
+        ]
+        edges_data = [
+            {"src": edge.src.node_idx,
+             "dst": edge.dst.node_idx,
+             "type": "call"}
+            for edge in self._edges
+        ]
+        sub.set_graph(nodes_data, edges_data, self._root_idx)
+        layout.addWidget(sub)
 
-        hint = QLabel("Колесо мыши – zoom | Перетаскивание – pan | Клик по узлу – выделить")
-        hint.setStyleSheet("color:#6c7a9c; font-size:10px;")
-        dlg_layout.addWidget(hint)
-        dlg_layout.addWidget(view2)
-        dlg.exec()
+        dlg.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+        dlg.setModal(False)
+        dlg.show()
+        dlg.raise_()
+        from PySide6.QtCore import QTimer
+        QTimer.singleShot(100, sub._fit_view)

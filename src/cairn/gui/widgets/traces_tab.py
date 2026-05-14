@@ -4,7 +4,7 @@ from __future__ import annotations
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
-    QAbstractItemView, QHBoxLayout, QHeaderView, QLabel,
+    QAbstractItemView, QPushButton, QHBoxLayout, QHeaderView, QLabel,
     QSplitter, QTableWidget, QTableWidgetItem,
     QVBoxLayout, QWidget,
 )
@@ -36,14 +36,22 @@ class TracesTab(QWidget):
         layout.addLayout(hdr)
 
         # Таблица latency
+        thdr = QHBoxLayout()
         lbl = QLabel("ЗАДЕРЖКА ПО СЕРВИСАМ (p50, мс)")
         lbl.setObjectName("sectionTitle")
-        layout.addWidget(lbl)
+        thdr.addWidget(lbl)
+        thdr.addStretch()
+        btn_tpop = QPushButton("⬡ В окне")
+        btn_tpop.setFixedHeight(22)
+        btn_tpop.setStyleSheet("font-size: 11px; padding: 0 6px;")
+        btn_tpop.clicked.connect(lambda: self._open_table_in_window())
+        thdr.addWidget(btn_tpop)
+        layout.addLayout(thdr)
 
         self._table = QTableWidget(0, 5)
         self._table.setHorizontalHeaderLabels([
             "Сервис", "p50 (мс)", "Запросов",
-            "Аномалия", "Endpoints",
+            "Аномалия", "Маршруты",
         ])
         hh = self._table.horizontalHeader()
         hh.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
@@ -66,6 +74,35 @@ class TracesTab(QWidget):
         hint.setStyleSheet("color: #3f3f46; font-size: 10px; padding: 4px;")
         hint.setWordWrap(True)
         layout.addWidget(hint)
+
+    def _open_table_in_window(self) -> None:
+        """Открывает таблицу трассировок в отдельном окне."""
+        from PySide6.QtWidgets import (
+            QDialog, QVBoxLayout, QTableWidget, QTableWidgetItem)
+        dlg = QDialog(self)
+        dlg.setWindowTitle("Трассировки — задержка по сервисам")
+        dlg.resize(750, 400)
+        _lyt = QVBoxLayout(dlg)
+        tbl = QTableWidget(self._table.rowCount(), self._table.columnCount())
+        headers = [self._table.horizontalHeaderItem(c).text()
+                   if self._table.horizontalHeaderItem(c) else ""
+                   for c in range(self._table.columnCount())]
+        tbl.setHorizontalHeaderLabels(headers)
+        tbl.verticalHeader().setVisible(False)
+        tbl.horizontalHeader().setStretchLastSection(True)
+        tbl.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        tbl.setAlternatingRowColors(True)
+        for r in range(self._table.rowCount()):
+            for c in range(self._table.columnCount()):
+                it = self._table.item(r, c)
+                if it:
+                    tbl.setItem(r, c, QTableWidgetItem(it.text()))
+        _lyt.addWidget(tbl)
+        # show() вместо exec() — не блокирует основное окно
+        dlg.setAttribute(__import__("PySide6.QtCore", fromlist=["Qt"]).Qt.WidgetAttribute.WA_DeleteOnClose)
+        dlg.setModal(False)
+        dlg.show()
+        dlg.raise_()
 
     def load_trace_data(self, trace_data) -> None:
         """Отображает данные от LatencyTraceConnector."""
@@ -134,9 +171,9 @@ class TracesTab(QWidget):
                 ep_text += f" (+{len(sl.endpoints)-3})"
             self._table.setItem(row, 4, _ro(ep_text))
 
-            # Подсветка строки
+            # Подсветка строки — только foreground, без hardcoded фона
             if sl.is_slow:
                 for c in range(5):
                     it = self._table.item(row, c)
                     if it:
-                        it.setBackground(QColor("#3d1a1a"))
+                        it.setForeground(QColor("#f44747"))
