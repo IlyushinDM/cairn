@@ -64,6 +64,8 @@ pip install -e .
 ```bash
 # Графический интерфейс
 python -m cairn
+# или
+cairn
 
 # Или через скрипт
 python scripts/run_gui.py

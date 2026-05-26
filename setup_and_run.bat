@@ -167,14 +167,24 @@ echo.
 :: Обновляем pip
 "%VENV%\Scripts\python.exe" -m pip install --upgrade pip --quiet >>"%LOG%" 2>&1
 
-:: Устанавливаем проект в режиме редактирования
-"%VENV%\Scripts\python.exe" -m pip install -e "%ROOT%." --quiet >>"%LOG%" 2>&1
+:: Устанавливаем зависимости из requirements.txt
+"%VENV%\Scripts\python.exe" -m pip install -r "%ROOT%requirements.txt" --quiet >>"%LOG%" 2>&1
 if !errorlevel! NEQ 0 (
-    echo  [ОШИБКА] Установка зависимостей завершилась с ошибкой.
+    echo  [ОШИБКА] Не удалось установить зависимости из requirements.txt.
     echo  Подробности: %LOG%
     pause
     exit /b 1
 )
+
+:: Устанавливаем сам пакет (без повторной установки зависимостей)
+"%VENV%\Scripts\python.exe" -m pip install -e "%ROOT%." --no-deps --quiet >>"%LOG%" 2>&1
+if !errorlevel! NEQ 0 (
+    echo  [ОШИБКА] Не удалось установить пакет CAIRN.
+    echo  Подробности: %LOG%
+    pause
+    exit /b 1
+)
+
 echo     Зависимости установлены успешно.
 
 :: ── Шаг 4: Запуск CAIRN ─────────────────────────────────────
