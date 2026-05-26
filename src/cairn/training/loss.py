@@ -8,7 +8,6 @@ L = λ₁·L_ПЭ + λ₂·L_УМ + λ₃·L_ВАК + λ₄·L_нез + λ₅·L
 
 from __future__ import annotations
 
-import math
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 

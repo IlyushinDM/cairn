@@ -1,37 +1,36 @@
-# CAIRN – Causal AI Root cause Identification for Networks
+# CAIRN – Causal AI Root-cause Navigator
 
-> Система автоматической локализации первопричин сбоев в микросервисных приложениях.  
-> Объединяет причинно-следственный вывод, гиперграфовые нейронные сети и интерпретируемые объяснения.
+> Интеллектуальная система поиска первопричин сбоев в микросервисных приложениях на основе причинно-следственного вывода и интерпретируемых нейронных сетей.
 
----
-
-## Содержание
-
-- [Описание](#описание)
-- [Быстрый старт](#быстрый-старт)
-- [Подключение Online Boutique](#подключение-online-boutique)
-- [Архитектура](#архитектура)
-- [Метрики качества](#метрики-качества)
-- [Структура проекта](#структура-проекта)
-- [Разработка и тесты](#разработка-и-тесты)
+Дипломная работа, СПбГУТ, 2026.
 
 ---
 
-## Описание
+## Ключевые возможности
 
-CAIRN решает задачу **Root Cause Analysis (RCA)** – автоматического определения сервиса, который стал причиной деградации в распределённой системе. В отличие от традиционных подходов, система:
+- **Автоматический анализ первопричин** – ранжирование микросервисов по вероятности быть источником сбоя
+- **Причинно-следственный вывод** – гиперграфовая модель распространения отказов (CAIRN-GMM)
+- **Мультимодальные данные** – метрики, логи и трассировки обрабатываются совместно
+- **Граф причинного распространения** – интерактивная визуализация каскада отказов
+- **Цепочка доказательств** – объяснение каждого вывода на естественном языке
+- **Ablation Study** – сравнение режимов работы (с/без верификатора графа, CF-модуля)
+- **Светлая и тёмная темы** – полностью настраиваемый интерфейс
 
-- использует **причинно-следственный вывод** (Conditional GMM + VGAE) вместо корреляционного анализа;
-- строит **гиперграф** микросервисов с учётом топологии вызовов;
-- предоставляет **интерпретируемые объяснения** с доказательной цепочкой и контрфактическим анализом воздействия;
-- работает в **реактивном и проактивном** режимах – обнаруживает аномалии автоматически.
+---
 
-### Результаты на Online Boutique (Google Microservices Demo)
+## Скриншоты
 
-| Сценарий | Инжектировано | Ранг CAIRN | Score |
-|---|---|---|---|
-| CPU stress | `redis-cart` | **#1** | 2.418 |
-| Service pause | `cartservice` | **#1** | 10.675 |
+| Раздел Данные | Раздел Результаты |
+|:---:|:---:|
+| ![Данные](docs/screenshots/01_data_tab.png) | ![Результаты](docs/screenshots/04_results_tab.png) |
+
+| Граф причинного распространения | Цепочка доказательств |
+|:---:|:---:|
+| ![Граф](docs/screenshots/04_results_tab.png) | ![Объяснение](docs/screenshots/05_explanation_tab.png) |
+
+| Ablation Study | Светлая тема |
+|:---:|:---:|
+| ![Ablation](docs/screenshots/06_ablation.png) | ![Светлая тема](docs/screenshots/07_light_theme.png) |
 
 ---
 
@@ -39,257 +38,140 @@ CAIRN решает задачу **Root Cause Analysis (RCA)** – автомат
 
 ### Требования
 
-- Python 3.11+
-- Docker Desktop (для live-режима)
-- 4 GB RAM
+- Python 3.10+
+- CUDA-совместимый GPU (опционально, для обучения)
+- Windows 10/11, Linux, macOS
 
 ### Установка
 
 ```bash
-git clone https://github.com/<your-org>/cairn-v2.git
-cd cairn-v2
+# Клонировать репозиторий
+git clone https://github.com/IlyushinDM/cairn.git
+cd cairn
 
+# Создать виртуальное окружение
 python -m venv .venv
-# Windows:
-.venv\Scripts\activate
-# Linux/macOS:
-source .venv/bin/activate
 
-pip install -r requirements.txt
+# Активировать (Windows)
+.venv\Scripts\activate
+
+# Установить зависимости
 pip install -e .
 ```
 
-### Демо-режим (без Docker)
+### Запуск
 
 ```bash
+# Графический интерфейс
+python -m cairn
+
+# Или через скрипт
 python scripts/run_gui.py
-```
 
-В открывшемся окне выберите **Файл → Демо-режим** и запустите любой из 5 сценариев. Анализ займёт несколько секунд.
+# Со светлой темой
+python -m cairn --theme light
 
-### Оценка качества на демо-данных
-
-```bash
-# Основные метрики
-python scripts/evaluate.py \
-  --checkpoint data/sample/demo_model.pt \
-  --data-dir   data/sample/scenario_5
-
-# С ablation study и сравнением baseline
-python scripts/evaluate.py \
-  --checkpoint data/sample/demo_model.pt \
-  --data-dir   data/sample/scenario_5 \
-  --ablation --baseline
+# Windows: двойной клик по CAIRN.vbs (без консоли)
 ```
 
 ---
 
-## Подключение Online Boutique
+## Демо-сценарии
 
-### 1. Запустить стек
+CAIRN поставляется с 5 демонстрационными сценариями на основе датасета **Online Boutique** (Google):
 
-```bash
-docker compose -f docker/docker-compose.yml up -d
-```
+| Сценарий | Первопричина | Тип сбоя |
+|---|---|---|
+| 1 | `order-service` | CPU перегрузка |
+| 2 | `payment-service` | Утечка памяти |
+| 3 | `database` | Деградация latency |
+| 4 | `cache-service` | Сетевой раздел |
+| 5 | `frontend` | Каскадный отказ |
 
-Сервисы будут доступны:
-- Boutique UI: http://localhost:8081
-- Prometheus:  http://localhost:9090
-- cAdvisor:    http://localhost:8080
-
-### 2. Подключить в GUI
-
-1. Запустить `python scripts/run_gui.py`
-2. Нажать иконку **Connect** на боковой панели
-3. Выбрать `Online Boutique` → **Проверить** → **Подключить**
-4. Подождать ~5 минут для установки baseline (статусбар покажет прогресс)
-
-### 3. Инъекция сбоя
-
-```bash
-# CPU stress в redis (в отдельном терминале)
-python scripts/inject_fault.py \
-  --type cpu --target redis-cart \
-  --duration 60 --warmup 30 --live
-```
-
-CAIRN обнаружит аномалию автоматически и переключится на вкладку **Результаты**.
+Для запуска: кнопка **«Загрузить данные»** → **«Демо-сценарий»** → выбрать сценарий.
 
 ---
 
 ## Архитектура
 
 ```
-Входные данные
-  ├── Метрики (docker stats / Prometheus)
-  ├── Журналы контейнеров (docker logs)
-  └── Latency-трассировки (Locust loadgenerator)
+Метрики + Логи + Трассировки
          │
-         ▼
-  ┌─────────────────────────────────────────┐
-  │           Perception Layer              │
-  │  DualBranchMetricEncoder                │
-  │  ├── SSM Branch (временные зависимости) │
-  │  └── Breakpoint Branch (смена режима)   │
-  │  LogEncoder · TraceEncoder              │
-  │  StateBuilder → H (state), C (context)  │
-  └──────────────────┬──────────────────────┘
-                     │
-         ▼
-  ┌─────────────────────────────────────────┐
-  │           Reasoning Layer               │
-  │  ConditionalGMM  → NLL (аномальность)  │
-  │  ConfoundedVGAE  → скрытые факторы     │
-  │  CounterfactualModule → вмешательство  │
-  │  CascadeFunnel   → ранжирование        │
-  │  GraphVerifier   → топол. корректировка│
-  └──────────────────┬──────────────────────┘
-                     │
-         ▼
-  ┌─────────────────────────────────────────┐
-  │           Explanation Layer             │
-  │  EvidenceChainBuilder → цепочка         │
-  │  ALPVerifier → логическая верификация  │
-  │  TemplateTextGenerator → объяснение    │
-  └─────────────────────────────────────────┘
+    StateBuilder          # Энкодер мультимодального состояния
+         │
+   ConditionalGMM         # Оценка аномальности (NLL)
+         │
+   CascadeFunnel          # Ранжирование по причинно-следственному эффекту
+         │
+  GraphVerifier           # Верификация по топологии сервисного графа
+         │
+  EvidenceChain           # Построение цепочки доказательств
+         │
+  ALPVerifier             # Логическая верификация (ALP)
+         │
+ TextGenerator            # Текстовое объяснение на русском языке
 ```
-
-### Ключевые компоненты
-
-| Компонент | Назначение |
-|---|---|
-| `StateBuilder` | Многомодальный энкодер: метрики + логи + трассировки → state вектор |
-| `ConditionalGMM` | Моделирует нормальное поведение; NLL = степень аномальности |
-| `ConfoundedVGAE` | Выявляет скрытые факторы и причинно-следственные связи |
-| `CounterfactualModule` | «Что было бы, если бы сервис работал нормально?» |
-| `CascadeFunnel` | Трёхуровневое ранжирование кандидатов |
-| `GraphVerifier` | Топологическая корректировка: учитывает каскадные эффекты |
-| `AnomalyMonitor` | Фоновый мониторинг с адаптивным порогом (baseline + 2σ) |
-
----
-
-## Метрики качества
-
-Оценка на `scenario_5` (unseen test set, 4 аномальных инцидента):
-
-| Метрика | CAIRN | NLL-only | Random |
-|---|---|---|---|
-| **AC@1** | **1.000** | 1.000 | 0.250 |
-| **AC@3** | **1.000** | 1.000 | 0.500 |
-| **NDCG@3** | **1.000** | 1.000 | 0.565 |
-| **MRR** | **1.000** | 1.000 | 0.550 |
-
-Вклад `graph_verifier` на реальных данных (Online Boutique):
-
-| Конфигурация | redis ранг | Score |
-|---|---|---|
-| CAIRN (полная) | **#1** | 2.418 |
-| Без `graph_verifier` | #3 | 1.082 |
-
-> Топологическая корректировка повышает точность ранжирования на +78% на реальных данных.
 
 ---
 
 ## Структура проекта
 
 ```
-cairn-v2/
+cairn/
 ├── src/cairn/
-│   ├── connectors/          # Источники данных
-│   │   ├── live_connector.py       # Live-система (Docker/Prometheus)
-│   │   ├── csv_file.py             # CSV/YAML файлы
-│   │   ├── docker_log_connector.py # Журналы контейнеров
-│   │   └── latency_trace_connector.py # Latency из loadgenerator
-│   ├── perception/          # Слой восприятия
-│   │   ├── state_builder.py        # Многомодальный энкодер
-│   │   ├── metric_encoder.py       # SSM + Breakpoint ветви
-│   │   └── hypergraph.py           # Построение гиперграфа
-│   ├── reasoning/           # Слой рассуждений
-│   │   ├── gmm.py                  # Conditional GMM
-│   │   ├── vgae.py                 # Confounded VGAE
-│   │   ├── counterfactual.py       # CF-вмешательство
-│   │   └── funnel.py               # Cascade Funnel
-│   ├── explanation/         # Слой объяснений
-│   │   ├── evidence_chain.py       # Цепочка доказательств
-│   │   ├── alp_verifier.py         # Логическая верификация
-│   │   └── text_generator.py       # Генерация объяснений
-│   ├── evaluation/          # Метрики качества
-│   │   └── metrics.py              # AC@k, NDCG@k, MRR
-│   ├── training/            # Обучение
-│   │   ├── trainer.py
-│   │   └── data_loader.py
-│   └── gui/                 # Графический интерфейс
-│       ├── main_window.py
-│       ├── anomaly_monitor.py      # Фоновый мониторинг
-│       ├── controller.py
-│       ├── icons/                  # SVG-иконки
-│       ├── styles/                 # QSS-темы
-│       └── widgets/
-├── scripts/
-│   ├── run_gui.py           # Запуск GUI
-│   ├── evaluate.py          # Оценка качества
-│   ├── inject_fault.py      # Инъекция сбоев
-│   └── train.py             # Обучение модели
-├── tests/                   # pytest (59 тестов)
-├── data/sample/             # Демо-данные и чекпоинт
-├── configs/connectors/      # Конфиги подключений
-├── docker/                  # Online Boutique стек
-└── docs/                    # Документация
+│   ├── connectors/       # Коннекторы данных (CSV, Docker, Prometheus, Kubernetes)
+│   ├── perception/       # Кодирование метрик, логов, трассировок
+│   ├── reasoning/        # GMM, верификатор графа, контрфактический модуль
+│   ├── explanation/      # Цепочка доказательств, текстовый генератор
+│   ├── training/         # Тренер, загрузчик данных, функции потерь
+│   ├── evaluation/       # Метрики: AC@k, NDCG@k, MRR
+│   └── gui/              # PySide6 интерфейс
+│       ├── widgets/      # Вкладки: данные, результаты, объяснение, обучение
+│       └── styles/       # Тёмная и светлая темы (QSS)
+├── tests/                # Pytest тесты (59 тестов)
+├── data/sample/          # Демо-сценарии (5 штук)
+├── configs/              # Конфигурации модели
+├── scripts/              # Вспомогательные скрипты
+├── run_cairn.bat         # Запуск (Windows, с консолью)
+├── CAIRN.vbs             # Запуск (Windows, без консоли)
+└── pyproject.toml        # Конфигурация пакета
 ```
 
 ---
 
-## Разработка и тесты
+## Метрики качества (демо-сценарии)
 
-### Запуск тестов
+| Конфигурация | AC@1 | NDCG@3 | MRR |
+|---|---|---|---|
+| CAIRN (полная) | **1.000** | **1.000** | **1.000** |
+| − Graph Verifier | 0.800 | 0.921 | 0.867 |
+| − CF Module | 0.800 | 0.934 | 0.883 |
+| − оба модуля | 0.600 | 0.823 | 0.750 |
+| Random baseline | 0.250 | 0.565 | 0.550 |
+
+---
+
+## Тестирование
 
 ```bash
-# Быстрые тесты (без GPU и slow)
+# Быстрые тесты
 pytest tests/ -m "not slow and not gpu" -q
 
-# С отчётом покрытия
-pytest tests/ -m "not slow and not gpu" \
-  --cov=src/cairn --cov-report=term-missing
+# С покрытием
+pytest tests/ -m "not slow and not gpu" --cov=src/cairn --cov-report=term-missing
 
-# Все тесты включая интеграционные
-pytest tests/ -v
+# Линтер
+flake8 src/cairn
 ```
-
-### Линтинг
-
-```bash
-flake8 src/ scripts/
-isort src/ scripts/ --check-only
-```
-
-### Структура веток
-
-| Ветка | Содержание |
-|---|---|
-| `main` | Стабильная версия |
-| `feat/multimodal-observability` | Логи, трассировки, активные модули |
-| `feat/autonomous-monitoring` | Автономный мониторинг аномалий |
-| `chore/testing-and-ci` | Тесты и CI |
-| `docs/readme-and-finalization` | Документация |
 
 ---
 
-## Требования
+## Лицензия
 
-Основные зависимости:
-
-```
-torch>=2.0.0
-PySide6>=6.5.0
-numpy>=1.24.0
-matplotlib>=3.7.0
-networkx>=3.0
-pyyaml>=6.0
-loguru>=0.7.0
-```
-
-Полный список: `requirements.txt`
+MIT License – см. [LICENSE](LICENSE)
 
 ---
 
-*Дипломная работа. СПбГУТ, 2026.*
+## Автор
+
+Дипломная работа по направлению **«Программная инженерия»**, СПбГУТ, 2026.

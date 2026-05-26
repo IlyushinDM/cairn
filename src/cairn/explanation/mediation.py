@@ -12,7 +12,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
+from typing import List, Optional
 
 import torch
 
@@ -155,7 +155,7 @@ class MediationDiagnostic:
 
         contributions: List[LayerContribution] = []
 
-        for l in range(n_layers):
+        for l in range(n_layers):  # noqa: E741
             # Bypass слоя l: запускаем все слои кроме l
             ce_bypass = self._ce_bypass_layer(
                 H, root_cause_idx, _proto, incidence, edge_weights, contexts, skip_layer=l

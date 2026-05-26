@@ -114,9 +114,9 @@ class LatencyTraceConnector:
             m = _LOCUST_RE.search(line)
             if not m:
                 continue
-            method, path, req_count, median_ms = (
+            method, path, median_ms = (
                 m.group(1), m.group(2),
-                int(m.group(3)), float(m.group(4)),
+                float(m.group(4)),
             )
             service = self._map_endpoint(path)
             service_stats.setdefault(service, []).append(median_ms)

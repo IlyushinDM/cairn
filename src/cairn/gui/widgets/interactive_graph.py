@@ -36,14 +36,14 @@ from PySide6.QtWidgets import (
 
 # ── Цветовая схема ─────────────────────────────────────────────────────────────
 COLORS = {
-    "root":      QColor("#ff4444"),   # красный — первопричина
-    "high":      QColor("#ff8c00"),   # оранжевый — высокий ПЭ
-    "medium":    QColor("#f0c040"),   # жёлтый — средний ПЭ
-    "low":       QColor("#4a9eff"),   # синий — низкий ПЭ
-    "normal":    QColor("#4a6fa5"),   # синий — нормальный (читается на обеих темах)
-    "selected":  QColor("#ffffff"),   # белый — выделен
-    "edge_call": QColor("#3ecf8e"),   # зелёный — вызов
-    "edge_colo": QColor("#f6a623"),   # оранжевый — совместное размещение
+    "root":      QColor("#ff4444"),   # красный – первопричина
+    "high":      QColor("#ff8c00"),   # оранжевый – высокий ПЭ
+    "medium":    QColor("#f0c040"),   # жёлтый – средний ПЭ
+    "low":       QColor("#4a9eff"),   # синий – низкий ПЭ
+    "normal":    QColor("#4a6fa5"),   # синий – нормальный (читается на обеих темах)
+    "selected":  QColor("#ffffff"),   # белый – выделен
+    "edge_call": QColor("#3ecf8e"),   # зелёный – вызов
+    "edge_colo": QColor("#f6a623"),   # оранжевый – совместное размещение
     "bg":        QColor("#161922"),   # фон
     "text_light":QColor("#ffffff"),
     "text_dark": QColor("#111111"),
@@ -123,7 +123,7 @@ class GraphNode(QGraphicsEllipseItem):
         self._label.setPos(-br.width()/2, -br.height()/2)
 
     def refresh_label_color(self) -> None:
-        """Обновляет цвет подписи — использует palette как основной источник."""
+        """Обновляет цвет подписи – использует palette как основной источник."""
         from PySide6.QtWidgets import QApplication
         from PySide6.QtGui import QColor as _QColor
         app = QApplication.instance()
@@ -246,7 +246,7 @@ class InteractiveGraphView(QGraphicsView):
         self.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
 
     def drawBackground(self, painter, rect) -> None:
-        """Фон обновляется при каждом рендере — учитывает смену темы."""
+        """Фон обновляется при каждом рендере – учитывает смену темы."""
         self.setBackgroundBrush(QBrush(_theme_bg()))
         super().drawBackground(painter, rect)
         self.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
@@ -297,7 +297,7 @@ class InteractiveGraphWidget(QWidget):
         self._btn_fit.setFixedHeight(24)
         self._btn_fit.clicked.connect(self._fit_view)
 
-        self._btn_window = QPushButton("Открыть окно ↗")
+        self._btn_window = QPushButton("В окне")
         self._btn_window.setFixedHeight(24)
         self._btn_window.clicked.connect(self._open_in_window)
 
@@ -307,7 +307,7 @@ class InteractiveGraphWidget(QWidget):
             "<span style='color:#ff8c00'>●</span> высокий &nbsp;"
             "<span style='color:#f0c040'>●</span> средний &nbsp;"
             "<span style='color:#4a9eff'>●</span> низкий &nbsp;"
-            "— вызов &nbsp;"
+            "– вызов &nbsp;"
             "<span style='color:#f6a623'>- -</span> совм.размещение"
         )
         legend.setStyleSheet("color:#6c7a9c; font-size:9px;")
@@ -397,7 +397,7 @@ class InteractiveGraphWidget(QWidget):
                 self._scene.addItem(edge)
                 self._edges.append(edge)
 
-        # Авто-подгонка (с задержкой — ждём рендера)
+        # Авто-подгонка (с задержкой – ждём рендера)
         from PySide6.QtCore import QTimer
         QTimer.singleShot(50, self._fit_view)
         # Обновляем цвет подписей дважды: сразу и после fit
@@ -467,7 +467,7 @@ class InteractiveGraphWidget(QWidget):
         layout = QVBoxLayout(dlg)
         layout.setContentsMargins(4, 4, 4, 4)
 
-        # Новый полноценный виджет — копируем данные
+        # Новый полноценный виджет – копируем данные
         sub = InteractiveGraphWidget()
         # Передаём те же данные что в основном виджете
         nodes_data = [

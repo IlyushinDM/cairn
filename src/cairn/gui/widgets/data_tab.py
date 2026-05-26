@@ -18,7 +18,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout, QWidget,
 )
 
-# Фиксированная палитра — не зависит от видимости сервисов
+# Фиксированная палитра – не зависит от видимости сервисов
 _PALETTE = [
     "#4a9eff", "#3ecf8e", "#f6a623", "#ff5f5f",
     "#a78bfa", "#f97316", "#06b6d4", "#ec4899",
@@ -102,7 +102,7 @@ class MetricLegend(QWidget):
 
 
 class DetachedTableWindow(QWidget):
-    """Таблица в отдельном окне — п.4."""
+    """Таблица в отдельном окне – п.4."""
 
     def __init__(self, title: str, source_table: QTableWidget, parent=None):
         super().__init__(parent, Qt.WindowType.Window)
@@ -352,13 +352,13 @@ class DataTab(QWidget):
                 self.metrics_table.setItem(row, 0, QTableWidgetItem(inst))
                 self.metrics_table.setItem(row, 1, QTableWidgetItem(metric))
                 self.metrics_table.setItem(row, 2, QTableWidgetItem(
-                    f"{vals.min():.3f}" if len(vals) else "—"))
+                    f"{vals.min():.3f}" if len(vals) else "–"))
                 self.metrics_table.setItem(row, 3, QTableWidgetItem(
-                    f"{vals.max():.3f}" if len(vals) else "—"))
+                    f"{vals.max():.3f}" if len(vals) else "–"))
                 self.metrics_table.setItem(row, 4, QTableWidgetItem(
-                    f"{vals.mean():.3f}" if len(vals) else "—"))
+                    f"{vals.mean():.3f}" if len(vals) else "–"))
                 self.metrics_table.setItem(row, 5, QTableWidgetItem(
-                    f"{vals.std():.3f}" if len(vals) else "—"))
+                    f"{vals.std():.3f}" if len(vals) else "–"))
 
         # Легенда
         self._legend.set_services(metric_data.instance_names)
@@ -384,9 +384,9 @@ class DataTab(QWidget):
             self.instances_table.setItem(row, 1, QTableWidgetItem(inst.service))
             self.instances_table.setItem(row, 2, QTableWidgetItem(inst.host))
             self.instances_table.setItem(row, 3, QTableWidgetItem(
-                str(getattr(inst, "cpu_limit", "—"))))
+                str(getattr(inst, "cpu_limit", "–"))))
             self.instances_table.setItem(row, 4, QTableWidgetItem(
-                getattr(inst, "version", "—")))
+                getattr(inst, "version", "–")))
 
     # ── Обработчики событий ───────────────────────────────────────────────
 

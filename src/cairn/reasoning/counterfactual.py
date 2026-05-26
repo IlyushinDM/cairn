@@ -10,7 +10,7 @@
 
 from __future__ import annotations
 
-from typing import Callable, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 import torch
 import torch.nn as nn

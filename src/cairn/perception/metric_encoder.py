@@ -63,7 +63,6 @@ class SSMBranch(nn.Module):
 
         # Спектр входного сигнала X(ω): (batch, n_freqs, F)
         X_f = torch.fft.rfft(x, dim=1)                        # complex
-        n_freqs = X_f.shape[1]
 
         # Частоты ω = 2π·k/T
         freqs = torch.fft.rfftfreq(T, device=device)          # (n_freqs,)

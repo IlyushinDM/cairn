@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import itertools
 from enum import Enum
-from typing import List, Optional, Tuple
+from typing import List, Tuple
 
 import torch
 

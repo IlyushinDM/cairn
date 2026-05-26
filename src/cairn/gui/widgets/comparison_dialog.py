@@ -158,12 +158,12 @@ class ComparisonDialog(QDialog):
         layout.setSpacing(8)
 
         # Заголовок
-        hdr = QLabel("Ablation Study — влияние модулей на результат анализа")
+        hdr = QLabel("Влияние модулей на результат анализа")
         hdr.setStyleSheet("font-size:13px; font-weight:600; color:#4a9eff;")
         layout.addWidget(hdr)
 
         hint = QLabel(
-            "Каждый столбец — отдельный прогон с отключённым модулем. "
+            "Каждый столбец – отдельный прогон с отключённым модулем. "
             "Выделены позиции где ранг изменился."
         )
         hint.setStyleSheet("color:#858585; font-size:11px;")
@@ -271,7 +271,7 @@ class ComparisonDialog(QDialog):
                     None
                 )
                 if rank is None:
-                    item = QTableWidgetItem("—")
+                    item = QTableWidgetItem("–")
                     item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                     self._table.setItem(row, col, item)
                     continue
@@ -284,7 +284,7 @@ class ComparisonDialog(QDialog):
                 item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 item.setFlags(Qt.ItemFlag.ItemIsEnabled)
 
-                # Цвет по изменению ранга — пастельные фоны
+                # Цвет по изменению ранга – пастельные фоны
                 # Определяем тему через контроллер
                 from PySide6.QtWidgets import QApplication as _QApp
                 _app = _QApp.instance()
@@ -298,7 +298,7 @@ class ComparisonDialog(QDialog):
                                 _light = True; break
 
                 if col == 1:
-                    # Базовый CAIRN — синевато-серый (отличается от зелёного)
+                    # Базовый CAIRN – синевато-серый (отличается от зелёного)
                     if rank == 1:
                         font = QFont(); font.setBold(True)
                         item.setFont(font)
@@ -309,7 +309,7 @@ class ComparisonDialog(QDialog):
                         item.setBackground(QColor("#1a2a3e"))
                         item.setForeground(QColor("#7ab3d8"))
                 elif rank < base:
-                    # Ранг улучшился — пастельно-зелёный
+                    # Ранг улучшился – пастельно-зелёный
                     if _light:
                         item.setBackground(QColor("#d4edda"))
                         item.setForeground(QColor("#155724"))
@@ -317,7 +317,7 @@ class ComparisonDialog(QDialog):
                         item.setBackground(QColor("#1a3323"))
                         item.setForeground(QColor("#6fcf97"))
                 elif rank > base:
-                    # Ранг ухудшился — пастельно-красный
+                    # Ранг ухудшился – пастельно-красный
                     if _light:
                         item.setBackground(QColor("#f8d7da"))
                         item.setForeground(QColor("#721c24"))

@@ -7,8 +7,6 @@
 from __future__ import annotations
 
 import random
-import time
-from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 
@@ -78,7 +76,6 @@ def generate_demo_log_data(
         err_rate    = []
         warn_rate   = []
         total_rate  = []
-        top_errors  = []
 
         for i, t in enumerate(timestamps):
             in_anomaly = is_anomalous and i >= anomaly_start_idx

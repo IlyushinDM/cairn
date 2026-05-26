@@ -79,7 +79,7 @@ class ResultsTab(QWidget):
         # B2: Кнопка сравнения режимов
         btn_compare = QPushButton("Сравнить режимы")
         btn_compare.setToolTip(
-            "Ablation Study: запустить анализ в разных конфигурациях модулей "
+            "Запустить анализ в разных конфигурациях модулей "
             "и сравнить результаты"
         )
         btn_compare.setFixedHeight(28)

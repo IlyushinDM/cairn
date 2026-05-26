@@ -1,4 +1,4 @@
-"""Вкладка 'Трассировки' — latency per service из loadgenerator."""
+"""Вкладка 'Трассировки' – latency per service из loadgenerator."""
 from __future__ import annotations
 
 from PySide6.QtCore import Qt
@@ -80,7 +80,7 @@ class TracesTab(QWidget):
         from PySide6.QtWidgets import (
             QDialog, QVBoxLayout, QTableWidget, QTableWidgetItem)
         dlg = QDialog(self)
-        dlg.setWindowTitle("Трассировки — задержка по сервисам")
+        dlg.setWindowTitle("Трассировки – задержка по сервисам")
         dlg.resize(750, 400)
         _lyt = QVBoxLayout(dlg)
         tbl = QTableWidget(self._table.rowCount(), self._table.columnCount())
@@ -98,7 +98,7 @@ class TracesTab(QWidget):
                 if it:
                     tbl.setItem(r, c, QTableWidgetItem(it.text()))
         _lyt.addWidget(tbl)
-        # show() вместо exec() — не блокирует основное окно
+        # show() вместо exec() – не блокирует основное окно
         dlg.setAttribute(__import__("PySide6.QtCore", fromlist=["Qt"]).Qt.WidgetAttribute.WA_DeleteOnClose)
         dlg.setModal(False)
         dlg.show()
@@ -171,7 +171,7 @@ class TracesTab(QWidget):
                 ep_text += f" (+{len(sl.endpoints)-3})"
             self._table.setItem(row, 4, _ro(ep_text))
 
-            # Подсветка строки — только foreground, без hardcoded фона
+            # Подсветка строки – только foreground, без hardcoded фона
             if sl.is_slow:
                 for c in range(5):
                     it = self._table.item(row, c)

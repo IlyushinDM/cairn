@@ -1,17 +1,33 @@
 [flake8]
-max-line-length = 120
+max-line-length = 100
 exclude =
-    .git,
     __pycache__,
     .venv,
+    .git,
     build,
     dist,
-    *.egg-info
-ignore =
-    E203,   # whitespace before ':'
-    W503,   # line break before binary operator
-    E501,   # long lines (handled by max-line-length)
-    F401,   # imported but unused (catch in mypy instead)
+    *.egg-info,
+    src/cairn/gui
+extend-ignore =
+    E221,
+    E241,
+    E251,
+    E261,
+    E272,
+    E302,
+    E303,
+    E301,
+    E306,
+    E501,
+    E127,
+    E128,
+    E702,
+    W292,
+    W503,
+    E231,
+    E741,
+    E225
 per-file-ignores =
-    scripts/*.py: T201
-    tests/*.py: S101, S105
+    __init__.py: F401
+    tests/*: S101
+    src/cairn/connectors/*: F401

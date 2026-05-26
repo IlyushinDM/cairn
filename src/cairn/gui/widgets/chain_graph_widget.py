@@ -1,4 +1,4 @@
-"""ChainGraphWidget — интерактивный граф цепочки доказательств.
+"""ChainGraphWidget – интерактивный граф цепочки доказательств.
 
 Возможности:
   - Перетаскивание узлов мышью
@@ -164,7 +164,7 @@ class _Edge(QGraphicsLineItem):
         ex = dp.x() - dx/dist * NODE_R
         ey = dp.y() - dy/dist * NODE_R
         self.setLine(sx, sy, ex, ey)
-        # Подпись — по центру ребра
+        # Подпись – по центру ребра
         self._lbl.setPos((sx+ex)/2 + 4, (sy+ey)/2 - 10)
 
     def refresh_colors(self) -> None:
@@ -194,7 +194,7 @@ class _View(QGraphicsView):
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
     def drawBackground(self, painter, rect) -> None:
-        """Фон обновляется при каждом рендере — учитывает смену темы."""
+        """Фон обновляется при каждом рендере – учитывает смену темы."""
         self.setBackgroundBrush(QBrush(_bg_color()))
         super().drawBackground(painter, rect)
 
@@ -243,7 +243,7 @@ class ChainGraphWidget(QWidget):
         top.addWidget(btn_fit)
 
         if show_detach_btn:
-            btn_pop = QPushButton("Открыть окно")
+            btn_pop = QPushButton("В окне")
             btn_pop.setFixedHeight(24)
             btn_pop.setStyleSheet("font-size: 11px; padding: 0 8px;")
             btn_pop.clicked.connect(self._detach)
@@ -375,6 +375,6 @@ class ChainGraphWidget(QWidget):
         dlg.setModal(False)
         dlg.show()
         dlg.raise_()
-        # Повторный fit после show — виджет теперь имеет правильный размер
+        # Повторный fit после show – виджет теперь имеет правильный размер
         from PySide6.QtCore import QTimer
         QTimer.singleShot(100, sub._view.fit)

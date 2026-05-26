@@ -1,4 +1,4 @@
-"""Вкладка 'Журналы' — отображение лог-аномалий по контейнерам.
+"""Вкладка 'Журналы' – отображение лог-аномалий по контейнерам.
 
 Показывает:
   - Таблицу контейнеров с частотой ERROR/WARN и статусом аномалии
@@ -105,7 +105,7 @@ class LogsTab(QWidget):
         from PySide6.QtWidgets import QDialog, QVBoxLayout, QTableWidget, QTableWidgetItem
         from PySide6.QtCore import Qt
         dlg = QDialog(self)
-        dlg.setWindowTitle("Журналы — таблица контейнеров")
+        dlg.setWindowTitle("Журналы – таблица контейнеров")
         dlg.resize(700, 400)
         layout = QVBoxLayout(dlg)
         tbl = QTableWidget(self._table.rowCount(), self._table.columnCount())
@@ -123,7 +123,7 @@ class LogsTab(QWidget):
                 if it:
                     tbl.setItem(r, c, QTableWidgetItem(it.text()))
         layout.addWidget(tbl)
-        # show() вместо exec() — не блокирует основное окно
+        # show() вместо exec() – не блокирует основное окно
         dlg.setAttribute(__import__("PySide6.QtCore", fromlist=["Qt"]).Qt.WidgetAttribute.WA_DeleteOnClose)
         dlg.setModal(False)
         dlg.show()
@@ -188,7 +188,7 @@ class LogsTab(QWidget):
             self._table.setItem(row, 3, item_anom)
 
             # Последние ошибки (превью)
-            preview = ts.top_errors[0][:60] if ts.top_errors else "—"
+            preview = ts.top_errors[0][:60] if ts.top_errors else "–"
             item_err_prev = QTableWidgetItem(preview)
             item_err_prev.setFlags(Qt.ItemFlag.ItemIsSelectable |
                                    Qt.ItemFlag.ItemIsEnabled)

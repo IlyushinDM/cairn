@@ -321,8 +321,6 @@ class EvidenceChainBuilder:
             return meta["dominant_metric"], meta["failure_type"]
 
         # Эвристика по NLL (отсутствие реальных метрик → возвращаем None)
-        nll = nll_scores.get(idx, 0.0)
-        ce  = ce_scores.get(idx, 0.0)
 
         # Смотрим на raw_metrics в metadata
         raw = meta.get("metrics", {})

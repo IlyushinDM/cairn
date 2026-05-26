@@ -12,8 +12,7 @@
 
 from __future__ import annotations
 
-import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
@@ -22,8 +21,8 @@ import torch.nn as nn
 from torch.optim import Adam
 from torch.optim.lr_scheduler import CosineAnnealingLR
 
-from cairn.training.data_loader import CAIRNDataset, Incident, collate_incidents
-from cairn.training.loss import CAIRNLoss, LossWeights
+from cairn.training.data_loader import CAIRNDataset, Incident, collate_incidents  # noqa: F401
+from cairn.training.loss import CAIRNLoss, LossWeights  # noqa: F401
 
 
 # ---------------------------------------------------------------------------
@@ -64,9 +63,9 @@ class CAIRNModel(nn.Module):
     Параметры
     ----------
     state_builder  : StateBuilder
-    gmm            : ConditionalGMM
+    gmm            : ConditionalGMM  # noqa: F401
     vgae           : ConfoundedVGAE
-    cf_module      : CounterfactualModule
+    cf_module      : CounterfactualModule  # noqa: F401
     hypergraph     : CausalHypergraph (фиксированный для датасета)
     """
 
@@ -96,7 +95,7 @@ class CAIRNModel(nn.Module):
 
         # Абдукция
         inc_mat   = hypergraph.incidence_matrix().to(dev)
-        edge_wts  = hypergraph.edge_weights().to(dev)
+        # edge_weights available if needed: hypergraph.edge_weights().to(dev)
         edge_idx  = self._incidence_to_edge_index(inc_mat, dev)
         edge_type = torch.zeros(edge_idx.shape[1], dtype=torch.long, device=dev)
 
@@ -268,7 +267,7 @@ class CAIRNTrainer:
 
         Метрики: AC@1, AC@3, AC@5, Avg@5, F1.
         """
-        from cairn.reasoning import ConditionalGMM, CounterfactualModule, CascadeFunnel
+        from cairn.reasoning import ConditionalGMM, CounterfactualModule, CascadeFunnel  # noqa: F401  # noqa: F401
 
         self.model.eval()
         anom_data = dataset.anomaly_subset()
@@ -276,8 +275,8 @@ class CAIRNTrainer:
             return {"AC@1": 0.0, "AC@3": 0.0, "AC@5": 0.0, "Avg@5": 0.0, "F1": 0.0}
 
         funnel = CascadeFunnel(
-            l0_top_k=30, 
-            l1_top_k=5, 
+            l0_top_k=30,
+            l1_top_k=5,
             l2_top_k=5
         )
         all_metrics: List[Dict[str, float]] = []

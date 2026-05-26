@@ -1,4 +1,4 @@
-/* CAIRN Dark Theme — VS Code style (flat, square, monochrome) */
+/* CAIRN Dark Theme – VS Code style (flat, square, monochrome) */
 /* Файл: src/cairn/gui/styles/dark_theme.qss */
 
 /* ── Базовые цвета ─────────────────────────────────────────────────────────
@@ -14,9 +14,9 @@
 */
 
 /* ── Global ────────────────────────────────────────────────────────────────*/
-/* п.2: НЕ задаём font-size в * — это вызывает QFont::setPointSize <= 0
+/* п.2: НЕ задаём font-size в * – это вызывает QFont::setPointSize <= 0
    на FigureCanvasQTAgg и других нетекстовых QWidget.
-   Задаём только font-family здесь, size — отдельно для текстовых виджетов. */
+   Задаём только font-family здесь, size – отдельно для текстовых виджетов. */
 * {
     font-family: "Segoe UI", "SF Pro Text", "Ubuntu", sans-serif;
     color: #cccccc;
@@ -360,7 +360,7 @@ QWidget#modulesPanel {
     border-right: 1px solid #474747;
 }
 
-/* Qt рисует нативные стрелки — задаём размер чтобы были видны */
+/* Qt рисует нативные стрелки – задаём размер чтобы были видны */
 /* ═══════════════════════════════ CAIRN UI DARK ════════════════════════════*/
 
 /* ── Activity Bar ────────────────────────────────────────────────────────────*/
@@ -378,7 +378,7 @@ QWidget#activityBarWidget QToolButton:checked {
     background: rgba(255,255,255,0.05);
 }
 
-/* ── Боковые панели — весь фон светлее ──────────────────────────────────────*/
+/* ── Боковые панели – весь фон светлее ──────────────────────────────────────*/
 QWidget#sourcesPanel,
 QWidget#modulesPanel,
 QWidget#sidePanel,
@@ -445,7 +445,7 @@ QFrame#resultsSummary {
     border-bottom: 1px solid #474747;
 }
 
-/* ── FigureCanvas — исключить из font-size каскада ───────────────────────────*/
+/* ── FigureCanvas – исключить из font-size каскада ───────────────────────────*/
 FigureCanvasQTAgg                   { font-size: 1px; }
 
 QLabel#metricMuted { font-size: 13px; color: #6c7a9c; }

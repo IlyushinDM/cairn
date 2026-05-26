@@ -96,6 +96,9 @@ class CAIRNMainWindow(QMainWindow):
         self._logger = _logging.getLogger("cairn.gui")
         # Инициализируем тему до _setup_style
         self._current_theme = "dark"
+        # Тема может быть задана через параметр конструктора
+        if hasattr(self, "_init_theme"):
+            self._current_theme = self._init_theme
         # Live-состояние
         self._live_connector = None
 
@@ -1606,8 +1609,43 @@ class CAIRNMainWindow(QMainWindow):
                 self._ctrl.start_analysis()
 
     
-def main(config_path: Optional[str] = None) -> None:
+def main(config_path: Optional[str] = None, theme: str = "dark") -> None:
     """Запускает CAIRN GUI."""
+    import os as _os, threading as _threading
+    if sys.platform == "win32":
+        _os.environ.setdefault("QT_FONT_DPI", "96")
+    _IGNORE = b"WM_DESTROY"
+    try:
+        _r, _w = _os.pipe()
+        _orig_fd = _os.dup(2)
+        _os.dup2(_w, 2)
+        _os.close(_w)
+        def _stderr_filter(_r=_r, _orig=_orig_fd, _ign=_IGNORE):
+            _buf = b""
+            _nl  = b"\n"
+            while True:
+                try:
+                    _chunk = _os.read(_r, 256)
+                except OSError:
+                    break
+                if not _chunk:
+                    break
+                _buf += _chunk
+                while _nl in _buf:
+                    _line, _buf = _buf.split(_nl, 1)
+                    if _ign not in _line:
+                        _os.write(_orig, _line + _nl)
+        _threading.Thread(target=_stderr_filter, daemon=True).start()
+    except Exception:
+        pass
+    import argparse as _ap
+    parser = _ap.ArgumentParser(description="CAIRN GUI", add_help=True)
+    parser.add_argument("--config", default=config_path or "configs/default.yaml",
+                        help="Путь к конфигурации")
+    parser.add_argument("--theme", default=theme, choices=["dark", "light"],
+                        help="Тема интерфейса (dark/light)")
+    args, _ = parser.parse_known_args()
+
     app = QApplication.instance() or QApplication(sys.argv)
     assert isinstance(app, QApplication)
     app.setApplicationName("CAIRN")
@@ -1616,7 +1654,14 @@ def main(config_path: Optional[str] = None) -> None:
         QFont("Segoe UI", 10) if sys.platform == "win32"
         else QFont("SF Pro Text", 10)
     )
-    window = CAIRNMainWindow(config_path=config_path)
+
+    # Применяем тему ДО создания окна
+    from cairn.gui.styles import load_theme as _lt
+    app.setStyleSheet(_lt(args.theme))
+
+    window = CAIRNMainWindow(config_path=args.config)
+    window._init_theme = args.theme
+    window._current_theme = args.theme
     window.show()
     sys.exit(app.exec())
 

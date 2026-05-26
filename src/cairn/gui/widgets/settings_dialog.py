@@ -30,7 +30,7 @@ class _BoundedSpinBox(QSpinBox):
         self._update_arrow_style(value)
 
     def _update_arrow_style(self, v: int) -> None:
-        # Не используем inline setStyleSheet — он скрывает нативные стрелки Qt.
+        # Не используем inline setStyleSheet – он скрывает нативные стрелки Qt.
         # Вместо этого меняем enabled-состояние кнопок через setProperty.
         self.setProperty("atMin", v <= self.minimum())
         self.setProperty("atMax", v >= self.maximum())
@@ -153,7 +153,7 @@ class SettingsDialog(QDialog):
 
         # Кнопки
         btn_row = QHBoxLayout()
-        reset_btn = QPushButton("↺  Сбросить по умолчанию")
+        reset_btn = QPushButton("Сбросить по умолчанию")
         reset_btn.clicked.connect(self._reset_defaults)
         save_btn = QPushButton("Сохранить конфигурацию")
         save_btn.setObjectName("primaryBtn")
@@ -364,7 +364,7 @@ class SettingsDialog(QDialog):
             if obj is None:
                 continue
             try:
-                # widget — контейнер с _spin, или сам SpinBox
+                # widget – контейнер с _spin, или сам SpinBox
                 spin_w = getattr(widget, "_spin", widget)
                 val = spin_w.value()
                 setattr(obj, attr, val)

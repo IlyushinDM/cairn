@@ -67,7 +67,7 @@ def main() -> None:
     app.setApplicationName("CAIRN")
     app.setOrganizationName("СПбГУТ")
 
-    # Явный шрифт ДО загрузки QSS — критично для Windows
+    # Явный шрифт ДО загрузки QSS – критично для Windows
     font = QFont("Segoe UI", 10) if sys.platform == "win32" else QFont("SF Pro Text", 10)
     if font.pointSize() > 0:
         app.setFont(font)
